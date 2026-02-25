@@ -1,0 +1,380 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+generator nodeClient {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum DepartmentType {
+  DAF
+  DSI
+  OPERATIONS
+  OTHERS
+}
+
+enum ServiceType {
+  INFORMATION
+  REPUTATION
+  QUALITE
+}
+
+enum ResponsibilityRole {
+  RESPONSABLE
+  CO_RESPONSABLE
+  ADJOINT
+}
+
+enum EmployeeRole {
+  CEO
+  ACCOUNTANT
+  DEPT_HEAD
+  SERVICE_HEAD
+  EMPLOYEE
+}
+
+enum EmployeeDocumentType {
+  ID_CARD
+  DRIVING_LICENSE
+  BIRTH_CERTIFICATE
+  SPOUSE_BIRTH_CERTIFICATE
+  CHILD_BIRTH_CERTIFICATE
+  CURRICULUM_VITAE
+  COVER_LETTER
+  GEOGRAPHIC_LOCATION
+  CONTRACT
+}
+
+enum EmployeeStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+}
+
+enum EmployeeGender {
+  FEMALE
+  MALE
+  OTHER
+}
+
+enum LeaveStatus {
+  SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  ANNUAL_PAID
+  ANNUAL
+  FAMILY_EXCEPTIONAL
+  MENSTRUAL
+  CONGE_M
+  MATERNITY_PATERNITY
+  SICK
+  SICKNESS
+  UNPAID
+  TRAINING
+  OTHER
+}
+
+enum DecisionType {
+  SUBMIT
+  APPROVE
+  REJECT
+  ESCALATE
+  COMMENT
+  CANCEL
+}
+
+model Department {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  type        DepartmentType @unique
+  name        String
+  description String?
+
+  members      Employee[]                  @relation("DepartmentMembers")
+  responsables DepartmentResponsibility[]
+  services     Service[]
+  leaveBlackouts LeaveBlackout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  type        ServiceType
+  name        String
+  description String?
+
+  departmentId String     @db.ObjectId
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  members Employee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@unique([departmentId, type])
+}
+
+model Employee {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  firstName String
+  lastName  String
+  email     String @unique
+
+  matricule String? // PAS @unique (si tu as des null). Utilise un index unique partiel Mongo si besoin.
+  jobTitle  String?
+  phone String?
+  profilePhotoUrl String?
+  fullAddress String?
+  gender EmployeeGender?
+  maritalStatus MaritalStatus?
+  childrenCount Int?
+  hireDate DateTime?
+  companyEntryDate DateTime?
+  hireDateFormatted String?
+  cnpsNumber String?
+  password  String
+
+  role   EmployeeRole   @default(EMPLOYEE)
+  status EmployeeStatus @default(PENDING)
+  leaveBalance Float @default(25)
+  leaveBalanceAdjustment Float @default(0)
+
+  // Auto-relation (approbation) => NoAction obligatoire sur un côté
+  approvedById  String?   @db.ObjectId
+  approvedBy    Employee? @relation("EmployeeApprovals", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvalsGiven Employee[] @relation("EmployeeApprovals")
+
+  departmentId String?     @db.ObjectId
+  department   Department? @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  serviceId String?  @db.ObjectId
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  responsibilities DepartmentResponsibility[]
+  supervisedResponsibilities DepartmentResponsibility[] @relation("ResponsibilitySupervisor")
+  salarySlips SalarySlip[] @relation("SalarySlipOwner")
+  uploadedSalarySlips SalarySlip[] @relation("SalarySlipUploader")
+  signedSalarySlips SalarySlip[] @relation("SalarySlipSigner")
+  documents EmployeeDocument[] @relation("EmployeeDocuments")
+  uploadedDocuments EmployeeDocument[] @relation("EmployeeDocumentUploader")
+  createdContractDocumentTypes ContractDocumentType[] @relation("EmployeeCreatedContractDocumentTypes")
+  ceoSignatureImageDataUrl String?
+  ceoSignatureImageMimeType String?
+
+  // Congés
+  leaveRequests   LeaveRequest[]  @relation("EmployeeLeaveRequests")
+  assignedLeaves  LeaveRequest[]  @relation("LeaveAssignee")
+  leaveDecisions  LeaveDecision[] @relation("LeaveActor")
+  receivedLeaveDecisions LeaveDecision[] @relation("LeaveDecisionTo")  
+  createdBlackouts LeaveBlackout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([status])
+  @@index([departmentId])
+  @@index([serviceId])
+}
+
+model SalarySlip {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  employeeId String   @db.ObjectId
+  employee   Employee @relation("SalarySlipOwner", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  year  Int
+  month Int
+
+  fileName    String
+  mimeType    String
+  fileDataUrl String
+
+  uploadedById String   @db.ObjectId
+  uploadedBy   Employee @relation("SalarySlipUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signedById String?   @db.ObjectId
+  signedBy   Employee? @relation("SalarySlipSigner", fields: [signedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signedAt DateTime?
+  signatureImageDataUrl String?
+  signatureImageMimeType String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([uploadedById])
+  @@index([signedById])
+  @@index([year, month])
+  @@unique([employeeId, year, month])
+}
+
+model EmployeeDocument {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  employeeId String   @db.ObjectId
+  employee   Employee @relation("EmployeeDocuments", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  type EmployeeDocumentType
+  relatedPersonName String?
+  childOrder Int?
+  validUntil DateTime?
+  fileName String
+  mimeType String
+  fileDataUrl String
+
+  contractDocumentTypeId String? @db.ObjectId
+  contractDocumentType ContractDocumentType? @relation("ContractDocumentTypeDocuments", fields: [contractDocumentTypeId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  uploadedById String   @db.ObjectId
+  uploadedBy   Employee @relation("EmployeeDocumentUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([uploadedById])
+  @@index([type])
+  @@index([contractDocumentTypeId])
+  @@index([createdAt])
+}
+
+model ContractDocumentType {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  name String @unique
+
+  createdById String    @db.ObjectId
+  createdBy   Employee  @relation("EmployeeCreatedContractDocumentTypes", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  documents EmployeeDocument[] @relation("ContractDocumentTypeDocuments")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdById])
+}
+
+model DepartmentResponsibility {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  departmentId String     @db.ObjectId
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  employeeId String   @db.ObjectId
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  supervisorId String?   @db.ObjectId
+  supervisor   Employee? @relation("ResponsibilitySupervisor", fields: [supervisorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  role    ResponsibilityRole @default(RESPONSABLE)
+  startAt DateTime           @default(now())
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([employeeId])
+  @@index([supervisorId])
+  @@unique([departmentId, employeeId, startAt])
+}
+
+model LeaveRequest {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  employeeId String   @db.ObjectId
+  employee   Employee @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  type      LeaveType
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+
+  status LeaveStatus @default(SUBMITTED)
+
+  currentAssigneeId String?   @db.ObjectId
+  currentAssignee   Employee? @relation("LeaveAssignee", fields: [currentAssigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  deptHeadAssignedAt DateTime?
+  reachedCeoAt DateTime?
+
+  decisions LeaveDecision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([currentAssigneeId])
+  @@index([employeeId, createdAt])
+  @@index([employeeId, status, startDate, endDate])
+  @@index([status, currentAssigneeId, createdAt])
+}
+
+model LeaveDecision {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  leaveRequestId String       @db.ObjectId
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  actorId String   @db.ObjectId
+  actor   Employee @relation("LeaveActor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  type    DecisionType
+  comment String?
+
+  toEmployeeId String?   @db.ObjectId
+  toEmployee   Employee? @relation("LeaveDecisionTo", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+
+  @@index([leaveRequestId])
+  @@index([actorId])
+  @@index([type])
+  @@index([toEmployeeId])
+  @@index([actorId, createdAt])
+  @@index([type, createdAt])
+  @@index([actorId, type, createdAt])
+}
+
+model LeaveBlackout {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  title String?
+  reason String?
+  startDate DateTime
+  endDate DateTime
+
+  departmentId String? @db.ObjectId
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employeeIds String[] @db.ObjectId @default([])
+
+  createdById String @db.ObjectId
+  createdBy Employee @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@index([startDate])
+  @@index([endDate])
+}

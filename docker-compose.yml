@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: conge-app
+    build:
+      context: .
+      target: dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mongodb://mongo:27017/conge?replicaSet=rs0
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: conge-mongo
+    ports:
+      - "27017:27017"
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_DATABASE: conge
+    volumes:
+      - mongodata:/data/db
+      - ./docker/mongo-init-replica.sh:/docker-entrypoint-initdb.d/mongo-init-replica.sh:ro
+    restart: unless-stopped
+
+volumes:
+  mongodata:

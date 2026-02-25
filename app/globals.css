@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vdm-gold-50:  #fff9ed;
+  --color-vdm-gold-100: #fff2d6;
+  --color-vdm-gold-200: #ffe2a3;
+  --color-vdm-gold-300: #ffd170;
+  --color-vdm-gold-400: #ffbe3e;
+  --color-vdm-gold-500: #f2a51f;
+  --color-vdm-gold-600: #d68715;
+  --color-vdm-gold-700: #a86710;
+  --color-vdm-gold-800: #74470b;
+  --color-vdm-gold-900: #3a2305;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply text-vdm-gold-800;
+  }
+
+  a {
+    @apply text-vdm-gold-600;
+  }
+
+  a:hover {
+    @apply text-vdm-gold-700;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+    transition: transform 150ms ease, filter 150ms ease;
+  }
+
+  button:not(:disabled):hover {
+    transform: scale(1.06);
+    filter: brightness(1.03);
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
