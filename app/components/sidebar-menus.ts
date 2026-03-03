@@ -72,6 +72,13 @@ export const accountantMenu: SidebarSection[] = [
 export const managerMenu: SidebarSection[] = [
   { title: null, links: [{ label: "Tableau de bord", icon: "home", to: "/dashboard/manager" }] },
   {
+    title: "Mes congés",
+    links: [
+      { label: "Demander un congé", icon: "clipboard", to: "/dashboard/manager/leave/new" },
+      { label: "Historique", icon: "clock", to: "/dashboard/manager/leave/history" },
+    ],
+  },
+  {
     title: "Sous-direction",
     links: [
       { label: "Demandes transmises", icon: "clipboard", to: "/dashboard/manager/inbox" },
