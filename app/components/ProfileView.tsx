@@ -398,7 +398,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <div className="text-lg font-semibold text-vdm-gold-800">Informations du compte</div>
-            <div className="text-sm text-vdm-gold-700">Mettez à jour vos informations personnelles.</div>
+            <div className="text-sm text-vdm-gold-700">Mise à jour des informations personnelles.</div>
           </div>
           <button
             onClick={openEditModal}

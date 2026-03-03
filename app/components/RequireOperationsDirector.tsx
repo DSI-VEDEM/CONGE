@@ -7,6 +7,7 @@ import {
   getEmployee,
   getToken,
   hasRequiredProfileData,
+  isDsiLeader,
   routeForRole,
 } from "@/lib/auth-client";
 
@@ -37,7 +38,7 @@ export default function RequireOperationsDirector({ children }: { children: Reac
       return;
     }
 
-    if (emp.isDsiAdmin) {
+    if (isDsiLeader(emp.isDsiAdmin, emp.departmentType ?? null)) {
       router.replace("/dashboard/dsi");
       return;
     }

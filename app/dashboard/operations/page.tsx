@@ -18,7 +18,7 @@ type PendingLeave = {
 };
 
 const BASE_ALLOWANCE = 25;
-const MONTHS = ["Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"];
+const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
 
 function toUtcDay(value: string | undefined) {
   if (!value) return null;
@@ -74,7 +74,6 @@ export default function OperationsDashboard() {
 
     const pendingData = await pendingRes.json().catch(() => ({}));
     if (pendingRes.ok) setPendingLeaves(pendingData?.leaves ?? []);
-
   }, []);
 
   useEffect(() => {
@@ -129,8 +128,8 @@ export default function OperationsDashboard() {
       lineData: MONTHS.map((name, idx) => ({ name, value: monthlyCounts[idx] })),
       pieData: [
         { name: "En attente", value: pendingCount },
-        { name: "Approuvees", value: approvedCount },
-        { name: "Refusees", value: rejectedCount },
+        { name: "Approuvées", value: approvedCount },
+        { name: "Refusées", value: rejectedCount },
       ],
       barData: [
         { name: "Boîte de réception", value: pendingLeaves.length },
@@ -147,41 +146,41 @@ export default function OperationsDashboard() {
         </div>
         <div className="text-sm text-vdm-gold-700">
           {employee?.role === "SERVICE_HEAD"
-            ? "Vous etes connecte en tant que sous-directeur."
-            : "Vous etes connecte en tant que directeur des operations."}
+            ? "Vous êtes connecté en tant que sous-directeur."
+            : "Vous êtes connecté en tant que directeur des opérations."}
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-sm text-vdm-gold-700">Solde de conge</div>
+            <div className="text-sm text-vdm-gold-700">Solde de congé</div>
             <button
               type="button"
               onClick={refreshData}
               className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
             >
-              Rafraichir
+              Rafraîchir
             </button>
           </div>
           <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{stats.balance} jours</div>
-          <div className="text-xs text-gray-500 mt-2">Base annuelle: {baseAllowance} jours.</div>
+          <div className="text-xs text-gray-500 mt-2">Base annuelle : {baseAllowance} jours.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
-          <div className="text-sm text-vdm-gold-700">A traiter</div>
+          <div className="text-sm text-vdm-gold-700">À traiter</div>
           <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{pendingLeaves.length}</div>
           <div className="text-xs text-gray-500 mt-2">
             {employee?.role === "SERVICE_HEAD"
-              ? "Demandes transmises par le Directeur des opérations."
+              ? "Demandes transmises par le directeur des opérations."
               : "Demandes transmises par la comptable."}
           </div>
         </div>
       </div>
 
       <DashboardCharts
-        title="Indicateurs Operations"
-        subtitle="Synthese des demandes et du solde."
+        title="Indicateurs Opérations"
+        subtitle="Synthèse des demandes et du solde."
         lineData={stats.lineData}
         pieData={stats.pieData}
         barData={stats.barData}

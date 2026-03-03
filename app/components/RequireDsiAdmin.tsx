@@ -7,6 +7,7 @@ import {
   getEmployee,
   getToken,
   hasRequiredProfileData,
+  isDsiLeader,
   routeForRole,
 } from "@/lib/auth-client";
 
@@ -38,13 +39,7 @@ export default function RequireDsiAdmin({ children }: { children: React.ReactNod
       return;
     }
 
-    if (emp.isDsiAdmin === false) {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
-      return;
-    }
-
-    // Check DSI: strict si tu veux. En dev, tu peux tolérer si departmentType manquant.
-    if (emp.isDsiAdmin == null && emp.departmentType && emp.departmentType !== "DSI") {
+    if (!isDsiLeader(emp.isDsiAdmin, emp.departmentType ?? null)) {
       router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
       return;
     }

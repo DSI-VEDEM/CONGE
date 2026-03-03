@@ -54,15 +54,15 @@ export default function OperationsInbox() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({
-              id: x.id,
-              firstName: x.employee?.firstName ?? "",
-              lastName: x.employee?.lastName ?? "",
-              employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
-              profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
-              period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
-              status: x.status,
-              note: x.reason ?? "",
-            }));
+            id: x.id,
+            firstName: x.employee?.firstName ?? "",
+            lastName: x.employee?.lastName ?? "",
+            employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
+            profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
+            period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
+            status: x.status,
+            note: x.reason ?? "",
+          }));
           const entry = { rows: mapped, hasNext: mapped.length === PENDING_PAGE_SIZE };
           pendingPageCacheRef.current[targetPage] = entry;
           if (options.applyResult && !cancelled) {
@@ -142,7 +142,7 @@ export default function OperationsInbox() {
   const forwardToServiceHead = async (id: string) => {
     const token = getToken();
     if (!token) return;
-    const t = toast.loading("Transmission au Directeur Adjoint...");
+    const t = toast.loading("Transmission au directeur adjoint...");
     try {
       const res = await fetch(`/api/leave-requests/${id}/escalate`, {
         method: "POST",
@@ -151,7 +151,7 @@ export default function OperationsInbox() {
       });
       if (res.ok) {
         setRows((prev) => prev.filter((r) => r.id !== id));
-        toast.success("Demande transmise au Directeur Adjoint.", { id: t });
+        toast.success("Demande transmise au directeur adjoint.", { id: t });
       } else {
         toast.error("Erreur lors de la transmission.", { id: t });
       }
@@ -234,7 +234,7 @@ export default function OperationsInbox() {
                   onClick={() => forwardToServiceHead(row.original.id)}
                   className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
                 >
-                  Transmettre au Directeur Adjoint
+                  Transmettre au directeur adjoint
                 </button>
               ) : null}
               <button
@@ -256,7 +256,7 @@ export default function OperationsInbox() {
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Demandes transmises</div>
       <div className="text-sm text-vdm-gold-700 mb-4">
         {currentEmployee?.role === "SERVICE_HEAD"
-          ? "Demandes provenant du Directeur des opérations pour décision."
+          ? "Demandes provenant du directeur des opérations pour décision."
           : "Demandes provenant de la comptable pour décision."}
       </div>
 
@@ -287,9 +287,7 @@ export default function OperationsInbox() {
           </button>
         </div>
       </div>
-      {isLoading ? (
-        <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div>
-      ) : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div> : null}
     </div>
   );
 }

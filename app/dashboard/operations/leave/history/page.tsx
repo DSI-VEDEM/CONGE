@@ -113,9 +113,7 @@ export default function OperationsLeaveHistory() {
             startDate: formatDateDMY(x.startDate),
             endDate: formatDateDMY(x.endDate),
             status: x.status,
-            currentAssignee: x.currentAssignee
-              ? `${x.currentAssignee.firstName} ${x.currentAssignee.lastName}`
-              : "-",
+            currentAssignee: x.currentAssignee ? `${x.currentAssignee.firstName} ${x.currentAssignee.lastName}` : "-",
           }))
         );
       } finally {
@@ -135,24 +133,24 @@ export default function OperationsLeaveHistory() {
         }
         const data = result.data;
         const mapped = (data?.leaves ?? []).map((x: ApiLeave) => {
-            const startRaw = x.startDate ?? "";
-            const endRaw = x.endDate ?? "";
-            const startRawDate = startRaw ? new Date(startRaw) : null;
-            const leaveYear =
-              startRawDate && !Number.isNaN(startRawDate.getTime()) ? startRawDate.getUTCFullYear() : null;
-            const start = formatDateDMY(startRaw);
-            const end = formatDateDMY(endRaw);
-            return {
-              id: x.id,
-              type: x.type,
-              startDate: start,
-              endDate: end,
-              year: leaveYear,
-              status: x.status,
-              decidedAt: formatDateDMY(x.decisions?.[0]?.createdAt),
-              days: startRaw && endRaw ? daysBetweenInclusive(startRaw, endRaw) : 0,
-            };
-          });
+          const startRaw = x.startDate ?? "";
+          const endRaw = x.endDate ?? "";
+          const startRawDate = startRaw ? new Date(startRaw) : null;
+          const leaveYear =
+            startRawDate && !Number.isNaN(startRawDate.getTime()) ? startRawDate.getUTCFullYear() : null;
+          const start = formatDateDMY(startRaw);
+          const end = formatDateDMY(endRaw);
+          return {
+            id: x.id,
+            type: x.type,
+            startDate: start,
+            endDate: end,
+            year: leaveYear,
+            status: x.status,
+            decidedAt: formatDateDMY(x.decisions?.[0]?.createdAt),
+            days: startRaw && endRaw ? daysBetweenInclusive(startRaw, endRaw) : 0,
+          };
+        });
         setHistoryItems(mapped);
         setHistoryHasNext(mapped.length === HISTORY_PAGE_SIZE);
       } finally {
@@ -164,15 +162,13 @@ export default function OperationsLeaveHistory() {
     void loadHistory();
   }, [historyPage]);
 
-  const activeItems = useMemo(
-    () => items.filter((item) => ["SUBMITTED", "PENDING"].includes(item.status)),
-    [items]
-  );
+  const activeItems = useMemo(() => items.filter((item) => ["SUBMITTED", "PENDING"].includes(item.status)), [items]);
 
   const filteredActiveItems = useMemo(() => {
     if (activeStatusFilter === "ALL") return activeItems;
     return activeItems.filter((item) => item.status === activeStatusFilter);
   }, [activeItems, activeStatusFilter]);
+
   const historyYears = useMemo(() => {
     const yearSet = new Set<number>();
     for (const item of historyItems) {
@@ -185,7 +181,6 @@ export default function OperationsLeaveHistory() {
   }, [historyItems, currentYear]);
 
   const filteredHistoryItems = useMemo(() => {
-    const currentYear = new Date().getUTCFullYear();
     let itemsByYear = historyItems;
     if (historyYearFilter !== "ALL") {
       const selectedYear = Number(historyYearFilter);
@@ -212,9 +207,9 @@ export default function OperationsLeaveHistory() {
         return;
       }
       setItems((prev) => prev.map((x) => (x.id === id ? { ...x, status: "CANCELLED" } : x)));
-      toast.success("Demande annulee.", { id: t });
+      toast.success("Demande annulée.", { id: t });
     } catch {
-      toast.error("Erreur reseau lors de l'annulation.", { id: t });
+      toast.error("Erreur réseau lors de l'annulation.", { id: t });
     }
   };
 
@@ -223,7 +218,7 @@ export default function OperationsLeaveHistory() {
       { header: "Type", accessorKey: "type" },
       {
         id: "period",
-        header: "Periode",
+        header: "Période",
         accessorFn: (row) => `${row.startDate} - ${row.endDate}`,
         cell: ({ row }) => (
           <span>
@@ -241,7 +236,7 @@ export default function OperationsLeaveHistory() {
         ),
       },
       {
-        header: "Assigne",
+        header: "Assigné",
         accessorFn: (row) => row.currentAssignee ?? "-",
         cell: ({ row }) => row.original.currentAssignee ?? "-",
       },
@@ -269,7 +264,7 @@ export default function OperationsLeaveHistory() {
       { header: "Type", accessorKey: "type" },
       {
         id: "period",
-        header: "Periode",
+        header: "Période",
         accessorFn: (row) => `${row.startDate} - ${row.endDate}`,
         cell: ({ row }) => (
           <span>
@@ -287,7 +282,7 @@ export default function OperationsLeaveHistory() {
           </span>
         ),
       },
-      { header: "Decision", accessorKey: "decidedAt" },
+      { header: "Décision", accessorKey: "decidedAt" },
     ],
     []
   );
@@ -295,9 +290,7 @@ export default function OperationsLeaveHistory() {
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Mes demandes</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">
-        Suivez l&apos;etat de vos demandes en cours de traitement.
-      </div>
+      <div className="text-sm text-vdm-gold-700 mb-4">Suivez l'état de vos demandes en cours de traitement.</div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-vdm-gold-700">Filtrer par statut</div>
@@ -318,13 +311,11 @@ export default function OperationsLeaveHistory() {
         searchPlaceholder="Rechercher une demande..."
         onRefresh={() => window.location.reload()}
       />
-      {isLoading ? (
-        <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div>
-      ) : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div> : null}
 
       <div className="mt-8">
         <div className="text-lg font-semibold mb-1 text-vdm-gold-800">Historique</div>
-        <div className="text-sm text-vdm-gold-700 mb-4">Historique complet de vos demandes.</div>
+        <div className="text-sm text-vdm-gold-700 mb-4">Historique complet de mes demandes.</div>
 
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-vdm-gold-700">Filtrer par statut</div>
@@ -339,6 +330,7 @@ export default function OperationsLeaveHistory() {
             <option value="CANCELLED">Annulée</option>
           </select>
         </div>
+
         <div className="mb-3">
           <label className="text-sm text-vdm-gold-900">
             Filtrer par année
@@ -385,7 +377,7 @@ export default function OperationsLeaveHistory() {
           </div>
         </div>
         {isHistoryLoading ? (
-          <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+          <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l'historique...</div>
         ) : null}
       </div>
     </div>

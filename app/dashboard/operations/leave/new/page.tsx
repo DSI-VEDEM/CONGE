@@ -152,11 +152,11 @@ export default function OperationsLeaveNew() {
     const base = Number(data?.annualLeaveBalance ?? data?.employee?.leaveBalance ?? BASE_ALLOWANCE);
     const remaining = Number(
       data?.remainingCurrentYear ??
-      (() => {
-        const year = new Date().getFullYear();
-        const consumedDays = consumedDaysForYear(nextLeaves, year);
-        return Math.max(0, base - consumedDays);
-      })()
+        (() => {
+          const year = new Date().getFullYear();
+          const consumedDays = consumedDaysForYear(nextLeaves, year);
+          return Math.max(0, base - consumedDays);
+        })()
     );
     setBaseAllowance(base);
     setBalance(Math.max(0, remaining));
@@ -205,8 +205,7 @@ export default function OperationsLeaveNew() {
     return now.getFullYear() === year && now.getMonth() === month && now.getDate() === day;
   };
 
-  const hasBlackout = (day: number | null) =>
-    day && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate));
+  const hasBlackout = (day: number | null) => day && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate));
 
   const leaveStatusForDay = useCallback(
     (day: number | null) => {
@@ -229,8 +228,7 @@ export default function OperationsLeaveNew() {
     [leaves, month, year]
   );
 
-  const selectedDateLabel =
-    selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
+  const selectedDateLabel = selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
 
   const selectedBlackouts = useMemo(() => {
     if (selectedDay == null) return [];
@@ -269,7 +267,7 @@ export default function OperationsLeaveNew() {
       }
 
       if (hasBlackoutOverlap(startDate, dateValue)) {
-        toast.error("La periode chevauche une date bloquee. Veuillez ajuster.");
+        toast.error("La période chevauche une date bloquée. Veuillez ajuster.");
         return;
       }
 
@@ -280,24 +278,24 @@ export default function OperationsLeaveNew() {
 
   const submit = async () => {
     if (isExhausted) {
-      toast.error("Solde de conges epuise.");
+      toast.error("Solde de congés épuisé.");
       return;
     }
     if (!startDate || !endDate) {
-      toast.error("Veuillez renseigner la date de debut et la date de fin.");
+      toast.error("Veuillez renseigner la date de début et la date de fin.");
       return;
     }
     const daysRequested = daysBetweenInclusive(startDate, endDate);
     if (daysRequested < 1) {
-      toast.error("La periode saisie est invalide.");
+      toast.error("La période saisie est invalide.");
       return;
     }
     if (daysRequested > balance) {
-      toast.error("La demande depasse votre solde de conges.");
+      toast.error("La demande dépasse votre solde de congés.");
       return;
     }
     if (hasBlackoutOverlap(startDate, endDate)) {
-      toast.error("La periode choisie chevauche une periode bloquee par le PDG.");
+      toast.error("La période choisie chevauche une période bloquée par le PDG.");
       return;
     }
 
@@ -316,7 +314,7 @@ export default function OperationsLeaveNew() {
         }),
       });
       if (res.ok) {
-        toast.success("Demande envoyee. En attente de validation.", { id: t });
+        toast.success("Demande envoyée. En attente de validation.", { id: t });
         setStartDate("");
         setEndDate("");
         setReason("");
@@ -327,19 +325,19 @@ export default function OperationsLeaveNew() {
         toast.error("Erreur lors de l'envoi.", { id: t });
       }
     } catch {
-      toast.error("Erreur reseau lors de l'envoi.", { id: t });
+      toast.error("Erreur réseau lors de l'envoi.", { id: t });
     }
   };
 
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Nouvelle demande</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">Soumettez votre demande de conge.</div>
+      <div className="text-sm text-vdm-gold-700 mb-4">Soumettez votre demande de congé.</div>
 
       <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 grid gap-3 md:grid-cols-2">
         {isExhausted ? (
           <div className="md:col-span-2 text-sm text-red-600">
-            Votre solde de conges est epuise. Impossible de soumettre une nouvelle demande.
+            Votre solde de congés est épuisé. Impossible de soumettre une nouvelle demande.
           </div>
         ) : null}
         <div>
@@ -360,7 +358,9 @@ export default function OperationsLeaveNew() {
 
         <div className="flex items-end justify-between gap-2 text-sm text-vdm-gold-700">
           <div className="space-y-0.5">
-            <div>Solde restant annuel : {formatLeaveDays(balance)} / {formatLeaveDays(baseAllowance)} JOURS</div>
+            <div>
+              Solde restant annuel : {formatLeaveDays(balance)} / {formatLeaveDays(baseAllowance)} JOURS
+            </div>
             <div className="text-xs text-vdm-gold-600">
               Ancienneté : {seniorityYears} an{seniorityYears > 1 ? "s" : ""} | Bonus : +{formatLeaveDays(seniorityBonusDays)}{" "}
               {Number(seniorityBonusDays) === 1 ? "jour" : "jours"}
@@ -371,12 +371,12 @@ export default function OperationsLeaveNew() {
             onClick={refreshBalance}
             className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
           >
-            Rafraichir
+            Rafraîchir
           </button>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-vdm-gold-800 mb-1">Date debut</label>
+          <label className="block text-sm font-medium text-vdm-gold-800 mb-1">Date début</label>
           <input
             type="date"
             value={startDate}
@@ -384,7 +384,7 @@ export default function OperationsLeaveNew() {
               const nextStart = e.target.value;
               setStartDate(nextStart);
               if (endDate && hasBlackoutOverlap(nextStart, endDate)) {
-                toast.error("La periode chevauche une date bloquee. Veuillez ajuster.");
+                toast.error("La période chevauche une date bloquée. Veuillez ajuster.");
                 setEndDate("");
               }
             }}
@@ -402,7 +402,7 @@ export default function OperationsLeaveNew() {
             onChange={(e) => {
               const nextEnd = e.target.value;
               if (startDate && hasBlackoutOverlap(startDate, nextEnd)) {
-                toast.error("La periode chevauche une date bloquee. Veuillez ajuster.");
+                toast.error("La période chevauche une date bloquée. Veuillez ajuster.");
                 return;
               }
               setEndDate(nextEnd);
@@ -416,8 +416,8 @@ export default function OperationsLeaveNew() {
         <div className="md:col-span-2">
           <div className="text-xs text-vdm-gold-700">
             {daysRequested > 0
-              ? `Duree selectionnee: ${daysRequested} jour${daysRequested > 1 ? "s" : ""}`
-              : "Selectionnez des dates pour calculer la duree."}
+              ? `Durée sélectionnée : ${daysRequested} jour${daysRequested > 1 ? "s" : ""}`
+              : "Sélectionnez des dates pour calculer la durée."}
           </div>
         </div>
 
@@ -428,7 +428,7 @@ export default function OperationsLeaveNew() {
             onChange={(e) => setReason(e.target.value)}
             disabled={isExhausted}
             className="w-full border border-vdm-gold-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-            placeholder="Ex: repos, raison familiale..."
+            placeholder="Ex : repos, raison familiale..."
           />
         </div>
 
@@ -445,9 +445,11 @@ export default function OperationsLeaveNew() {
         <div className="md:col-span-2">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-vdm-gold-800">Calendrier des periodes bloquees (PDG)</div>
+              <div className="text-sm font-semibold text-vdm-gold-800">
+                Calendrier des périodes bloquées (PDG)
+              </div>
               <div className="text-xs text-vdm-gold-600">
-                Consultez les dates bloquees avant de choisir votre periode.
+                Consultez les dates bloquées avant de choisir votre période.
               </div>
             </div>
             <div className="text-xs text-vdm-gold-700 capitalize">{monthLabel}</div>
@@ -459,7 +461,7 @@ export default function OperationsLeaveNew() {
               className="px-2 py-1 rounded-md border border-vdm-gold-200 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
               type="button"
             >
-              Prec
+              Préc.
             </button>
             <div className="text-xs text-gray-500">{year}</div>
             <button
@@ -467,7 +469,7 @@ export default function OperationsLeaveNew() {
               className="px-2 py-1 rounded-md border border-vdm-gold-200 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
               type="button"
             >
-              Suiv
+              Suiv.
             </button>
           </div>
 
@@ -485,20 +487,16 @@ export default function OperationsLeaveNew() {
               const dateValue = day != null ? toDateValueForDay(year, month, day) : "";
               const isSelectedStart = !!day && dateValue === startDate;
               const isSelectedEnd = !!day && dateValue === endDate;
-              const inSelectedRange =
-                !!day &&
-                !!startDate &&
-                !!endDate &&
-                rangesOverlap(dateValue, dateValue, startDate, endDate);
+              const inSelectedRange = !!day && !!startDate && !!endDate && rangesOverlap(dateValue, dateValue, startDate, endDate);
               const leaveStatus = leaveStatusForDay(day);
               const leaveClass =
                 leaveStatus === "APPROVED"
                   ? "bg-emerald-200 text-emerald-900"
                   : leaveStatus === "REJECTED"
-                    ? "bg-red-200 text-red-900"
-                    : leaveStatus
-                      ? "bg-amber-200 text-amber-900"
-                      : "";
+                  ? "bg-red-200 text-red-900"
+                  : leaveStatus
+                  ? "bg-amber-200 text-amber-900"
+                  : "";
               return (
                 <button
                   key={`${day ?? "x"}-${idx}`}
@@ -510,20 +508,18 @@ export default function OperationsLeaveNew() {
                     isSelectedStart || isSelectedEnd
                       ? "bg-vdm-gold-700 text-white font-semibold"
                       : inSelectedRange
-                        ? "bg-vdm-gold-100"
-                        : leaveClass
-                          ? leaveClass
-                          : isToday(day)
-                            ? "bg-vdm-gold-200 font-semibold"
-                            : "hover:bg-vdm-gold-50"
+                      ? "bg-vdm-gold-100"
+                      : leaveClass
+                      ? leaveClass
+                      : isToday(day)
+                      ? "bg-vdm-gold-200 font-semibold"
+                      : "hover:bg-vdm-gold-50"
                   } ${blackout ? "bg-gray-200 text-gray-500" : ""} ${
                     past ? "bg-vdm-gold-50/70 text-vdm-gold-400" : ""
                   } ${day && !blackout && !past ? "cursor-pointer" : "cursor-not-allowed"}`}
                 >
                   <div className="leading-none">{day ?? "-"}</div>
-                  <div className="mt-1 flex gap-1">
-                    {blackout ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> : null}
-                  </div>
+                  <div className="mt-1 flex gap-1">{blackout ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> : null}</div>
                 </button>
               );
             })}
@@ -532,37 +528,37 @@ export default function OperationsLeaveNew() {
           <div className="mt-3 flex items-center gap-3 text-xs text-gray-600 flex-wrap">
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-red-500" />
-              Periodes bloquees
+              Périodes bloquées
             </div>
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Jours valides
+              Jours validés
             </div>
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
-              Jours demandes
+              Jours demandés
             </div>
             <div className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-red-500" />
-              Jours refuses
+              Jours refusés
             </div>
             {selectedDay != null ? (
-              <div className="text-vdm-gold-700">Selection: {selectedDateLabel}</div>
+              <div className="text-vdm-gold-700">Sélection : {selectedDateLabel}</div>
             ) : (
-              <div className="text-vdm-gold-700">Cliquez sur un jour pour voir le detail.</div>
+              <div className="text-vdm-gold-700">Cliquez sur un jour pour voir le détail.</div>
             )}
           </div>
           <div className="mt-1 text-xs text-vdm-gold-700">
-            Choisissez un jour pour le debut, puis un autre pour la fin.
+            Choisissez un jour pour le début, puis un autre pour la fin.
             <span className="ml-2">
-              Periode: {startDate ? formatDateDMY(startDate) : "-"} {" - "} {endDate ? formatDateDMY(endDate) : "-"}
+              Période : {startDate ? formatDateDMY(startDate) : "-"} {" - "} {endDate ? formatDateDMY(endDate) : "-"}
             </span>
           </div>
 
           {selectedDay != null ? (
             <div className="mt-2 rounded-md border border-vdm-gold-100 bg-vdm-gold-50/50 p-3 text-xs text-gray-700">
               {selectedBlackouts.length === 0 ? (
-                <div>Aucune periode bloquee ce jour.</div>
+                <div>Aucune période bloquée ce jour.</div>
               ) : (
                 <ul className="space-y-1">
                   {selectedBlackouts.map((b, i) => (

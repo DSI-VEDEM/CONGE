@@ -99,8 +99,7 @@ export default function OperationsDeptEmployeesHistory() {
             id: item.id,
             firstName: item.employee?.firstName ?? "",
             lastName: item.employee?.lastName ?? "",
-            employeeName:
-              `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
+            employeeName: `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
             profilePhotoUrl: item.employee?.profilePhotoUrl ?? null,
             employeeRole: item.employee?.role ?? "—",
             leaveBalance: item.employee?.leaveBalance ?? 0,
@@ -108,10 +107,7 @@ export default function OperationsDeptEmployeesHistory() {
             startDate: formatDateDMY(startRaw),
             endDate: formatDateDMY(endRaw),
             status: item.status,
-            decidedBy:
-              `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() ||
-              actor?.role ||
-              "-",
+            decidedBy: `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
             decidedAt: decidedAtRaw ? formatDateDMY(decidedAtRaw) : "-",
             days: startRaw && endRaw ? daysBetweenInclusive(startRaw, endRaw) : 0,
           };
@@ -150,7 +146,7 @@ export default function OperationsDeptEmployeesHistory() {
             <div>
               <div className="font-semibold">{row.original.employeeName}</div>
               <div className="text-xs text-vdm-gold-700">
-                {row.original.employeeRole} · Reste: {row.original.leaveBalance} jour
+                {row.original.employeeRole} · Reste : {row.original.leaveBalance} jour
                 {row.original.leaveBalance > 1 ? "s" : ""}
               </div>
             </div>
@@ -179,7 +175,7 @@ export default function OperationsDeptEmployeesHistory() {
           </span>
         ),
       },
-      { header: "Decision", accessorKey: "decidedAt" },
+      { header: "Décision", accessorKey: "decidedAt" },
     ],
     []
   );
@@ -213,7 +209,9 @@ export default function OperationsDeptEmployeesHistory() {
         searchPlaceholder="Rechercher une demande..."
         onRefresh={loadHistory}
       />
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div> : null}
+      {isLoading ? (
+        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+      ) : null}
     </div>
   );
 }

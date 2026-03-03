@@ -51,19 +51,26 @@ export function logout() {
   localStorage.removeItem("employee");
 }
 
+export function isDsiLeader(
+  isDsiAdmin?: boolean,
+  departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null
+) {
+  return Boolean(isDsiAdmin || departmentType === "DSI");
+}
+
 export function routeForRole(
   role: EmployeeRole,
   isDsiAdmin = false,
-  _departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null
+  departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null
 ) {
-  void _departmentType;
+  const isDsi = isDsiLeader(isDsiAdmin, departmentType);
   switch (role) {
     case "CEO":
       return "/dashboard/ceo";
     case "ACCOUNTANT":
       return "/dashboard/accountant";
     case "DEPT_HEAD":
-      return isDsiAdmin ? "/dashboard/dsi" : "/dashboard/operations";
+      return isDsi ? "/dashboard/dsi" : "/dashboard/operations";
     case "SERVICE_HEAD":
       return "/dashboard/manager";
     default:
@@ -78,7 +85,7 @@ export function profileRouteForSession(employee: EmployeeSession) {
     case "ACCOUNTANT":
       return "/dashboard/accountant/profile";
     case "DEPT_HEAD":
-      if (employee.isDsiAdmin) return "/dashboard/dsi/profile";
+      if (isDsiLeader(employee.isDsiAdmin, employee.departmentType ?? null)) return "/dashboard/dsi/profile";
       return "/dashboard/operations/profile";
     case "SERVICE_HEAD":
       return "/dashboard/manager/profile";
