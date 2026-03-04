@@ -12,6 +12,7 @@ import {
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
 import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
+import type { LeaveType } from "@/generated/prisma/client";
 
 /// Vérifie si la compilation Prisma inclut le champ `employeeIds` pour les blackouts (selon la version du schéma).
 function supportsLeaveBlackoutEmployeeIds() {
@@ -146,7 +147,7 @@ export async function POST(req: Request) {
   const created = await prisma.leaveRequest.create({
     data: {
       employeeId: actorId,
-      type: leaveType,
+    type: leaveType as LeaveType,
       startDate,
       endDate,
       reason,

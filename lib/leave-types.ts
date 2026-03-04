@@ -1,7 +1,8 @@
 import { EmployeeGender } from "@/lib/employee-gender";
+import type { LeaveType } from "@/generated/prisma/client";
 
 type LeaveOption = {
-  value: string;
+  value: LeaveType;
   label: string;
   allowedGenders?: EmployeeGender[];
   hidden?: boolean;
@@ -21,12 +22,12 @@ export const LEAVE_TYPE_OPTIONS: LeaveOption[] = [
   { value: "OTHER", label: "Autre type (historique)", hidden: true },
 ] as const;
 
-export type LeaveTypeValue = (typeof LEAVE_TYPE_OPTIONS)[number]["value"];
+export type LeaveTypeValue = LeaveType;
 
 export const DEFAULT_LEAVE_TYPE = LEAVE_TYPE_OPTIONS[0].value;
 
-export const LEAVE_TYPE_VALUES = LEAVE_TYPE_OPTIONS.map((opt) => opt.value) as LeaveTypeValue[];
-export const LEAVE_TYPE_SET = new Set<LeaveTypeValue>(LEAVE_TYPE_VALUES);
+export const LEAVE_TYPE_VALUES = LEAVE_TYPE_OPTIONS.map((opt) => opt.value) as LeaveType[];
+export const LEAVE_TYPE_SET = new Set<LeaveType>(LEAVE_TYPE_VALUES);
 
 export function leaveOptionsForGender(gender?: EmployeeGender | null) {
   return LEAVE_TYPE_OPTIONS.filter((option) => {
@@ -41,13 +42,13 @@ export function isLeaveType(value: unknown): value is LeaveTypeValue {
   return typeof value === "string" && LEAVE_TYPE_SET.has(value as LeaveTypeValue);
 }
 
-export const PAID_LEAVE_VALUES: readonly LeaveTypeValue[] = ["ANNUAL_PAID", "ANNUAL"];
+export const PAID_LEAVE_VALUES: LeaveType[] = ["ANNUAL_PAID", "ANNUAL"];
 const PAID_LEAVE_SET = new Set<LeaveTypeValue>(PAID_LEAVE_VALUES);
 export function isPaidLeaveType(value: unknown): value is LeaveTypeValue {
   return typeof value === "string" && PAID_LEAVE_SET.has(value as LeaveTypeValue);
 }
 
-export const MENSTRUAL_LEAVE_VALUES: readonly LeaveTypeValue[] = ["MENSTRUAL", "CONGE_M"];
+export const MENSTRUAL_LEAVE_VALUES: LeaveType[] = ["MENSTRUAL", "CONGE_M"];
 const MENSTRUAL_LEAVE_SET = new Set<LeaveTypeValue>(MENSTRUAL_LEAVE_VALUES);
 export function isMenstrualLeaveType(value: unknown): value is LeaveTypeValue {
   return typeof value === "string" && MENSTRUAL_LEAVE_SET.has(value as LeaveTypeValue);

@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { getEmployee } from "@/lib/auth-client";
 import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection";
-import { useContractDocumentTypes } from "@/app/hooks/useContractDocumentTypes";
 
 type ContractsPageProps = {
   title?: string;
@@ -18,20 +17,12 @@ export default function ContractsPage({
   scope = "employees",
 }: ContractsPageProps) {
   const employee = useMemo(() => getEmployee(), []);
-  const { contractDocumentTypes, refreshContractDocumentTypes } = useContractDocumentTypes();
-
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">{title}</div>
       <p className="text-sm text-vdm-gold-700 mb-6">{description}</p>
       {employee ? (
-        <EmployeeDocumentsSection
-          employee={employee}
-          scope={scope}
-          showContracts
-          contractDocumentTypes={contractDocumentTypes}
-          onContractDocumentTypesRefresh={refreshContractDocumentTypes}
-        />
+        <EmployeeDocumentsSection employee={employee} scope={scope} />
       ) : (
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 text-sm text-vdm-gold-700">
           Aucune session active.

@@ -7,9 +7,8 @@ import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
 import { adjacencyGraphs, dictionary as commonDictionary } from "@zxcvbn-ts/language-common";
 import { dictionary as frDictionary } from "@zxcvbn-ts/language-fr";
 import { isCompletePhone } from "@/lib/phone";
-import EmployeeDocumentsSection, {
-  type DocumentTypeItem,
-} from "@/app/components/EmployeeDocumentsSection";
+import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection";
+import type { DocumentTypeItem } from "@/lib/document-types";
 import { formatDateDMY } from "@/lib/date-format";
 import {
   MARITAL_STATUS_LABELS,
@@ -226,9 +225,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   };
 
   const downloadPassportPhoto = async () => {
-    if (!draft.profilePhotoUrl) return;
+    const currentDraft = draft;
+    if (!currentDraft?.profilePhotoUrl) return;
     try {
-      const response = await fetch(draft.profilePhotoUrl);
+      const response = await fetch(currentDraft.profilePhotoUrl);
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
 
@@ -256,7 +256,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       ctx.drawImage(image, dx, dy, drawWidth, drawHeight);
 
       const jpgDataUrl = canvas.toDataURL("image/jpeg", 0.95);
-      const safeName = `${draft.firstName ?? ""}-${draft.lastName ?? ""}`.replace(/\s+/g, "-").toLowerCase();
+      const safeName = `${currentDraft.firstName ?? ""}-${currentDraft.lastName ?? ""}`
+        .replace(/\s+/g, "-")
+        .toLowerCase();
       const a = document.createElement("a");
       a.href = jpgDataUrl;
       a.download = `photo-passeport-${safeName || "profil"}.jpg`;
@@ -280,6 +282,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
         setPasswordError("Mot de passe trop faible. Renforcez-le avant de continuer.");
         return;
       }
+    }
+    if (!draft) {
+      toast.error("Profil indisponible.");
+      return;
     }
     if (draft.phone && !isCompletePhone(draft.phone)) {
       setPasswordError("Numéro invalide. Format attendu : +225 00 00 00 00 00 (indicatif modifiable)");

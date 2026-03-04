@@ -1,5 +1,11 @@
-import pkg from "@prisma/client";
-const { PrismaClient, DepartmentType, EmployeeRole, EmployeeStatus, ServiceType } = pkg;
+import pkg, { type DepartmentType, type EmployeeRole, type ServiceType } from "@prisma/client";
+const {
+  PrismaClient,
+  DepartmentType: DepartmentTypeEnum,
+  EmployeeRole: EmployeeRoleEnum,
+  EmployeeStatus,
+  ServiceType: ServiceTypeEnum,
+} = pkg;
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
@@ -13,22 +19,22 @@ const DEFAULT_SEED_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
 
 const departments = [
   {
-    type: DepartmentType.DAF,
+    type: DepartmentTypeEnum.DAF,
     name: "Direction Administrative et Financière",
     description: "Supervise la comptabilité, la trésorerie et les audits internes.",
   },
   {
-    type: DepartmentType.DSI,
+    type: DepartmentTypeEnum.DSI,
     name: "Direction du Service d'Informatique",
     description: "Pilote les plateformes techniques et l'infrastructure.",
   },
   {
-    type: DepartmentType.OPERATIONS,
+    type: DepartmentTypeEnum.OPERATIONS,
     name: "Direction des Opérations",
     description: "Coordonne la production des services et de la logistique.",
   },
   {
-    type: DepartmentType.OTHERS,
+    type: DepartmentTypeEnum.OTHERS,
     name: "Direction Générale",
     description: "Regroupe les fonctions transversales (PDG, gouvernance, comex).",
   },
@@ -36,20 +42,20 @@ const departments = [
 
 const serviceDefinitions = [
   {
-    departmentType: DepartmentType.OPERATIONS,
-    type: ServiceType.INFORMATION,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    type: ServiceTypeEnum.INFORMATION,
     name: "Service Information",
     description: "Pilote les processus d'information auprès des métiers et des partenaires.",
   },
   {
-    departmentType: DepartmentType.OPERATIONS,
-    type: ServiceType.REPUTATION,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    type: ServiceTypeEnum.REPUTATION,
     name: "Service Réputation",
     description: "Gère la communication institutionnelle, la qualité perçue et les retours clients.",
   },
   {
-    departmentType: DepartmentType.OPERATIONS,
-    type: ServiceType.QUALITE,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    type: ServiceTypeEnum.QUALITE,
     name: "Service Qualité",
     description: "Assure le suivi des indicateurs qualité et des audits internes.",
   },
@@ -71,59 +77,59 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     firstName: "Clémence",
     lastName: "PDG",
     jobTitle: "Président Directeur Général",
-    role: EmployeeRole.CEO,
-    departmentType: DepartmentType.OTHERS,
+    role: EmployeeRoleEnum.CEO,
+    departmentType: DepartmentTypeEnum.OTHERS,
   },
   {
     email: "comptable.daf@conge.local",
     firstName: "Théo",
     lastName: "Comptable",
     jobTitle: "Comptable DAF",
-    role: EmployeeRole.ACCOUNTANT,
-    departmentType: DepartmentType.DAF,
+    role: EmployeeRoleEnum.ACCOUNTANT,
+    departmentType: DepartmentTypeEnum.DAF,
   },
   {
     email: "dsi.admin@conge.local",
     firstName: "Sandra",
     lastName: "DSI",
     jobTitle: "Responsable Infrastructure & Sécurité",
-    role: EmployeeRole.DEPT_HEAD,
-    departmentType: DepartmentType.DSI,
+    role: EmployeeRoleEnum.DEPT_HEAD,
+    departmentType: DepartmentTypeEnum.DSI,
   },
   {
     email: "directeur.operations@conge.local",
     firstName: "Matthias",
     lastName: "Ops",
     jobTitle: "Directeur des Opérations",
-    role: EmployeeRole.DEPT_HEAD,
-    departmentType: DepartmentType.OPERATIONS,
+    role: EmployeeRoleEnum.DEPT_HEAD,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
   },
   {
     email: "sous-directeur-operations-1@conge.local",
     firstName: "Nora",
     lastName: "Chaal",
     jobTitle: "Sous-Directeur Opérations 1",
-    role: EmployeeRole.SERVICE_HEAD,
-    departmentType: DepartmentType.OPERATIONS,
-    serviceType: ServiceType.INFORMATION,
+    role: EmployeeRoleEnum.SERVICE_HEAD,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    serviceType: ServiceTypeEnum.INFORMATION,
   },
   {
     email: "sous-directeur-operations-2@conge.local",
     firstName: "Joel",
     lastName: "Nadim",
     jobTitle: "Sous-Directeur Opérations 2",
-    role: EmployeeRole.SERVICE_HEAD,
-    departmentType: DepartmentType.OPERATIONS,
-    serviceType: ServiceType.REPUTATION,
+    role: EmployeeRoleEnum.SERVICE_HEAD,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    serviceType: ServiceTypeEnum.REPUTATION,
   },
   {
     email: "sous-directeur-operations-3@conge.local",
     firstName: "Lila",
     lastName: "Kone",
     jobTitle: "Sous-Directeur Opérations 3",
-    role: EmployeeRole.SERVICE_HEAD,
-    departmentType: DepartmentType.OPERATIONS,
-    serviceType: ServiceType.QUALITE,
+    role: EmployeeRoleEnum.SERVICE_HEAD,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    serviceType: ServiceTypeEnum.QUALITE,
   },
 ];
 

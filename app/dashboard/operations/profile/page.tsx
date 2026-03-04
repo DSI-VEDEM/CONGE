@@ -1,7 +1,7 @@
 "use client";
 
 import ProfileView from "@/app/components/ProfileView";
-import { PROFILE_DOCUMENT_TYPES } from "@/app/components/EmployeeDocumentsSection";
+import { PROFILE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export default function OperationsProfilePage() {
   return (

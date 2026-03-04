@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyJwt, jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
+import type { LeaveType } from "@/generated/prisma/client";
 
 function parseDate(value: string | null) {
   if (!value) return null;
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
   const created = await prisma.leaveRequest.create({
     data: {
       employeeId,
-      type: leaveType,
+      type: leaveType as LeaveType,
       startDate,
       endDate,
       reason,

@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
-@theme {
+/* Palette VDM utilisée à la fois dans CSS variables et Tailwind config. */
+:root {
   --color-vdm-gold-50:  #fff9ed;
   --color-vdm-gold-100: #fff2d6;
   --color-vdm-gold-200: #ffe2a3;
@@ -12,6 +11,10 @@
   --color-vdm-gold-800: #74470b;
   --color-vdm-gold-900: #3a2305;
 }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   h1,
