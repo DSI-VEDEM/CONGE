@@ -6,7 +6,6 @@ import {
   MONTH_LABELS,
   SalarySlip,
   toPeriod,
-  formatDate,
   formatDateTime,
 } from "@/app/components/salary-slip-utils";
 
@@ -43,7 +42,6 @@ export default function SalarySlipsAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const [employeeId, setEmployeeId] = useState("");
   const [month, setMonth] = useState(String(now.getMonth() + 1));
@@ -60,6 +58,7 @@ export default function SalarySlipsAdmin() {
     const token = getToken();
     if (!token) return;
 
+    // GET /api/employees/options?take=150 pour peupler la liste déroulante.
     const res = await fetch("/api/employees/options?take=150", {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -95,6 +94,7 @@ export default function SalarySlipsAdmin() {
     const token = getToken();
     if (!token) return;
 
+    // GET /api/salary-slips pour afficher les bulletins disponibles.
     const res = await fetch("/api/salary-slips", {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -160,6 +160,7 @@ export default function SalarySlipsAdmin() {
     try {
       const fileDataUrl = await fileToDataUrl(file);
 
+      // POST /api/salary-slips pour uploader un nouveau bulletin PDF.
       const res = await fetch("/api/salary-slips", {
         method: "POST",
         headers: {
@@ -198,6 +199,7 @@ export default function SalarySlipsAdmin() {
 
     setDownloadingId(id);
     try {
+      // GET /api/salary-slips/:id pour récupérer le PDF signé ou non signé.
       const res = await fetch(`/api/salary-slips/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -227,40 +229,6 @@ export default function SalarySlipsAdmin() {
       setDownloadingId(null);
     }
   }, []);
-
-  const removeSlip = useCallback(
-    async (id: string) => {
-      const token = getToken();
-      if (!token) return;
-
-      const confirmed = window.confirm("Retirer ce bulletin non signé ?");
-      if (!confirmed) return;
-
-      setRemovingId(id);
-      setError(null);
-      setSuccess(null);
-
-      try {
-        const res = await fetch(`/api/salary-slips/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(String(data?.error ?? "Impossible de retirer le bulletin"));
-          return;
-        }
-
-        setSuccess("Bulletin retiré avec succès.");
-        await refreshSlips();
-      } catch {
-        setError("Erreur réseau");
-      } finally {
-        setRemovingId(null);
-      }
-    },
-    [refreshSlips]
-  );
 
   const employeeOptions = useMemo(
     () =>
@@ -529,7 +497,7 @@ export default function SalarySlipsAdmin() {
                         <button
                           type="button"
                           onClick={() => downloadSlip(slip.id)}
-                          disabled={downloadingId === slip.id || removingId === slip.id}
+                          disabled={downloadingId === slip.id}
                           className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
                         >
                           {downloadingId === slip.id ? "Téléchargement..." : "Télécharger"}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Mail } from "lucide-react";
 import toast from "react-hot-toast";
@@ -50,7 +51,7 @@ export default function ForgotPasswordPage() {
       <div className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden bg-gradient-to-br from-vdm-gold-600 via-vdm-gold-500 to-vdm-gold-200 p-12 flex-col justify-center items-center text-white">
         <div className="max-w-md text-center">
           <div className="mb-8 h-28 w-28 flex items-center justify-center overflow-hidden mx-auto">
-            <img src="/logo.jpeg" alt="Logo" className="h-24 w-24 object-contain" />
+            <Image src="/logo.jpeg" alt="Logo" width={96} height={96} className="h-24 w-24 object-contain" />
           </div>
           <h1 className="text-5xl font-bold mb-6">Mot de passe oublié</h1>
           <p className="text-xl opacity-90">
@@ -65,7 +66,7 @@ export default function ForgotPasswordPage() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
               <div className="lg:hidden mx-auto mb-4 h-16 w-16 flex items-center justify-center overflow-hidden">
-                <img src="/logo.jpeg" alt="Logo" className="h-14 w-14 object-contain" />
+                <Image src="/logo.jpeg" alt="Logo" width={56} height={56} className="h-14 w-14 object-contain" />
               </div>
               <h2 className="text-3xl font-bold text-vdm-gold-800 mb-2">Réinitialisation</h2>
               <p className="text-gray-600">Saisissez votre email ou matricule</p>

@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
   Building2,
@@ -113,17 +114,20 @@ export function Sidebar({
 
   const flatLinks = useMemo(() => sections.flatMap((section) => section.links), [sections]);
 
-  const getBestActiveLink = (path: string) => {
-    const candidates = flatLinks.filter((link) => {
-      const normalizedPath = normalizeOpsPath(path, link.to);
-      if (isDashboardRoot(link.to)) return normalizedPath === link.to;
-      return normalizedPath === link.to || normalizedPath.startsWith(`${link.to}/`);
-    });
-    if (candidates.length === 0) return null;
-    return candidates.reduce((best, cur) => (cur.to.length > best.to.length ? cur : best), candidates[0]);
-  };
+  const getBestActiveLink = useCallback(
+    (path: string) => {
+      const candidates = flatLinks.filter((link) => {
+        const normalizedPath = normalizeOpsPath(path, link.to);
+        if (isDashboardRoot(link.to)) return normalizedPath === link.to;
+        return normalizedPath === link.to || normalizedPath.startsWith(`${link.to}/`);
+      });
+      if (candidates.length === 0) return null;
+      return candidates.reduce((best, cur) => (cur.to.length > best.to.length ? cur : best), candidates[0]);
+    },
+    [flatLinks]
+  );
 
-  const activeLink = useMemo(() => getBestActiveLink(pathname), [pathname, flatLinks]);
+  const activeLink = useMemo(() => getBestActiveLink(pathname), [pathname, getBestActiveLink]);
 
   const OrgButton = () => {
     if (!showOrgSwitcher) return null;
@@ -189,7 +193,7 @@ export function Sidebar({
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-vdm-gold-900 shadow px-4 py-3 flex items-center justify-between border-b border-vdm-gold-800">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-vdm-gold-800 flex items-center justify-center overflow-hidden">
-            <img src="/logo.jpeg" alt="Logo" className="h-full w-full object-contain" />
+            <Image src="/logo.jpeg" alt="Logo" width={40} height={40} className="h-full w-full object-contain" />
           </div>
           <div>
             <div className="text-base font-bold text-vdm-gold-100 tracking-tight">{brandTitle}</div>
@@ -272,7 +276,7 @@ export function Sidebar({
         <div className="p-5 border-b border-vdm-gold-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl bg-vdm-gold-800 flex items-center justify-center overflow-hidden">
-              <img src="/logo.jpeg" alt="Logo" className="h-full w-full object-contain" />
+              <Image src="/logo.jpeg" alt="Logo" width={40} height={40} className="h-full w-full object-contain" />
             </div>
             <div>
               <div className="text-lg font-bold text-vdm-gold-100 tracking-tight">{brandTitle}</div>

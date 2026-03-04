@@ -110,3 +110,24 @@ Ce document est destiné à un.e développeur.se qui doit maintenir l’applicat
 2. Documenter les comptes seedés et leurs credentials (`SEED_ADMIN_PASSWORD`), puis changer les mots de passe en prod.
 3. Décrire tout workflow critique (ex. : validation CEO) avec le diagramme déjà présent dans `README.md`.
 4. Noter les prochaines fonctionnalités ou bugs connus dans ce document pour que le suivant ait un point de départ clair.
+
+## 12. Technologies clés et fichiers de référence
+| Technologie | Où la retrouver dans le code | Pourquoi elle importe |
+| --- | --- | --- |
+| **Next.js 16 App Router** | `app/` (pages, layouts, API, hooks) | Routeur serveur, rendu hybride, API centralisées et pages statiques/dynamiques. |
+| **React 19 + Hooks** | `app/components/`, `app/dashboard/` | UI déclarative (composants `ContractDocumentsSection`, `EmployeeDocumentsSection`, `OperationsInbox`, `ProfileView`) qui orchestrent `useState`, `useMemo`, `useCallback`. |
+| **Prisma 6 + MongoDB** | `prisma/schema.prisma`, `generated/prisma`, `lib/prisma`, `app/api/*` | ORM type-safe pour l’accès Mongo (employés, congés, documents, bulletins). |
+| **Tailwind CSS 4** | `app/**/*.tsx`, `app/components/**/*.tsx` | Styles utilitaires, thèmes mobile/desktop, classes dynamiques (boutons, modals). |
+| **`next/image`** | `app/login/page.tsx`, `app/register/page.tsx`, `app/onboarding/page.tsx`, `app/not-found.tsx`, `app/page.tsx`, `app/components/ProfileView.tsx` | Optimisation LCP, gestion automatique du redimensionnement. Les blocs `Image` remplacent les `<img>` classiques dans la zone d’authentification. |
+| **`@tanstack/react-table`** | `app/dashboard/*/inbox/page.tsx`, `app/dashboard/manager/team/page.tsx`, `app/dashboard/dsi/accounts/pending/page.tsx` | Colonnes configurées via `ColumnDef`, actions (valider/refuser) et décorations par rôle. |
+| **`react-hot-toast`** | `app/components/*`, `app/dashboard/*/page.tsx`, `app/register/page.tsx` | Feedback utilisateur pour fetchs API (validation, upload). |
+
+## 13. Cartographie rapide des API consommées par le front
+- `app/components/ContractDocumentsSection.tsx` → `GET /api/employees/options`, `GET /api/employee-documents?type=CONTRACT`, `POST /api/employee-documents`, `GET /api/employee-documents/:id/file`. Voir aussi `app/api/leave-requests/route.ts` pour les décisions qui alimentent les blackouts et l’escalade automatique.
+- `app/components/EmployeeDocumentsSection.tsx` → `GET /api/employee-documents`, `POST /api/employee-documents`, `PUT /api/employee-documents/:id`, `DELETE /api/employee-documents/:id`, `GET /api/employee-documents/:id/file`, `GET /api/employees/options`.
+- `app/components/SalarySlipsAdmin.tsx` → `GET /api/employees/options`, `GET /api/salary-slips`, `POST /api/salary-slips`, `GET /api/salary-slips/:id` pour télécharger les PDF.
+- `app/dashboard/operations/inbox/page.tsx` → `GET /api/leave-requests/pending`, `POST /api/leave-requests/:id/approve`, `:reject`, `:escalate` (vers SERVICE_HEAD ou CEO). Les boutons de la grille se calquent sur ces routes.
+- `app/dashboard/dsi/accounts/pending/page.tsx` → `PATCH /api/admin/employees/:id/status` (VALIDATE/REJECT) ; `setRoleFor` / `setDeptFor` / `setServiceFor` préparent les payloads.
+- `app/api/leave-requests/route.ts` → `POST /api/leave-requests` gère l’auth, le calcul des soldes, la détection de blackouts, et les décisions associées. On l’a commenté pour faciliter la maintenance.
+
+Les commentaires ajoutés dans les views et API vous permettent de savoir rapidement quel endpoint appeler ou modifier. Gardez un oeil sur les hooks (`useMemo`, `useCallback`) pour éviter de casser les dépendances et conservez `next/image` pour optimiser les assets dès qu’un `<img>` est remplacé.

@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 
@@ -13,7 +12,8 @@ export function requireAuth(req: Request) {
 
   const role = String(v.payload?.role ?? "");
   const departmentId = v.payload?.departmentId ?? null;
-  return { ok: true as const, auth: { id, role, departmentId } };
+  const auth: Auth = { id, role, departmentId };
+  return { ok: true as const, auth };
 }
 
 export function isFinalStatus(status: string) {

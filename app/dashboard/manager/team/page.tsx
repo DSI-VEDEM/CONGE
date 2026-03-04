@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
-import { getEmployee, getToken } from "@/lib/auth-client";
+import { getToken } from "@/lib/auth-client";
 
 type TeamMember = {
   id: string;
@@ -22,8 +22,6 @@ type TeamMember = {
 export default function ManagerTeamPage() {
   const [rows, setRows] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const manager = useMemo(() => getEmployee(), []);
-
   const loadTeam = useCallback(async () => {
     const token = getToken();
     if (!token) return;
@@ -88,7 +86,7 @@ export default function ManagerTeamPage() {
       { header: "Statut", accessorKey: "status" },
       { header: "Service", accessorKey: "service" },
     ],
-    [manager]
+    []
   );
 
   return (

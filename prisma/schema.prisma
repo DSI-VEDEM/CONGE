@@ -1,3 +1,6 @@
+/// Le schéma centralise les collections Mongo utilisées par l'app Veilleur des Médias :
+/// employés, congés, documents RH, bulletins, départements et services.
+/// Les sections suivantes détaillent les générateurs et la source de données.
 /// Génère le client Prisma principal utilisé par l'app (répertoire généré/prisma).
 generator client {
   provider = "prisma-client-js"

@@ -110,8 +110,9 @@ export default function ContractDocumentsSection({
       setEmployees(filtered);
     };
 
+    // Charger la liste des employés via l'API /api/employees/options.
     loadEmployees();
-  }, [employee.id, showEmployeeFilter, showUploader]);
+  }, [employee.id, showEmployeeFilter, showUploader, enableEmployeeFilter]);
 
 
   const missingDocumentTypeSummaries = useMemo<MissingDocumentTypeSummary[]>(() => {
@@ -198,6 +199,7 @@ export default function ContractDocumentsSection({
     if (!token) return;
 
     setIsLoading(true);
+    // Appel GET vers /api/employee-documents?type=CONTRACT pour lister les contrats.
     try {
       const url = `/api/employee-documents?type=CONTRACT`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -207,7 +209,8 @@ export default function ContractDocumentsSection({
         return;
       }
       setDocuments(Array.isArray(data?.documents) ? (data.documents as ContractDocument[]) : []);
-    } catch (error) {
+    } catch (loadError) {
+      console.error("Chargement des contrats échoué", loadError);
       toast.error("Erreur réseau lors du chargement des contrats");
     } finally {
       setIsLoading(false);
@@ -354,6 +357,7 @@ export default function ContractDocumentsSection({
         employeeId: uploadEmployeeId,
         contractDocumentTypeId: highlightedDocumentTypeId,
       };
+      // Envoi POST vers /api/employee-documents pour ajouter un document contractuel.
       const res = await fetch("/api/employee-documents", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -368,7 +372,8 @@ export default function ContractDocumentsSection({
       setSelectedFile(null);
       setFileInputKey((prev) => prev + 1);
       fetchDocuments();
-    } catch (error) {
+    } catch (readError) {
+      console.error("Lecture de document contractuel échouée", readError);
       toast.error("Erreur lors de la lecture du fichier.");
     } finally {
       setIsUploading(false);
@@ -380,6 +385,7 @@ export default function ContractDocumentsSection({
     if (!token) return;
     setOpeningDocId(doc.id);
     try {
+      // Télécharger le fichier via GET /api/employee-documents/:id/file.
       const res = await fetch(`/api/employee-documents/${doc.id}/file`, {
         headers: { Authorization: `Bearer ${token}` },
       });

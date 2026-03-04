@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getToken, type EmployeeSession } from "@/lib/auth-client";
 import toast from "react-hot-toast";
@@ -117,9 +118,6 @@ export default function EmployeeDocumentsSection({
   const [uploadOwnerDocuments, setUploadOwnerDocuments] = useState<EmployeeDocument[]>([]);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasMoreDocuments, setHasMoreDocuments] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employee.id);
   const [selectedType, setSelectedType] = useState<DocumentType>("ID_CARD");
@@ -181,11 +179,7 @@ export default function EmployeeDocumentsSection({
       const token = getToken();
       if (!token) return;
 
-      if (append) {
-        setIsLoadingMore(true);
-      } else {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
 
       const params = new URLSearchParams();
       if (isSelfScope) {
@@ -199,10 +193,11 @@ export default function EmployeeDocumentsSection({
         params.set("excludeEmployeeId", employee.id);
       }
 
-      params.set("take", String(PAGE_SIZE + 1));
+      params.set("take", String(PAGE_SIZE));
       params.set("skip", String(pageNumber * PAGE_SIZE));
 
       try {
+        // Interroge la route GET /api/employee-documents pour la page sélectionnée.
         const res = await fetch(`/api/employee-documents?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
           signal,
@@ -213,37 +208,26 @@ export default function EmployeeDocumentsSection({
           return;
         }
         const nextDocuments = Array.isArray(data?.documents) ? (data.documents as EmployeeDocument[]) : [];
-        const hasMore = nextDocuments.length > PAGE_SIZE;
-        const trimmed = hasMore ? nextDocuments.slice(0, PAGE_SIZE) : nextDocuments;
+        const trimmed = nextDocuments.slice(0, PAGE_SIZE);
         if (append) {
           setDocuments((prev) => [...prev, ...trimmed]);
         } else {
           setDocuments(trimmed);
         }
-        setHasMoreDocuments(hasMore);
-        setPage(pageNumber + 1);
       } catch (error) {
         if ((error as Error)?.name === "AbortError") return;
         toast.error("Impossible de charger les documents");
       } finally {
-        if (append) {
-          setIsLoadingMore(false);
-        } else {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     },
     [employee.id, hasGlobalAccess, isEmployeesScope, isSelfScope, selectedEmployeeId]
   );
 
-  const loadMoreDocuments = useCallback(() => {
-    if (isLoadingMore || !hasMoreDocuments) return;
-    loadDocuments({ pageNumber: page, append: true });
-  }, [hasMoreDocuments, isLoadingMore, loadDocuments, page]);
-
   const refreshUploadOwnerDocuments = useCallback(async () => {
     const token = getToken();
     if (!token) return;
+    // Récupère les documents du propriétaire via GET /api/employee-documents avec employeeId.
     const res = await fetch(`/api/employee-documents?employeeId=${employee.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -259,6 +243,7 @@ export default function EmployeeDocumentsSection({
     if (!token) return;
 
     const loadEmployees = async () => {
+      // Charge les options d'employés filtrées par rôle depuis /api/employees/options.
       const res = await fetch("/api/employees/options?take=150", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -274,9 +259,7 @@ export default function EmployeeDocumentsSection({
   useEffect(() => {
     const controller = new AbortController();
     const frame = window.requestAnimationFrame(() => {
-      setPage(0);
       setDocuments([]);
-      setHasMoreDocuments(false);
       loadDocuments({ pageNumber: 0, append: false, signal: controller.signal }).catch((e: unknown) => {
         if ((e as Error)?.name === "AbortError") return;
         toast.error("Impossible de charger les documents");
@@ -417,6 +400,7 @@ export default function EmployeeDocumentsSection({
       }
       payload.validUntil = validUntil || null;
 
+      // POST /api/employee-documents pour créer un nouveau document RH.
       const res = await fetch("/api/employee-documents", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -517,6 +501,7 @@ export default function EmployeeDocumentsSection({
         payload.fileDataUrl = fileDataUrl;
       }
 
+      // PUT /api/employee-documents/:id pour mettre à jour un document existant.
       const res = await fetch(`/api/employee-documents/${doc.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -551,6 +536,7 @@ export default function EmployeeDocumentsSection({
 
     setOpeningDocId(doc.id);
     try {
+      // GET /api/employee-documents/:id/file pour télécharger le binaire.
       const res = await fetch(`/api/employee-documents/${doc.id}/file`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -583,6 +569,7 @@ export default function EmployeeDocumentsSection({
 
     setIsEditingBusy(true);
     try {
+      // DELETE /api/employee-documents/:id pour supprimer le document sélectionné.
       const res = await fetch(`/api/employee-documents/${deleteModalDoc.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -859,9 +846,11 @@ export default function EmployeeDocumentsSection({
                               className="rounded-full focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
                               aria-label={`Agrandir la photo de ${employeeLabel(doc.employee)}`}
                             >
-                              <img
+                              <Image
                                 src={doc.employee.profilePhotoUrl}
                                 alt={`Photo de ${employeeLabel(doc.employee)}`}
+                                width={40}
+                                height={40}
                                 className="h-10 w-10 rounded-full object-cover border border-vdm-gold-200 cursor-zoom-in"
                               />
                             </button>
@@ -1043,8 +1032,14 @@ export default function EmployeeDocumentsSection({
             >
               Fermer
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoPreviewUrl} alt={photoPreviewLabel} className="w-full max-h-[85vh] object-contain bg-black" />
+            <Image
+              src={photoPreviewUrl}
+              alt={photoPreviewLabel}
+              width={800}
+              height={600}
+              className="w-full max-h-[85vh] object-contain bg-black"
+              priority
+            />
           </div>
         </div>
       ) : null}

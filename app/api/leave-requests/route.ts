@@ -1,5 +1,11 @@
 export const runtime = "nodejs";
 
+/// Traitement principal pour POST /api/leave-requests :
+/// 1. vérifie le JWT, la disponibilité des rôles et l'existence d'un assigné actif.
+/// 2. calcule les soldes (annualisé, avances) pour bloquer les dépassements.
+/// 3. vérifie les blackouts actifs avant de créer la demande et les décisions Flood.
+/// 4. retourne l'enregistrement résumant l'état des congés.
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";

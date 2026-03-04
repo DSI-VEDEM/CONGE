@@ -35,7 +35,8 @@ export function useContractDocumentTypes() {
         return;
       }
       setContractDocumentTypes(Array.isArray(data?.types) ? data.types : []);
-    } catch (error) {
+    } catch (loadError) {
+      console.error("Chargement des types de contrats échoué", loadError);
       toast.error("Erreur réseau lors du chargement des types de contrats");
       setContractDocumentTypes([]);
     } finally {

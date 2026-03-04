@@ -30,13 +30,6 @@ type DecisionItem = {
   createdAt: string;
 };
 
-function toMonthIndex(value: string | undefined) {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.getUTCMonth();
-}
-
 export default function AccountantHome() {
   const [pending, setPending] = useState<PendingLeave[]>([]);
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);

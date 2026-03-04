@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { Eye, EyeOff, Mail, Lock, User, Badge, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -152,7 +153,13 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
       <div className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden bg-gradient-to-br from-vdm-gold-600 via-vdm-gold-500 to-vdm-gold-200 p-12 flex-col justify-center items-center text-white">
         <div className="max-w-md text-center">
           <div className="mb-8 h-28 w-28 flex items-center justify-center overflow-hidden mx-auto">
-            <img src="/logo.jpeg" alt="Logo" className="h-24 w-24 object-contain" />
+            <Image
+              src="/logo.jpeg"
+              alt="Logo"
+              width={96}
+              height={96}
+              className="h-24 w-24 object-contain"
+            />
           </div>
           <h1 className="text-5xl font-bold mb-6">Créer un compte</h1>
           <p className="text-xl opacity-90 leading-relaxed">
@@ -183,7 +190,13 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-2">
               <div className="lg:hidden mx-auto mb-4 h-16 w-16 flex items-center justify-center overflow-hidden">
-                <img src="/logo.jpeg" alt="Logo" className="h-14 w-14 object-contain" />
+                <Image
+                  src="/logo.jpeg"
+                  alt="Logo"
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                />
               </div>
               <h2 className="text-3xl font-bold text-vdm-gold-800 mb-2">Inscription</h2>
               <p className="text-gray-600">Créez votre compte pour continuer</p>

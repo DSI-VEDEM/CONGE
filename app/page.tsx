@@ -1,11 +1,15 @@
+import Image from "next/image";
+
 export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <main className="w-full max-w-2xl px-6 py-16 text-center">
         <div className="mx-auto max-w-xl space-y-6">
-          <img
+          <Image
             src="/logo.jpeg"
             alt="Logo Veilleur des médias"
+            width={96}
+            height={96}
             className="mx-auto h-24 w-auto"
           />
           <h1 className="text-3xl font-bold tracking-tight text-vdm-gold-800 sm:text-4xl">

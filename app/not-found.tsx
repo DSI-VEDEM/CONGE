@@ -1,5 +1,6 @@
- "use client";
+"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { getEmployee, routeForRole } from "@/lib/auth-client";
 
@@ -11,7 +12,13 @@ export default function NotFoundPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-vdm-gold-100/20 via-white to-white px-4 text-center">
       <div className="max-w-lg rounded-3xl border border-vdm-gold-200 bg-white/90 p-10 shadow-2xl shadow-vdm-gold-200/50 backdrop-blur">
-        <img src="/logo.jpeg" alt="Logo Veilleur des Médias" className="mx-auto mb-8 h-20 w-20 rounded-full object-cover" />
+        <Image
+          src="/logo.jpeg"
+          alt="Logo Veilleur des Médias"
+          width={80}
+          height={80}
+          className="mx-auto mb-8 h-20 w-20 rounded-full object-cover"
+        />
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-vdm-gold-900">Veilleur des Médias</p>
         <h1 className="mt-4 text-4xl font-bold leading-tight text-vdm-gold-900">404 · Page introuvable</h1>
         <p className="mt-3 text-sm text-vdm-gold-600">

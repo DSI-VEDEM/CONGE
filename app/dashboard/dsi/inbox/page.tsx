@@ -4,7 +4,7 @@
 
 import { formatDateDMY } from "@/lib/date-format";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
@@ -99,7 +99,7 @@ export default function DsiInbox() {
     };
   }, [page]);
 
-  const approve = async (id: string) => {
+  const approve = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Validation en cours...");
@@ -118,9 +118,9 @@ export default function DsiInbox() {
     } catch {
       toast.error("Erreur réseau lors de la validation.", { id: t });
     }
-  };
+  }, []);
 
-  const reject = async (id: string) => {
+  const reject = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Refus en cours...");
@@ -139,7 +139,7 @@ export default function DsiInbox() {
     } catch {
       toast.error("Erreur réseau lors du refus.", { id: t });
     }
-  };
+  }, []);
 
   const columns = useMemo<ColumnDef<Req>[]>(
     () => [

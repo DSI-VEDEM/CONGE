@@ -3,7 +3,7 @@
 // ✅ FICHIER COMPLET
 
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
@@ -92,117 +92,127 @@ export default function DsiAccountsPending() {
     load();
   }, []);
 
-  const setDeptFor = (id: string, value: string) => {
+  const setDeptFor = useCallback((id: string, value: string) => {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, department: value } : row)));
-  };
+  }, []);
 
-  const setServiceFor = (id: string, value: string) => {
+  const setServiceFor = useCallback((id: string, value: string) => {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, service: value } : row)));
-  };
+  }, []);
 
-  const setRoleFor = (id: string, value: PendingEmp["role"]) => {
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== id) return row;
-        if (value !== "SERVICE_HEAD" && value !== "ACCOUNTANT") {
-          if (
-            value === "DEPT_HEAD" &&
-            row.department &&
-            departments.some((d) => d.id === row.department && d.type === "OTHERS")
-          ) {
-            return { ...row, role: value, department: "", service: "" };
+  const setRoleFor = useCallback(
+    (id: string, value: PendingEmp["role"]) => {
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.id !== id) return row;
+          if (value !== "SERVICE_HEAD" && value !== "ACCOUNTANT") {
+            if (
+              value === "DEPT_HEAD" &&
+              row.department &&
+              departments.some((d) => d.id === row.department && d.type === "OTHERS")
+            ) {
+              return { ...row, role: value, department: "", service: "" };
+            }
+            return { ...row, role: value };
           }
-          return { ...row, role: value };
-        }
 
-        if (value === "ACCOUNTANT") {
-          const dafDepartmentId = departments.find((d) => d.type === "DAF")?.id ?? row.department ?? "";
+          if (value === "ACCOUNTANT") {
+            const dafDepartmentId = departments.find((d) => d.type === "DAF")?.id ?? row.department ?? "";
+            return {
+              ...row,
+              role: value,
+              department: dafDepartmentId,
+              service: "",
+            };
+          }
+
+          const operationsDepartmentId =
+            departments.find((d) => d.type === "OPERATIONS")?.id ?? row.department ?? "";
+
           return {
             ...row,
             role: value,
-            department: dafDepartmentId,
-            service: "",
+            department: operationsDepartmentId,
+            service: row.service ?? "",
           };
+        })
+      );
+    },
+    [departments]
+  );
+
+  const approve = useCallback(
+    async (id: string) => {
+      const target = rows.find((row) => row.id === id);
+      if (!target?.department) {
+        toast.error("Veuillez sélectionner un département avant validation.");
+        return;
+      }
+
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const t = toast.loading("Validation en cours...");
+        // PATCH /api/admin/employees/:id/status pour activer un compte.
+        const res = await fetch(`/api/admin/employees/${id}/status`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: "ACTIVE",
+            role: target.role,
+            departmentId: target.department || null,
+            serviceId: target.service || null,
+          }),
+        });
+
+        if (res.ok) {
+          setRows((prev) => prev.filter((row) => row.id !== id));
+          toast.success("Compte validé.", { id: t });
+          return;
         }
 
-        const operationsDepartmentId =
-          departments.find((d) => d.type === "OPERATIONS")?.id ?? row.department ?? "";
-
-        return {
-          ...row,
-          role: value,
-          department: operationsDepartmentId,
-          service: row.service ?? "",
-        };
-      })
-    );
-  };
-
-  const approve = async (id: string) => {
-    const target = rows.find((row) => row.id === id);
-    if (!target?.department) {
-      toast.error("Veuillez sélectionner un département avant validation.");
-      return;
-    }
-
-    const token = getToken();
-    if (!token) return;
-
-    try {
-      const t = toast.loading("Validation en cours...");
-
-      const res = await fetch(`/api/admin/employees/${id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: "ACTIVE",
-          role: target.role,
-          departmentId: target.department || null,
-          serviceId: target.service || null,
-        }),
-      });
-
-      if (res.ok) {
-        setRows((prev) => prev.filter((row) => row.id !== id));
-        toast.success("Compte validé.", { id: t });
-        return;
+        toast.error("Erreur lors de la validation.", { id: t });
+      } catch {
+        toast.error("Erreur lors de la validation.");
       }
+    },
+    [rows]
+  );
 
-      toast.error("Erreur lors de la validation.", { id: t });
-    } catch {
-      toast.error("Erreur lors de la validation.");
-    }
-  };
+  const reject = useCallback(
+    async (id: string) => {
+      const token = getToken();
+      if (!token) return;
 
-  const reject = async (id: string) => {
-    const token = getToken();
-    if (!token) return;
+      try {
+        const t = toast.loading("Refus en cours...");
+        // PATCH /api/admin/employees/:id/status pour rejeter une demande.
+        const res = await fetch(`/api/admin/employees/${id}/status`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: "REJECTED" }),
+        });
 
-    try {
-      const t = toast.loading("Refus en cours...");
-      const res = await fetch(`/api/admin/employees/${id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: "REJECTED" }),
-      });
+        if (res.ok) {
+          setRows((prev) => prev.filter((row) => row.id !== id));
+          toast.success("Compte refusé.", { id: t });
+          return;
+        }
 
-      if (res.ok) {
-        setRows((prev) => prev.filter((row) => row.id !== id));
-        toast.success("Compte refusé.", { id: t });
-        return;
+        toast.error("Erreur lors du refus.", { id: t });
+      } catch {
+        toast.error("Erreur lors du refus.");
       }
-
-      toast.error("Erreur lors du refus.", { id: t });
-    } catch {
-      toast.error("Erreur lors du refus.");
-    }
-  };
+    },
+    []
+  );
 
   const columns = useMemo<ColumnDef<PendingEmp>[]>(
     () => [
@@ -315,7 +325,17 @@ export default function DsiAccountsPending() {
         ),
       },
     ],
-    [rows, departments, services]
+    [
+      approve,
+      reject,
+      setRoleFor,
+      setDeptFor,
+      setServiceFor,
+      operationsDepartmentLabel,
+      dafDepartmentLabel,
+      departments,
+      services,
+    ]
   );
 
   return (

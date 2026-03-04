@@ -205,8 +205,10 @@ export default function AccountantLeaveNew() {
     return now.getFullYear() === year && now.getMonth() === month && now.getDate() === day;
   };
 
-  const hasBlackout = (day: number | null) =>
-    day != null && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate));
+  const hasBlackout = useCallback(
+    (day: number | null) => day != null && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate)),
+    [blackouts, month, year]
+  );
 
   const selectedDateLabel = selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
 

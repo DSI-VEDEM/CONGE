@@ -1,7 +1,7 @@
 "use client";
 import { formatDateDMY } from "@/lib/date-format";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
@@ -48,6 +48,7 @@ export default function OperationsInbox() {
     const fetchPendingPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
+        // GET /api/leave-requests/pending pour charger la page courante.
         const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -97,11 +98,12 @@ export default function OperationsInbox() {
     };
   }, [page]);
 
-  const approve = async (id: string) => {
+  const approve = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Validation en cours...");
     try {
+      // POST /api/leave-requests/:id/approve pour valider une demande.
       const res = await fetch(`/api/leave-requests/${id}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -116,13 +118,14 @@ export default function OperationsInbox() {
     } catch {
       toast.error("Erreur réseau lors de la validation.", { id: t });
     }
-  };
+  }, []);
 
-  const reject = async (id: string) => {
+  const reject = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Refus en cours...");
     try {
+      // POST /api/leave-requests/:id/reject pour refuser une demande.
       const res = await fetch(`/api/leave-requests/${id}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -137,13 +140,14 @@ export default function OperationsInbox() {
     } catch {
       toast.error("Erreur réseau lors du refus.", { id: t });
     }
-  };
+  }, []);
 
-  const forwardToServiceHead = async (id: string) => {
+  const forwardToServiceHead = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Transmission au directeur adjoint...");
     try {
+      // POST /api/leave-requests/:id/escalate pour transmettre à un rôle supérieur.
       const res = await fetch(`/api/leave-requests/${id}/escalate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -158,13 +162,14 @@ export default function OperationsInbox() {
     } catch {
       toast.error("Erreur réseau lors de la transmission.", { id: t });
     }
-  };
+  }, []);
 
-  const forwardToCeo = async (id: string) => {
+  const forwardToCeo = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Transmission au PDG...");
     try {
+      // POST /api/leave-requests/:id/escalate pour transmettre la demande au PDG.
       const res = await fetch(`/api/leave-requests/${id}/escalate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -179,7 +184,7 @@ export default function OperationsInbox() {
     } catch {
       toast.error("Erreur réseau lors de la transmission.", { id: t });
     }
-  };
+  }, []);
 
   const columns = useMemo<ColumnDef<Req>[]>(
     () => [

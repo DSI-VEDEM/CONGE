@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { getEmployee, getToken } from "@/lib/auth-client";
@@ -233,7 +234,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       const objectUrl = URL.createObjectURL(blob);
 
       const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => resolve(img);
         img.onerror = () => reject(new Error("Impossible de charger l'image"));
         img.src = objectUrl;
@@ -339,7 +340,8 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       localStorage.setItem("employee", JSON.stringify(updated));
       setPassword("");
       setIsEditing(false);
-    } catch (error) {
+    } catch (saveError) {
+      console.error("Échec mise à jour profil", saveError);
       toast.error("Erreur réseau lors de l'envoi.", { id: toastId });
     } finally {
       setIsSaving(false);
@@ -367,9 +369,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
               className="rounded-full focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
               aria-label="Agrandir la photo de profil"
             >
-              <img
+              <Image
                 src={draft.profilePhotoUrl}
                 alt="Photo de profil"
+                width={64}
+                height={64}
                 className="h-16 w-16 rounded-full object-cover border border-vdm-gold-200 cursor-zoom-in"
               />
             </button>
@@ -433,10 +437,13 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
               >
                 Fermer
               </button>
-              <img
+              <Image
                 src={draft.profilePhotoUrl}
                 alt="Aperçu agrandi de la photo de profil"
+                width={900}
+                height={900}
                 className="w-full max-h-[85vh] object-contain bg-black"
+                priority
               />
             </div>
           </div>
@@ -556,9 +563,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                       className="rounded-full focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
                       aria-label="Agrandir la photo de profil"
                     >
-                      <img
+                      <Image
                         src={draft.profilePhotoUrl}
                         alt="Photo de profil"
+                        width={64}
+                        height={64}
                         className="h-16 w-16 rounded-full object-cover border border-vdm-gold-200 cursor-zoom-in"
                       />
                     </button>

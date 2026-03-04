@@ -152,7 +152,6 @@ export default function DsiDashboard() {
   const stats = useMemo(() => {
     const year = new Date().getFullYear();
 
-    let approvedDays = 0;
     let pendingCount = 0;
     let approvedCount = 0;
     let rejectedCount = 0;
@@ -165,11 +164,6 @@ export default function DsiDashboard() {
 
       if (leave.status === "APPROVED") {
         approvedCount += 1;
-        approvedDays += overlapDaysInYear(
-          leave.startDate,
-          leave.endDate,
-          year
-        );
       }
 
       if (leave.status === "REJECTED") rejectedCount += 1;

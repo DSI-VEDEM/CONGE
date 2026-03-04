@@ -1,7 +1,7 @@
 "use client";
 import { formatDateDMY } from "@/lib/date-format";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
@@ -244,7 +244,7 @@ export default function AccountantInbox() {
     [departmentFilter, rows]
   );
 
-  const approve = async (id: string) => {
+  const approve = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Validation en cours...");
@@ -263,9 +263,9 @@ export default function AccountantInbox() {
     } catch {
       toast.error("Erreur réseau lors de la validation.", { id: t });
     }
-  };
+  }, []);
 
-  const reject = async (id: string) => {
+  const reject = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Refus en cours...");
@@ -284,9 +284,9 @@ export default function AccountantInbox() {
     } catch {
       toast.error("Erreur réseau lors du refus.", { id: t });
     }
-  };
+  }, []);
 
-  const forwardToDeptHead = async (id: string) => {
+  const forwardToDeptHead = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Transmission au directeur de département...");
@@ -305,9 +305,9 @@ export default function AccountantInbox() {
     } catch {
       toast.error("Erreur réseau lors de la transmission.", { id: t });
     }
-  };
+  }, []);
 
-  const forwardToCeo = async (id: string) => {
+  const forwardToCeo = useCallback(async (id: string) => {
     const token = getToken();
     if (!token) return;
     const t = toast.loading("Transmission au PDG...");
@@ -323,10 +323,10 @@ export default function AccountantInbox() {
       } else {
         toast.error("Erreur lors de la transmission.", { id: t });
       }
-    } catch {
-      toast.error("Erreur réseau lors de la transmission.", { id: t });
-    }
-  };
+  } catch {
+    toast.error("Erreur réseau lors de la transmission.", { id: t });
+  }
+}, []);
 
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [

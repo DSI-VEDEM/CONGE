@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -486,9 +487,11 @@ export default function OnboardingPage() {
             ) : null}
             {draft.profilePhotoUrl ? (
               <div className="mt-3">
-                <img
+                <Image
                   src={draft.profilePhotoUrl}
                   alt="Aperçu photo"
+                  width={80}
+                  height={80}
                   className="h-20 w-20 rounded-full object-cover border border-vdm-gold-200"
                 />
               </div>
