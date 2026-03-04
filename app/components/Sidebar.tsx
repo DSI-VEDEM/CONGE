@@ -14,7 +14,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  Plus,
   Users,
   ShieldCheck,
   FileText,
@@ -72,12 +71,6 @@ export function Sidebar({
   };
 
   // Optionnel (si tu veux un switch d’org plus tard)
-  const organizations = [
-    { id: "1", name: "Organisation A" },
-    { id: "2", name: "Organisation B" },
-  ];
-  const hasMultipleOrgs = organizations.length > 1;
-
   const [menuHeight, setMenuHeight] = useState(0);
   useEffect(() => {
     if (menuRef.current) {
@@ -134,54 +127,23 @@ export function Sidebar({
 
     return (
       <div className="relative" ref={dropdownRef}>
-        {hasMultipleOrgs ? (
-          <>
-            <button
-              onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900"
-            >
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-white" />
-                <span className="text-xs">Organisations</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${orgDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
+        <button
+          onClick={() => setOrgDropdownOpen((open) => !open)}
+          className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white font-semibold transition border border-vdm-gold-900 hover:bg-vdm-gold-700"
+        >
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-white" />
+            <span className="text-xs">Changer d’organisation</span>
+          </div>
+          <ChevronDown className={`w-4 h-4 transition-transform ${orgDropdownOpen ? "rotate-180" : ""}`} />
+        </button>
 
-            {orgDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border overflow-hidden z-50">
-                {organizations.map((org, i) => (
-                  <button
-                    key={org.id}
-                    onClick={() => {
-                      setOrgDropdownOpen(false);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-vdm-gold-50 transition text-sm font-medium text-vdm-gold-900 ${
-                      i !== organizations.length - 1 ? "border-b border-vdm-gold-100" : ""
-                    }`}
-                  >
-                    {org.name}
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    setOrgDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 bg-vdm-gold-50 hover:bg-vdm-gold-100 transition text-sm font-semibold text-vdm-gold-900 border-t"
-                >
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Ajouter une organisation
-                  </div>
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <button className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900">
-            <Plus className="w-4 h-4 text-white" />
-            <span className="text-xs">Ajouter une organisation</span>
-          </button>
+        {orgDropdownOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 rounded-xl border border-vdm-gold-100 bg-white shadow-lg">
+            <div className="px-4 py-3 text-sm text-vdm-gold-700">
+              Gestion d’organisation à implémenter
+            </div>
+          </div>
         )}
       </div>
     );
