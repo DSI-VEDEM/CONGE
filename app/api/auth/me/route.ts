@@ -9,6 +9,7 @@ import { isEmployeeGender } from "@/lib/employee-gender";
 import { isMaritalStatus } from "@/lib/marital-status";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
+/// Valide si la chaîne est une URL http(s) (utilisée pour les avatars externes).
 function isValidHttpUrl(value: string) {
   try {
     const url = new URL(value);
@@ -18,10 +19,12 @@ function isValidHttpUrl(value: string) {
   }
 }
 
+/// Permet d'acccepter les data-URI d'image pour les uploads inline.
 function isValidImageDataUrl(value: string) {
   return /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/.test(value);
 }
 
+/// Convertit une date ISO YYYY-MM-DD en Date UTC ou null.
 function parseIsoDate(value: unknown) {
   const raw = norm(value);
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
@@ -32,6 +35,7 @@ function parseIsoDate(value: unknown) {
 }
 
 export async function GET(req: Request) {
+  // Fournit les informations du profil connecté (après sync du solde de congés).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
@@ -73,6 +77,7 @@ export async function GET(req: Request) {
 
 
 export async function PUT(req: Request) {
+  // Met à jour les champs autorisés sur le profil (pas d'email, pas de rôle).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 

@@ -8,6 +8,9 @@ dotenv.config();
 const prisma = new PrismaClient();
 const DEFAULT_SEED_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
 
+// Ce seed initialise les départements/services/roles clés et garantit que les comptes d'administration
+// existent sans dupliquer les enregistrements (upsert + vérification `findUnique`).
+
 const departments = [
   {
     type: DepartmentType.DAF,
@@ -127,6 +130,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
 type DepartmentMap = Record<DepartmentType, { id: string }>;
 type ServiceMap = Partial<Record<ServiceType, { id: string }>>;
 
+// Attend que Mongo soit prêt avant de lancer les inserts (utile en CI / Docker compose up).
 async function waitForDatabaseReady() {
   const maxAttempts = 12;
   const delayMs = 2000;
@@ -143,6 +147,7 @@ async function waitForDatabaseReady() {
   }
 }
 
+// Crée ou met à jour les départements référencés, retourne une map pour éviter les recherches répétées.
 async function ensureDepartments(): Promise<DepartmentMap> {
   const map = {} as DepartmentMap;
 
@@ -158,6 +163,7 @@ async function ensureDepartments(): Promise<DepartmentMap> {
   return map;
 }
 
+// Associe les services aux départements existants, en conservant une référence par type.
 async function ensureServices(departmentMap: DepartmentMap): Promise<ServiceMap> {
   const map = {} as ServiceMap;
 
@@ -192,6 +198,7 @@ async function ensureServices(departmentMap: DepartmentMap): Promise<ServiceMap>
   return map;
 }
 
+// Crée les comptes utilisateurs seedés en utilisant les départements/services déjà assurés.
 async function seedEmployees(departmentMap: DepartmentMap) {
   const services = await ensureServices(departmentMap);
 
@@ -207,6 +214,7 @@ async function seedEmployees(departmentMap: DepartmentMap) {
       throw new Error(`Département manquant pour type ${employee.departmentType}`);
     }
 
+    // Toutes les créations partagent le même mot de passe par défaut, haché ici.
     const passwordHash = await bcrypt.hash(DEFAULT_SEED_PASSWORD, 12);
 
     const service = employee.serviceType ? services[employee.serviceType] : undefined;
@@ -230,6 +238,7 @@ async function seedEmployees(departmentMap: DepartmentMap) {
   }
 }
 
+// Point d’entrée : vérifie Mongo, initialise les données et logge l’état final.
 async function main() {
   await waitForDatabaseReady();
   const departmentMap = await ensureDepartments();

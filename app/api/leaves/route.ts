@@ -14,6 +14,7 @@ function parseDate(value: string | null) {
 }
 
 export async function GET(req: Request) {
+  // Retourne les congés (tous ou uniquement les miens si ?mine=1).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
@@ -46,6 +47,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Création d'une demande de congé classique (pour le front général).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
@@ -79,11 +81,13 @@ export async function POST(req: Request) {
     return jsonError("Congé menstruel réservé aux collaboratrices", 403);
   }
 
+  // On cible un comptable actif pour valider ou mettre le congé en attente
   const accountant = await prisma.employee.findFirst({
     where: { role: "ACCOUNTANT", status: "ACTIVE" },
     select: { id: true },
   });
 
+  // Si aucun comptable n'est actif, la demande est soumise directement (pas de validation intermédiaire)
   const status = accountant?.id ? "PENDING" : "SUBMITTED";
 
   const created = await prisma.leaveRequest.create({

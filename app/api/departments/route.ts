@@ -6,6 +6,7 @@ import { verifyJwt, jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 
 export async function GET(req: Request) {
+  // Retourne la liste des départements avec les compteurs utiles côté UI.
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
@@ -26,6 +27,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  // Création de département (utilisé via l'admin DAF/CEO).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
@@ -34,6 +36,7 @@ export async function POST(req: Request) {
     const type = norm(body?.type);
     const name = norm(body?.name);
 
+    // Toute création nécessite un type + un nom
     if (!type || !name) return jsonError("Champs requis: type, name", 400);
 
     const created = await prisma.department.create({

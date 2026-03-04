@@ -39,6 +39,7 @@ function LoginContent() {
     const loadingToast = toast.loading("Connexion en cours...");
 
     try {
+      // API Login : envoie identifier/password, attend { token, employee } (role/status/isDsiAdmin)
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,7 +58,7 @@ function LoginContent() {
         return;
       }
 
-      // API => { token, employee: {...} }
+      // Réponse attendue : { token, employee } (champs utilisés par `routeForRole` & `hasRequiredProfileData`)
       localStorage.setItem("token", data.token);
       localStorage.setItem("employee", JSON.stringify(data.employee));
 

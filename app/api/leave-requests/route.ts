@@ -13,6 +13,7 @@ import {
 } from "@/lib/leave-balance";
 import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
 
+/// Vérifie si la compilation Prisma inclut le champ `employeeIds` pour les blackouts (selon la version du schéma).
 function supportsLeaveBlackoutEmployeeIds() {
   const client = prisma as unknown as {
     _runtimeDataModel?: {
@@ -24,6 +25,7 @@ function supportsLeaveBlackoutEmployeeIds() {
   return fields.some((f: { name?: string }) => f?.name === "employeeIds");
 }
 
+/// Retourne true si un blackout s'applique au collaborateur (par ID ou département).
 function appliesToEmployee(
   blackout: { departmentId?: string | null; employeeIds?: string[] | null },
   employee: { id: string; departmentId?: string | null }
@@ -35,11 +37,13 @@ function appliesToEmployee(
 }
 
 export async function POST(req: Request) {
+  /// Endpoint de soumission de congés avec logique d'escalade automatique.
   const authRes = requireAuth(req);
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role, departmentId } = authRes.auth;
 
+  // Le CEO ne crée pas de demande : il valide en bout de chaîne seulement.
   if (role === "CEO") {
     return jsonError("Le PDG ne peut pas créer de demande", 403);
   }
@@ -51,21 +55,26 @@ export async function POST(req: Request) {
   const endDate = parseDate(body?.endDate);
   const leaveType = isLeaveType(type) ? type : null;
 
+  // On exige type/start/end.
   if (!leaveType || !startDate || !endDate) {
     return jsonError("Champs requis: type, startDate, endDate", 400);
   }
 
+  // startDate doit précéder endDate pour éviter les plages négatives.
   if (startDate > endDate) {
     return jsonError("startDate doit être avant endDate", 400);
   }
 
+  // Synchronise les soldes avant toute validation (mise à jour `leaveBalance` en base).
   const synced = await syncEmployeeLeaveBalance(prisma, actorId);
   if (!synced) return jsonError("Employé introuvable", 404);
   const employee = synced.employee;
+  // Vérifie que seuls les profils féminins peuvent demander un congé menstruel.
   if (isMenstrualLeaveType(leaveType) && employee.gender !== "FEMALE") {
     return jsonError("Congé menstruel réservé aux collaboratrices", 403);
   }
 
+  // On travaille sur l'année en cours pour le calcul des droits.
   const currentYear = new Date().getUTCFullYear();
   const requested = requestedLeaveDays(startDate, endDate);
   if (leaveType === "ANNUAL_PAID") {
@@ -82,6 +91,7 @@ export async function POST(req: Request) {
       currentYear + 1
     ).entitlement;
     const availableCurrentYear = Math.max(0, Number(employee.leaveBalance ?? 0) - consumed);
+    // Solde disponible = reste current year + avance potentielle sur l'année suivante.
     const available = Math.max(0, availableCurrentYear + nextYearEntitlement);
     if (requested > available) {
       return jsonError("La demande dépasse votre solde de congés disponible", 409, {
@@ -96,6 +106,7 @@ export async function POST(req: Request) {
   }
 
   const supportsEmployeeIds = supportsLeaveBlackoutEmployeeIds();
+  // Recherche des blackouts qui chevauchent la demande.
   const overlappingBlackouts = await prisma.leaveBlackout.findMany({
     where: {
       startDate: { lte: endDate },
@@ -127,6 +138,7 @@ export async function POST(req: Request) {
     assignee = await findActiveEmployeeByRole("CEO");
   }
 
+  // Sans assigné, impossible d'avancer la demande.
   if (!assignee) {
     return jsonError("Aucun assignataire actif disponible", 409);
   }
@@ -154,6 +166,7 @@ export async function POST(req: Request) {
     },
   });
 
+  // Historise l'action de soumission
   await prisma.leaveDecision.create({
     data: {
       leaveRequestId: created.id,

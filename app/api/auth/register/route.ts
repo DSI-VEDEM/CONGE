@@ -6,11 +6,13 @@ import bcrypt from "bcryptjs";
 import { jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 
+/// Valide grossièrement la structure d'une adresse email côté serveur.
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
 export async function POST(req: Request) {
+  /// Endpoint d'inscription publique : crée un employé en statut pending.
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -21,17 +23,21 @@ export async function POST(req: Request) {
     const password = norm(body?.password);
     const acceptedTerms = body?.acceptedTerms === true;
 
+    // Vérifications minimales de présence
     if (!firstName || !lastName || !email || !password) {
       return jsonError("Champs requis: firstName, lastName, email, password", 400);
     }
 
+    // Politique simple : email doit contenir @ et domaine
     if (!isValidEmail(email)) {
       return jsonError("Email invalide", 400);
     }
 
+    // Mots de passe trop courts interdits
     if (password.length < 6) {
       return jsonError("Mot de passe trop court (min 6)", 400);
     }
+    // Acceptation obligatoire des CGU
     if (!acceptedTerms) {
       return jsonError("Vous devez accepter les conditions d'utilisation", 400);
     }

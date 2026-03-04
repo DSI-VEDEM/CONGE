@@ -1,18 +1,22 @@
+/// Génère le client Prisma principal utilisé par l'app (répertoire généré/prisma).
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
+/// Génère le client utilitaire présent dans node_modules pour que `prisma db push` fonctionne aussi.
 generator nodeClient {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
 }
 
+/// Source MongoDB, l'URL est injectée via `.env`.
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
+/// Pour catégoriser les départements de l'entreprise.
 enum DepartmentType {
   DAF
   DSI
@@ -20,18 +24,21 @@ enum DepartmentType {
   OTHERS
 }
 
+/// Services spécialisés rattachés à la Direction des Opérations.
 enum ServiceType {
   INFORMATION
   REPUTATION
   QUALITE
 }
 
+/// Rôle occupé par un.e responsable dans un département.
 enum ResponsibilityRole {
   RESPONSABLE
   CO_RESPONSABLE
   ADJOINT
 }
 
+/// Rôles métiers utilisés dans les policies/contrôles d'accès.
 enum EmployeeRole {
   CEO
   ACCOUNTANT
@@ -40,6 +47,7 @@ enum EmployeeRole {
   EMPLOYEE
 }
 
+/// Types de documents que l'on peut uploader pour un employé.
 enum EmployeeDocumentType {
   ID_CARD
   DRIVING_LICENSE
@@ -52,23 +60,27 @@ enum EmployeeDocumentType {
   CONTRACT
 }
 
+/// Statut du dossier employé (private pending=nouveau, rejected=à corriger).
 enum EmployeeStatus {
   PENDING
   ACTIVE
   REJECTED
 }
 
+/// Statut civil utile pour les attestations/congés exceptionnels.
 enum MaritalStatus {
   SINGLE
   MARRIED
 }
 
+/// Pour les formulaires d'information employé.
 enum EmployeeGender {
   FEMALE
   MALE
   OTHER
 }
 
+/// Étapes possibles d'une demande de congés.
 enum LeaveStatus {
   SUBMITTED
   PENDING
@@ -77,6 +89,7 @@ enum LeaveStatus {
   CANCELLED
 }
 
+/// Catégories de congés utilisées pour le calcul du solde.
 enum LeaveType {
   ANNUAL_PAID
   ANNUAL
@@ -91,6 +104,7 @@ enum LeaveType {
   OTHER
 }
 
+/// Actions enregistrées lors d'une décision ou d'un commentaire sur un congé.
 enum DecisionType {
   SUBMIT
   APPROVE
@@ -101,14 +115,17 @@ enum DecisionType {
 }
 
 model Department {
+  /// Identifiant Mongo
   id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  /// Type unique pour éviter les doublons
   type        DepartmentType @unique
+  /// Libellé humain
   name        String
   description String?
 
-  members      Employee[]                  @relation("DepartmentMembers")
-  responsables DepartmentResponsibility[]
-  services     Service[]
+  members        Employee[]                 @relation("DepartmentMembers")
+  responsables   DepartmentResponsibility[]
+  services       Service[]
   leaveBlackouts LeaveBlackout[]
 
   createdAt DateTime @default(now())
@@ -116,51 +133,66 @@ model Department {
 }
 
 model Service {
+  /// Relation vers `Department`
   id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  /// Type métier du service (Information/Reputation/Qualité)
   type        ServiceType
+  /// Nom affiché dans l'UI
   name        String
+  /// Texte descriptif rôle du service
   description String?
 
   departmentId String     @db.ObjectId
   department   Department @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Membres liés à ce service
   members Employee[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([departmentId])
   @@unique([departmentId, type])
+  @@index([departmentId])
 }
 
 model Employee {
+  /// Donnée personnelle / login
   id        String @id @default(auto()) @map("_id") @db.ObjectId
   firstName String
   lastName  String
   email     String @unique
 
-  matricule String? // PAS @unique (si tu as des null). Utilise un index unique partiel Mongo si besoin.
-  jobTitle  String?
-  phone String?
-  profilePhotoUrl String?
-  fullAddress String?
-  gender EmployeeGender?
-  maritalStatus MaritalStatus?
-  childrenCount Int?
-  hireDate DateTime?
-  companyEntryDate DateTime?
+  /// Identifiant interne facultatif pour badges/matricules
+  matricule         String? // PAS @unique (si tu as des null). Utilise un index unique partiel Mongo si besoin.
+  /// Métier / fonction
+  jobTitle          String?
+  /// Coordonnées
+  phone             String?
+  profilePhotoUrl   String?
+  fullAddress       String?
+  /// Informations démographiques
+  gender            EmployeeGender?
+  maritalStatus     MaritalStatus?
+  childrenCount     Int?
+  /// Dates RH et numéro CNPS
+  hireDate          DateTime?
+  companyEntryDate  DateTime?
   hireDateFormatted String?
-  cnpsNumber String?
-  password  String
+  cnpsNumber        String?
+  password          String
 
-  role   EmployeeRole   @default(EMPLOYEE)
-  status EmployeeStatus @default(PENDING)
-  leaveBalance Float @default(25)
-  leaveBalanceAdjustment Float @default(0)
+  /// Rôle exploité dans les autorisations front/back
+  role                   EmployeeRole   @default(EMPLOYEE)
+  /// Statut : pending jusqu’à validation par administrateur
+  status                 EmployeeStatus @default(PENDING)
+  /// Solde de congés principal
+  leaveBalance           Float          @default(25)
+  /// Ajustements manuels apportés par le CEO/comptable
+  leaveBalanceAdjustment Float          @default(0)
 
   // Auto-relation (approbation) => NoAction obligatoire sur un côté
-  approvedById  String?   @db.ObjectId
-  approvedBy    Employee? @relation("EmployeeApprovals", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  approvedById   String?    @db.ObjectId
+  approvedBy     Employee?  @relation("EmployeeApprovals", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   approvalsGiven Employee[] @relation("EmployeeApprovals")
 
   departmentId String?     @db.ObjectId
@@ -169,23 +201,23 @@ model Employee {
   serviceId String?  @db.ObjectId
   service   Service? @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  responsibilities DepartmentResponsibility[]
-  supervisedResponsibilities DepartmentResponsibility[] @relation("ResponsibilitySupervisor")
-  salarySlips SalarySlip[] @relation("SalarySlipOwner")
-  uploadedSalarySlips SalarySlip[] @relation("SalarySlipUploader")
-  signedSalarySlips SalarySlip[] @relation("SalarySlipSigner")
-  documents EmployeeDocument[] @relation("EmployeeDocuments")
-  uploadedDocuments EmployeeDocument[] @relation("EmployeeDocumentUploader")
-  createdContractDocumentTypes ContractDocumentType[] @relation("EmployeeCreatedContractDocumentTypes")
-  ceoSignatureImageDataUrl String?
-  ceoSignatureImageMimeType String?
+  responsibilities             DepartmentResponsibility[]
+  supervisedResponsibilities   DepartmentResponsibility[] @relation("ResponsibilitySupervisor")
+  salarySlips                  SalarySlip[]               @relation("SalarySlipOwner")
+  uploadedSalarySlips          SalarySlip[]               @relation("SalarySlipUploader")
+  signedSalarySlips            SalarySlip[]               @relation("SalarySlipSigner")
+  documents                    EmployeeDocument[]         @relation("EmployeeDocuments")
+  uploadedDocuments            EmployeeDocument[]         @relation("EmployeeDocumentUploader")
+  createdContractDocumentTypes ContractDocumentType[]     @relation("EmployeeCreatedContractDocumentTypes")
+  ceoSignatureImageDataUrl     String?
+  ceoSignatureImageMimeType    String?
 
   // Congés
-  leaveRequests   LeaveRequest[]  @relation("EmployeeLeaveRequests")
-  assignedLeaves  LeaveRequest[]  @relation("LeaveAssignee")
-  leaveDecisions  LeaveDecision[] @relation("LeaveActor")
-  receivedLeaveDecisions LeaveDecision[] @relation("LeaveDecisionTo")  
-  createdBlackouts LeaveBlackout[]
+  leaveRequests          LeaveRequest[]  @relation("EmployeeLeaveRequests")
+  assignedLeaves         LeaveRequest[]  @relation("LeaveAssignee")
+  leaveDecisions         LeaveDecision[] @relation("LeaveActor")
+  receivedLeaveDecisions LeaveDecision[] @relation("LeaveDecisionTo")
+  createdBlackouts       LeaveBlackout[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,6 +231,7 @@ model Employee {
 model SalarySlip {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Propriétaire du bulletin
   employeeId String   @db.ObjectId
   employee   Employee @relation("SalarySlipOwner", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -209,41 +242,46 @@ model SalarySlip {
   mimeType    String
   fileDataUrl String
 
-  uploadedById String   @db.ObjectId
-  uploadedBy   Employee @relation("SalarySlipUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  signedById String?   @db.ObjectId
-  signedBy   Employee? @relation("SalarySlipSigner", fields: [signedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  signedAt DateTime?
-  signatureImageDataUrl String?
+  /// Employé qui a uploadé le fichier
+  uploadedById           String    @db.ObjectId
+  uploadedBy             Employee  @relation("SalarySlipUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  /// Signature optionnelle (CEO, DAF)
+  signedById             String?   @db.ObjectId
+  signedBy               Employee? @relation("SalarySlipSigner", fields: [signedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signedAt               DateTime?
+  signatureImageDataUrl  String?
   signatureImageMimeType String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([employeeId, year, month])
   @@index([employeeId])
   @@index([uploadedById])
   @@index([signedById])
   @@index([year, month])
-  @@unique([employeeId, year, month])
 }
 
 model EmployeeDocument {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Employé concerné
   employeeId String   @db.ObjectId
   employee   Employee @relation("EmployeeDocuments", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  type EmployeeDocumentType
+  /// Type du document (CV, carte, etc.)
+  type              EmployeeDocumentType
   relatedPersonName String?
-  childOrder Int?
-  validUntil DateTime?
-  fileName String
-  mimeType String
-  fileDataUrl String
+  childOrder        Int?
+  validUntil        DateTime?
+  fileName          String
+  mimeType          String
+  fileDataUrl       String
 
-  contractDocumentTypeId String? @db.ObjectId
-  contractDocumentType ContractDocumentType? @relation("ContractDocumentTypeDocuments", fields: [contractDocumentTypeId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  contractDocumentTypeId String?               @db.ObjectId
+  contractDocumentType   ContractDocumentType? @relation("ContractDocumentTypeDocuments", fields: [contractDocumentTypeId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
+  /// Uploadé par ce collaborateur
   uploadedById String   @db.ObjectId
   uploadedBy   Employee @relation("EmployeeDocumentUploader", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -260,10 +298,12 @@ model EmployeeDocument {
 model ContractDocumentType {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Nom unique du type (ex : contrat CDI, avenant)
   name String @unique
 
-  createdById String    @db.ObjectId
-  createdBy   Employee  @relation("EmployeeCreatedContractDocumentTypes", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  /// Créateur du type
+  createdById String   @db.ObjectId
+  createdBy   Employee @relation("EmployeeCreatedContractDocumentTypes", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   documents EmployeeDocument[] @relation("ContractDocumentTypeDocuments")
 
@@ -276,12 +316,15 @@ model ContractDocumentType {
 model DepartmentResponsibility {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Département concerné
   departmentId String     @db.ObjectId
   department   Department @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Responsable lié
   employeeId String   @db.ObjectId
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Superviseur éventuel de la responsabilité
   supervisorId String?   @db.ObjectId
   supervisor   Employee? @relation("ResponsibilitySupervisor", fields: [supervisorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -292,18 +335,20 @@ model DepartmentResponsibility {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([departmentId, employeeId, startAt])
   @@index([departmentId])
   @@index([employeeId])
   @@index([supervisorId])
-  @@unique([departmentId, employeeId, startAt])
 }
 
 model LeaveRequest {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Demandeur
   employeeId String   @db.ObjectId
   employee   Employee @relation("EmployeeLeaveRequests", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Métadonnées du congé
   type      LeaveType
   startDate DateTime
   endDate   DateTime
@@ -311,11 +356,13 @@ model LeaveRequest {
 
   status LeaveStatus @default(SUBMITTED)
 
+  /// Personne qui doit encore statuer
   currentAssigneeId String?   @db.ObjectId
   currentAssignee   Employee? @relation("LeaveAssignee", fields: [currentAssigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Traces d'escalade
   deptHeadAssignedAt DateTime?
-  reachedCeoAt DateTime?
+  reachedCeoAt       DateTime?
 
   decisions LeaveDecision[]
 
@@ -333,15 +380,18 @@ model LeaveRequest {
 model LeaveDecision {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
+  /// Demande liée
   leaveRequestId String       @db.ObjectId
   leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  /// Acteur qui prend la décision
   actorId String   @db.ObjectId
   actor   Employee @relation("LeaveActor", fields: [actorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   type    DecisionType
   comment String?
 
+  /// Si la décision est adressée à un.e autre personne
   toEmployeeId String?   @db.ObjectId
   toEmployee   Employee? @relation("LeaveDecisionTo", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -359,17 +409,20 @@ model LeaveDecision {
 model LeaveBlackout {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  title String?
-  reason String?
+  /// Blocage contextuel
+  title     String?
+  reason    String?
   startDate DateTime
-  endDate DateTime
+  endDate   DateTime
 
-  departmentId String? @db.ObjectId
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  employeeIds String[] @db.ObjectId @default([])
+  /// Optionnel : ciblage par département
+  departmentId String?     @db.ObjectId
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employeeIds  String[]    @default([]) @db.ObjectId
 
-  createdById String @db.ObjectId
-  createdBy Employee @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  /// Auteur de ce blackout
+  createdById String   @db.ObjectId
+  createdBy   Employee @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

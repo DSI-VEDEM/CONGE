@@ -102,6 +102,7 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
     const t = toast.loading("Création du compte...");
 
     try {
+      // API register attend les informations de base + acceptedTerms et retourne l'employé créé.
       const regRes = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,6 +133,7 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
       setConfirmPassword("");
       setAcceptedTerms(false);
 
+      // Après succès, on redirige vers login avec flag pending pour indiquer que l'admin doit valider.
       window.location.href = "/login?pending=1";
     } catch {
       toast.error("Erreur réseau. Vérifiez votre connexion.", { id: t });

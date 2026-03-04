@@ -9,12 +9,14 @@ import { norm } from "@/lib/validators";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
 export async function POST(req: Request) {
+  /// Authentifie par email / matricule et retourne un token JWT valide 7 jours.
   try {
     const body = await req.json().catch(() => ({}));
 
     const identifier = norm(body?.identifier); // email OU matricule
     const password = norm(body?.password);
 
+    // Vérifie que les champs requis arrivent
     if (!identifier || !password) {
       return jsonError("Champs requis: identifier, password", 400);
     }
@@ -46,13 +48,14 @@ export async function POST(req: Request) {
       },
     });
 
+    // L'employé doit exister avant de vérifier le password
     if (!employee) return jsonError("Identifiants invalides", 401);
 
     const valid = await bcrypt.compare(password, employee.password);
     if (!valid) return jsonError("Identifiants invalides", 401);
     const synced = await syncEmployeeLeaveBalance(prisma, employee.id);
 
-    // Blocage tant que pas validé par l'admin (DSI)
+    // Blocage tant que le compte n'est pas passé en ACTIVE par un admin
     if (employee.status !== "ACTIVE") {
       return jsonError("Compte en attente de validation par l’admin", 403, {
         status: employee.status,
@@ -62,6 +65,7 @@ export async function POST(req: Request) {
     const secret = process.env.JWT_SECRET;
     if (!secret) return jsonError("JWT_SECRET manquant côté serveur", 500);
 
+    // Vérifie si l'utilisateur est responsable DSI pour activer les contrôles spéciaux.
     const dsiResponsibility = await prisma.departmentResponsibility.findFirst({
       where: {
         employeeId: employee.id,
@@ -75,6 +79,7 @@ export async function POST(req: Request) {
     const isDsiAdmin = Boolean(dsiResponsibility);
     const departmentType = employee.department?.type ?? null;
 
+    // Génère le JWT contenant les rôles/flags exposés au front
     const token = jwt.sign(
       {
         sub: employee.id,

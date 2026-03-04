@@ -6,6 +6,7 @@ import { jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 
 export async function POST(req: Request) {
+  /// Page de demande d'oubli de mot de passe : on ne révèle pas si l'utilisateur existe.
   try {
     const body = await req.json().catch(() => ({}));
     const identifier = norm(body?.identifier);
