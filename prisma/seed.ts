@@ -95,7 +95,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     email: "franck@veilleurdesmedias.com",
     firstName: "Franck-Emmanuel",
     lastName: "OUFFOUET",
-    jobTitle: "Directeur des Systèmes d'Information",
+    jobTitle: "Directeur du Service Informatique",
     role: EmployeeRoleEnum.DEPT_HEAD,
     departmentType: DepartmentTypeEnum.DSI,
     matricule: "VDM-003",
