@@ -1,10 +1,10 @@
-// app/api/leave-requests/history/route.ts  (ou ton chemin exact)
-// ✅ FICHIER COMPLET (identique à ce que tu as envoyé)
+// app/api/leave-requests/history/route.ts
 
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isDsiAdmin } from "@/lib/dsiAdmin";
 import { requireAuth } from "@/lib/leave-requests";
 
 function parseYearParam(value: string | null) {
@@ -31,6 +31,7 @@ export async function GET(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
+  const actorIsDsiAdmin = await isDsiAdmin(actorId);
 
   const url = new URL(req.url);
   const mine = url.searchParams.get("mine") === "1";
@@ -138,8 +139,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ decisions, page, take });
   }
 
+  const allowAllScope = role === "CEO" || actorIsDsiAdmin;
+
   if (scope === "all") {
-    if (role !== "CEO") return NextResponse.json({ leaves: [] });
+    if (!allowAllScope) return NextResponse.json({ leaves: [] });
 
     const leaves = await prisma.leaveRequest.findMany({
       where: {

@@ -2,7 +2,7 @@
 
 import LeaveHistoryTables from "@/app/dashboard/leave/LeaveHistoryTables";
 
-export default function DsiLeaveHistory() {
+export default function AccountantLeaveHistory() {
   return (
     <LeaveHistoryTables
       title="Demandes en cours"

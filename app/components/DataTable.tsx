@@ -16,7 +16,7 @@ export default function DataTable<TData>({
   data,
   columns,
   searchPlaceholder = "Rechercher...",
-  pageSize = 10,
+  pageSize = 5,
   onRefresh,
 }: {
   data: TData[];
