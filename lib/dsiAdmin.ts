@@ -22,7 +22,7 @@ export async function isDsiAdmin(employeeId: string) {
       employeeId,
       endAt: null,
       department: { type: "DSI" },
-      role: { in: ["RESPONSABLE", "CO_RESPONSABLE"] },
+      role: { in: ["RESPONSABLE"] },
     },
     select: { id: true },
   });
