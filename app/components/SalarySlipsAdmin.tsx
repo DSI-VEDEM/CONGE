@@ -23,6 +23,7 @@ type RawEmployeeItem = {
   lastName?: string;
   matricule?: string | null;
   email?: string;
+  role?: string | null;
 };
 
 function fileToDataUrl(file: File) {
@@ -74,6 +75,7 @@ export default function SalarySlipsAdmin() {
       list
         .flatMap((emp: RawEmployeeItem) => {
           if (!emp?.id) return [];
+          if (emp.role === "CEO") return [];
           return [
             {
               id: String(emp.id),

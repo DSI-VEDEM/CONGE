@@ -26,8 +26,8 @@ export const accountantMenu: SidebarSection[] = [
     title: "Congés",
     links: [
       { label: "Nouvelle demande", icon: "clipboard", to: "/dashboard/accountant/leave/new" },
-      { label: "Mes demandes", icon: "clock", to: "/dashboard/accountant/requests" },
-      { label: "Historique", icon: "clock", to: "/dashboard/accountant/leave/history" },
+      // { label: "Mes demandes", icon: "clock", to: "/dashboard/accountant/requests" },
+      { label: "Mes demandes", icon: "clock", to: "/dashboard/accountant/leave/history" },
     ],
   },
   {

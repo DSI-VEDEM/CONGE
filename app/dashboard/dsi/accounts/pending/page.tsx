@@ -70,11 +70,13 @@ export default function DsiAccountsPending() {
             }))
           );
           setDepartments(
-            (depData?.departments ?? []).map((d: any) => ({
-              id: d.id,
-              label: d.name ?? d.type ?? d.id,
-              type: d.type,
-            }))
+            (depData?.departments ?? [])
+              .filter((d: any) => d.type !== "OTHERS")
+              .map((d: any) => ({
+                id: d.id,
+                label: d.name ?? d.type ?? d.id,
+                type: d.type,
+              }))
           );
           setServices(
             (svcData?.services ?? []).map((s: any) => ({

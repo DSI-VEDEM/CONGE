@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection";
 import { getEmployee } from "@/lib/auth-client";
+import { DEFAULT_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export default function AccountantEmployeeDocumentsPage() {
   const employee = useMemo(() => getEmployee(), []);
@@ -14,7 +15,11 @@ export default function AccountantEmployeeDocumentsPage() {
         Consultez les documents administratifs des employés. Vos documents personnels restent dans Profil.
       </div>
       {employee ? (
-        <EmployeeDocumentsSection employee={employee} scope="employees" />
+        <EmployeeDocumentsSection
+          employee={employee}
+          scope="employees"
+          documentTypes={DEFAULT_DOCUMENT_TYPES.filter((doc) => doc.value !== "CONTRACT")}
+        />
       ) : (
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 text-sm text-vdm-gold-700">
           Aucune session trouvée.
