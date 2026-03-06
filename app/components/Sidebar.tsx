@@ -71,12 +71,12 @@ export function Sidebar({
     return emp.role;
   };
 
-  // Optionnel (si tu veux un switch d’org plus tard)
-  const organizations = [
-    { id: "1", name: "Organisation A" },
-    { id: "2", name: "Organisation B" },
-  ];
-  const hasMultipleOrgs = organizations.length > 1;
+  // // Optionnel (si tu veux un switch d’org plus tard)
+  // const organizations = [
+  //   { id: "1", name: "Organisation A" },
+  //   { id: "2", name: "Organisation B" },
+  // ];
+  // const hasMultipleOrgs = organizations.length > 1;
 
   const [menuHeight, setMenuHeight] = useState(0);
   useEffect(() => {
@@ -129,63 +129,63 @@ export function Sidebar({
 
   const activeLink = useMemo(() => getBestActiveLink(pathname), [pathname, getBestActiveLink]);
 
-  const OrgButton = () => {
-    if (!showOrgSwitcher) return null;
+  // const OrgButton = () => {
+  //   if (!showOrgSwitcher) return null;
 
-    return (
-      <div className="relative" ref={dropdownRef}>
-        {hasMultipleOrgs ? (
-          <>
-            <button
-              onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900"
-            >
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-white" />
-                <span className="text-xs">Organisations</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${orgDropdownOpen ? "rotate-180" : ""}`} />
-            </button>
+  //   return (
+  //     <div className="relative" ref={dropdownRef}>
+  //       {hasMultipleOrgs ? (
+  //         <>
+  //           <button
+  //             onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
+  //             className="flex items-center justify-between w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900"
+  //           >
+  //             <div className="flex items-center gap-2">
+  //               <Building2 className="w-4 h-4 text-white" />
+  //               <span className="text-xs">Organisations</span>
+  //             </div>
+  //             <ChevronDown className={`w-4 h-4 transition-transform ${orgDropdownOpen ? "rotate-180" : ""}`} />
+  //           </button>
 
-            {orgDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border overflow-hidden z-50">
-                {organizations.map((org, i) => (
-                  <button
-                    key={org.id}
-                    onClick={() => {
-                      setOrgDropdownOpen(false);
-                      setIsOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-vdm-gold-50 transition text-sm font-medium text-vdm-gold-900 ${
-                      i !== organizations.length - 1 ? "border-b border-vdm-gold-100" : ""
-                    }`}
-                  >
-                    {org.name}
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    setOrgDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 bg-vdm-gold-50 hover:bg-vdm-gold-100 transition text-sm font-semibold text-vdm-gold-900 border-t"
-                >
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Ajouter une organisation
-                  </div>
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <button className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900">
-            <Plus className="w-4 h-4 text-white" />
-            <span className="text-xs">Ajouter une organisation</span>
-          </button>
-        )}
-      </div>
-    );
-  };
+  //           {orgDropdownOpen && (
+  //             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border overflow-hidden z-50">
+  //               {organizations.map((org, i) => (
+  //                 <button
+  //                   key={org.id}
+  //                   onClick={() => {
+  //                     setOrgDropdownOpen(false);
+  //                     setIsOpen(false);
+  //                   }}
+  //                   className={`w-full text-left px-3 py-2 hover:bg-vdm-gold-50 transition text-sm font-medium text-vdm-gold-900 ${
+  //                     i !== organizations.length - 1 ? "border-b border-vdm-gold-100" : ""
+  //                   }`}
+  //                 >
+  //                   {org.name}
+  //                 </button>
+  //               ))}
+  //               <button
+  //                 onClick={() => {
+  //                   setOrgDropdownOpen(false);
+  //                 }}
+  //                 className="w-full text-left px-3 py-2 bg-vdm-gold-50 hover:bg-vdm-gold-100 transition text-sm font-semibold text-vdm-gold-900 border-t"
+  //               >
+  //                 <div className="flex items-center gap-2">
+  //                   <Plus className="w-4 h-4" />
+  //                   Ajouter une organisation
+  //                 </div>
+  //               </button>
+  //             </div>
+  //           )}
+  //         </>
+  //       ) : (
+  //         <button className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 font-semibold transition border border-vdm-gold-900">
+  //           <Plus className="w-4 h-4 text-white" />
+  //           <span className="text-xs">Ajouter une organisation</span>
+  //         </button>
+  //       )}
+  //     </div>
+  //   );
+  // };
 
   return (
     <>
@@ -228,7 +228,7 @@ export function Sidebar({
             <div className="text-xs text-vdm-gold-200">{isMounted ? roleLabel(employee) : ""}</div>
           </div>
 
-          <OrgButton />
+          {/* <OrgButton /> */}
 
           {sections.map((section, idx) => (
             <div key={idx} className="space-y-1">
@@ -291,7 +291,7 @@ export function Sidebar({
             <div className="text-xs text-vdm-gold-200">{isMounted ? roleLabel(employee) : ""}</div>
           </div>
 
-          <OrgButton />
+          {/* <OrgButton /> */}
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -310,7 +310,7 @@ export function Sidebar({
                   <Link
                     key={link.to}
                     href={link.to}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition hover:text-white ${
                       isActive ? "bg-vdm-gold-700 text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800"
                     }`}
                   >

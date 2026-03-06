@@ -62,6 +62,9 @@ export async function POST(req: Request) {
       });
     }
 
+    const departmentType = employee.department?.type ?? null;
+    const isDeptHeadDsi = employee.role === "DEPT_HEAD" && departmentType === "DSI";
+
     const secret = process.env.JWT_SECRET;
     if (!secret) return jsonError("JWT_SECRET manquant côté serveur", 500);
 
@@ -76,8 +79,7 @@ export async function POST(req: Request) {
       select: { id: true },
     });
 
-    const isDsiAdmin = Boolean(dsiResponsibility);
-    const departmentType = employee.department?.type ?? null;
+    const isDsiAdmin = Boolean(dsiResponsibility) || isDeptHeadDsi;
 
     // Génère le JWT contenant les rôles/flags exposés au front
     const token = jwt.sign(

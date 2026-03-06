@@ -5,6 +5,7 @@ const {
   EmployeeRole: EmployeeRoleEnum,
   EmployeeStatus,
   ServiceType: ServiceTypeEnum,
+  ResponsibilityRole: ResponsibilityRoleEnum,
 } = pkg;
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -253,11 +254,57 @@ async function seedEmployees(departmentMap: DepartmentMap) {
   }
 }
 
+async function ensureDsiResponsibility(departmentMap: DepartmentMap) {
+  const dsiDepartment = departmentMap[DepartmentTypeEnum.DSI];
+  if (!dsiDepartment) {
+    throw new Error("La DSI n’est pas initialisée dans la base.");
+  }
+
+  const dsiHead = await prisma.employee.findFirst({
+    where: {
+      departmentId: dsiDepartment.id,
+      role: EmployeeRoleEnum.DEPT_HEAD,
+      status: EmployeeStatus.ACTIVE,
+    },
+    select: { id: true, email: true },
+  });
+
+  if (!dsiHead) {
+    console.warn("⚠️ Aucun directeur DSI actif trouvé, impossible d’attribuer la responsabilité.");
+    return;
+  }
+
+  const existing = await prisma.departmentResponsibility.findFirst({
+    where: {
+      departmentId: dsiDepartment.id,
+      employeeId: dsiHead.id,
+      endAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    console.log(`✅ ${dsiHead.email ?? dsiHead.id} est déjà responsable DSI.`);
+    return;
+  }
+
+  await prisma.departmentResponsibility.create({
+    data: {
+      departmentId: dsiDepartment.id,
+      employeeId: dsiHead.id,
+      role: ResponsibilityRoleEnum.RESPONSABLE,
+    },
+  });
+
+  console.log(`🚀 ${dsiHead.email ?? dsiHead.id} devient responsable DSI.`);
+}
+
 // Point d’entrée : vérifie Mongo, initialise les données et logge l’état final.
 async function main() {
   await waitForDatabaseReady();
   const departmentMap = await ensureDepartments();
   await seedEmployees(departmentMap);
+  await ensureDsiResponsibility(departmentMap);
   console.log(`✅ Tous les comptes de base sont en place (mot de passe par défaut : ${DEFAULT_SEED_PASSWORD}).`);
 }
 
