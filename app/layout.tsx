@@ -1,5 +1,6 @@
-import type { Metadata } from "next"; 
+import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
+import NotificationBell from "./components/NotificationBell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,8 +18,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body>
+      <body className="relative min-h-screen bg-white">
         {children}
+        <div className="pointer-events-none absolute inset-0 flex justify-end p-4">
+          <div className="pointer-events-auto">
+            <NotificationBell />
+          </div>
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{

@@ -140,6 +140,32 @@ export default function EmployeeDocumentsSection({
   const [isEditingBusy, setIsEditingBusy] = useState(false);
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
   const [deleteModalDoc, setDeleteModalDoc] = useState<EmployeeDocument | null>(null);
+  const employeeFilterControl = hasGlobalAccess ? (
+    <>
+      <div className="text-xs text-vdm-gold-600 mb-1">Afficher les documents de</div>
+      <select
+        value={selectedEmployeeId}
+        onChange={(e) => {
+          setSelectedEmployeeId(e.target.value);
+        }}
+        className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+      >
+        <option value={ALL_EMPLOYEES_VALUE}>{allEmployeesLabel}</option>
+        {employee.role !== "CEO" && !isEmployeesScope ? (
+          <option value={employee.id}>
+            {employee.firstName} {employee.lastName} (moi)
+          </option>
+        ) : null}
+        {employees
+          .filter((item) => item.id !== employee.id)
+          .map((item) => (
+            <option key={item.id} value={item.id}>
+              {employeeLabel(item)}
+            </option>
+          ))}
+      </select>
+    </>
+  ) : null;
 
   const isEditingChildType = editType === "CHILD_BIRTH_CERTIFICATE";
   const isEditingNeedsRelatedName =
@@ -671,50 +697,30 @@ export default function EmployeeDocumentsSection({
         </div>
       </div>
 
-      <div className="mb-4">
-        <div className="text-xs text-vdm-gold-600 mb-1">Filtrer par type</div>
-        <select
-          value={viewTypeFilter}
-          onChange={(e) => setViewTypeFilter(e.target.value as DocumentType | "ALL")}
-          className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-        >
-          <option value="ALL">Tous les types</option>
-          {documentTypes.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
+      <div className={filtersInlineOnLarge && hasGlobalAccess ? "grid gap-4 lg:grid-cols-2 mb-4" : "mb-4"}>
+        <div>
+          <div className="text-xs text-vdm-gold-600 mb-1">Filtrer par type</div>
+          <select
+            value={viewTypeFilter}
+            onChange={(e) => setViewTypeFilter(e.target.value as DocumentType | "ALL")}
+            className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+          >
+            <option value="ALL">Tous les types</option>
+            {documentTypes.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {filtersInlineOnLarge && hasGlobalAccess ? (
+          <div className="space-y-2">{employeeFilterControl}</div>
+        ) : null}
       </div>
 
       <div className={`${filtersGridClass} mb-4`}>
-        {hasGlobalAccess ? (
-          <div className={employeeFilterWrapperClass}>
-            <div>
-              <div className="text-xs text-vdm-gold-600 mb-1">Afficher les documents de</div>
-              <select
-                value={selectedEmployeeId}
-                onChange={(e) => {
-                  setSelectedEmployeeId(e.target.value);
-                }}
-                className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-              >
-                <option value={ALL_EMPLOYEES_VALUE}>{allEmployeesLabel}</option>
-                {employee.role !== "CEO" && !isEmployeesScope ? (
-                  <option value={employee.id}>
-                    {employee.firstName} {employee.lastName} (moi)
-                  </option>
-                ) : null}
-                {employees
-                  .filter((item) => item.id !== employee.id)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {employeeLabel(item)}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          </div>
+        {hasGlobalAccess && !filtersInlineOnLarge ? (
+          <div className={employeeFilterWrapperClass}>{employeeFilterControl}</div>
         ) : null}
 
         {canUploadDocuments ? (

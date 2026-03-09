@@ -113,6 +113,17 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const [departmentNames, setDepartmentNames] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  const profileDocumentTypes = useMemo(() => {
+    if (!documentTypes) return documentTypes;
+    const isMarried = draft?.maritalStatus === "MARRIED";
+    const hasChildren = typeof draft?.childrenCount === "number" && draft.childrenCount > 0;
+    return documentTypes.filter((item) => {
+      if (!isMarried && item.value === "SPOUSE_BIRTH_CERTIFICATE") return false;
+      if (!hasChildren && item.value === "CHILD_BIRTH_CERTIFICATE") return false;
+      return true;
+    });
+  }, [documentTypes, draft?.maritalStatus, draft?.childrenCount]);
+
   const pw = useMemo(() => {
     const userInputs = [draft?.email, draft?.firstName, draft?.lastName].filter(Boolean);
     return zxcvbn(password, userInputs as string[]);
@@ -530,7 +541,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           <EmployeeDocumentsSection
             employee={draft}
             scope={employee.role === "ACCOUNTANT" ? "self" : "default"}
-            documentTypes={documentTypes}
+            documentTypes={profileDocumentTypes}
           />
         ) : null}
         {isEditing ? (

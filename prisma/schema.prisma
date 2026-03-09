@@ -50,6 +50,12 @@ enum EmployeeRole {
   EMPLOYEE
 }
 
+enum NotificationCategory {
+  INFO
+  ALERT
+  ACTION
+}
+
 /// Types de documents que l'on peut uploader pour un employé.
 enum EmployeeDocumentType {
   ID_CARD
@@ -212,6 +218,7 @@ model Employee {
   documents                    EmployeeDocument[]         @relation("EmployeeDocuments")
   uploadedDocuments            EmployeeDocument[]         @relation("EmployeeDocumentUploader")
   createdContractDocumentTypes ContractDocumentType[]     @relation("EmployeeCreatedContractDocumentTypes")
+  notifications                Notification[]             @relation("EmployeeNotifications")
   ceoSignatureImageDataUrl     String?
   ceoSignatureImageMimeType    String?
 
@@ -229,6 +236,34 @@ model Employee {
   @@index([status])
   @@index([departmentId])
   @@index([serviceId])
+}
+
+model Notification {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  title    String
+  body     String
+  category NotificationCategory @default(INFO)
+
+  /// Notifications personnalisées
+  employeeId String?   @db.ObjectId
+  employee   Employee? @relation("EmployeeNotifications", fields: [employeeId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  /// Broadcasting ciblés
+  targetRole EmployeeRole?
+  global     Boolean       @default(false)
+
+  /// Pour marquer la lecture côté destinataire
+  isRead Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([employeeId])
+  @@index([targetRole])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model SalarySlip {

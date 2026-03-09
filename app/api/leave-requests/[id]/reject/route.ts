@@ -3,7 +3,13 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
-import { requireAuth, isFinalStatus } from "@/lib/leave-requests";
+import {
+  describeActorRole,
+  notifyCeoAboutLeaveDecision,
+  notifyEmployeeOfLeaveDecision,
+  requireAuth,
+  isFinalStatus,
+} from "@/lib/leave-requests";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -16,7 +22,14 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const leave = await prisma.leaveRequest.findUnique({
     where: { id },
-    select: { id: true, employeeId: true, status: true, currentAssigneeId: true, reachedCeoAt: true },
+    select: {
+      id: true,
+      employeeId: true,
+      status: true,
+      currentAssigneeId: true,
+      reachedCeoAt: true,
+      employee: { select: { firstName: true, lastName: true } },
+    },
   });
 
   if (!leave) return jsonError("Demande introuvable", 404);
@@ -47,6 +60,24 @@ export async function POST(req: Request, ctx: Ctx) {
     });
 
     return updatedLeave;
+  });
+
+  const requesterName =
+    leave?.employee && leave.employee.firstName && leave.employee.lastName
+      ? `${leave.employee.firstName} ${leave.employee.lastName}`
+      : "cet employé";
+  await notifyCeoAboutLeaveDecision({
+    leaveRequestId: id,
+    employeeName: requesterName,
+    status: "REJECTED",
+    actorRole: role,
+  });
+  await notifyEmployeeOfLeaveDecision({
+    leaveRequestId: id,
+    employeeId: leave.employeeId,
+    employeeName: requesterName,
+    actorLabel: describeActorRole(role),
+    status: "REJECTED",
   });
 
   return NextResponse.json({ leave: updated });

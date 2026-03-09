@@ -1,6 +1,7 @@
 "use client";
 
 import { getEmployee } from "@/lib/auth-client";
+import NotificationBell from "./NotificationBell";
 
 function roleLabel(role?: string | null) {
   if (!role) return "";
@@ -23,14 +24,16 @@ export default function DashboardShell({
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center">
-          <div>
-            <div className="text-lg font-semibold text-vdm-gold-800">{title}</div>
-            <div className="text-sm text-gray-600">
-              {employee ? `${employee.firstName} ${employee.lastName} — ${roleLabel(employee.role)}` : ""}
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-lg font-semibold text-vdm-gold-800">{title}</div>
+              <div className="text-sm text-gray-600">
+                {employee ? `${employee.firstName} ${employee.lastName} — ${roleLabel(employee.role)}` : ""}
+              </div>
             </div>
+            <NotificationBell />
           </div>
-
         </div>
       </header>
 

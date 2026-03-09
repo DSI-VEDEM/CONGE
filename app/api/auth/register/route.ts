@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     const acceptedTerms = body?.acceptedTerms === true;
 
     // Vérifications minimales de présence
-    if (!firstName || !lastName || !email || !password) {
-      return jsonError("Champs requis: firstName, lastName, email, password", 400);
+    if (!firstName || !lastName || !email || !password || !matricule) {
+      return jsonError("Champs requis: firstName, lastName, email, password, matricule", 400);
     }
 
     // Politique simple : email doit contenir @ et domaine
@@ -34,8 +34,8 @@ export async function POST(req: Request) {
     }
 
     // Mots de passe trop courts interdits
-    if (password.length < 6) {
-      return jsonError("Mot de passe trop court (min 6)", 400);
+    if (password.length < 8) {
+      return jsonError("Mot de passe trop court (min 8)", 400);
     }
     // Acceptation obligatoire des CGU
     if (!acceptedTerms) {
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         employee: created,
-        message: "Compte créé. En attente de validation par l’admin (Responsable DSI).",
+        message: "Compte créé. En attente de validation par l’admin.",
       },
       { status: 201 }
     );

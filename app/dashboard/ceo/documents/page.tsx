@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection";
 import { getEmployee } from "@/lib/auth-client";
+import { PROFILE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export default function CeoDocumentsPage() {
   const employee = useMemo(() => getEmployee(), []);
@@ -14,7 +15,12 @@ export default function CeoDocumentsPage() {
         Liste des documents RH des employés (consultation et téléchargement).
       </div>
       {employee ? (
-        <EmployeeDocumentsSection employee={employee} scope="employees" filtersInlineOnLarge />
+        <EmployeeDocumentsSection
+          employee={employee}
+          scope="employees"
+          filtersInlineOnLarge
+          documentTypes={PROFILE_DOCUMENT_TYPES}
+        />
       ) : (
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 text-sm text-vdm-gold-700">
           Aucune session trouvée.

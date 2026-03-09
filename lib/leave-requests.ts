@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import type { EmployeeRole, NotificationCategory } from "@/generated/prisma/client";
+import type { EmployeeRole, NotificationCategory } from "@/generated/prisma/client";
 
 type Auth = { id: string; role: string; departmentId?: string | null };
 
@@ -77,4 +79,133 @@ export function parseDate(value: string | null) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+const DIRECTOR_ROLES: EmployeeRole[] = ["DEPT_HEAD", "SERVICE_HEAD"];
+
+function formatLeaveRange(start: Date, end: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const from = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+  const to = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+  return `${from} → ${to}`;
+}
+
+export async function notifyAccountantOfLeaveRequest(options: {
+  leaveRequestId: string;
+  employeeName: string;
+  actorRole?: string;
+  startDate: Date;
+  endDate: Date;
+}) {
+  const accountant = await findActiveEmployeeByRole("ACCOUNTANT");
+  if (!accountant) return;
+
+  await prisma.notification.create({
+    data: {
+      title: "Nouvelle demande de congé",
+      body: `${options.employeeName} (${options.actorRole ?? "collaborateur"}) a demandé un congé : ${formatLeaveRange(
+        options.startDate,
+        options.endDate
+      )}.`,
+      category: "INFO" as NotificationCategory,
+      employeeId: accountant.id,
+      targetRole: "ACCOUNTANT",
+      global: false,
+      metadata: {
+        leaveRequestId: options.leaveRequestId,
+        actorRole: options.actorRole ?? null,
+      },
+    },
+  });
+}
+
+export async function notifyCeoOfDirectorLeaveRequest(options: {
+  leaveRequestId: string;
+  employeeName: string;
+  actorRole?: string;
+  startDate: Date;
+  endDate: Date;
+}) {
+  if (!options.actorRole || !DIRECTOR_ROLES.includes(options.actorRole as EmployeeRole)) return;
+
+  const ceo = await findActiveEmployeeByRole("CEO");
+  if (!ceo) return;
+
+  await prisma.notification.create({
+    data: {
+      title: "Demande des directeurs",
+      body: `${options.employeeName} (directeur ${options.actorRole.replace("_", " ").toLowerCase()}) a transmis une demande de congé ${formatLeaveRange(
+        options.startDate,
+        options.endDate
+      )}.`,
+      category: "ACTION" as NotificationCategory,
+      employeeId: ceo.id,
+      targetRole: "CEO",
+      global: false,
+      metadata: {
+        leaveRequestId: options.leaveRequestId,
+        actorRole: options.actorRole,
+      },
+    },
+  });
+}
+
+const ROLE_LABELS: Record<EmployeeRole, string> = {
+  CEO: "le PDG",
+  ACCOUNTANT: "la comptable",
+  DEPT_HEAD: "le Directeur de Département",
+  SERVICE_HEAD: "le Directeur Adjoint",
+  EMPLOYEE: "l'employé",
+};
+
+export function describeActorRole(role?: string) {
+  return ROLE_LABELS[(role ?? "") as EmployeeRole] ?? (role ? role.toLowerCase() : "un collaborateur");
+}
+
+export async function notifyCeoAboutLeaveDecision(options: {
+  leaveRequestId: string;
+  employeeName: string;
+  status: "APPROVED" | "REJECTED";
+  actorRole: string;
+}) {
+  const ceo = await findActiveEmployeeByRole("CEO");
+  if (!ceo) return;
+
+  const actorLabel = describeActorRole(options.actorRole);
+  const actionLabel = options.status === "APPROVED" ? "approuvée" : "rejetée";
+
+  await prisma.notification.create({
+    data: {
+      title: "Décision sur la demande de congé",
+      body: `La demande de congé de ${options.employeeName} a été ${actionLabel} par ${actorLabel}.`,
+      category: "ACTION" as NotificationCategory,
+      employeeId: ceo.id,
+      targetRole: "CEO",
+      global: false,
+      metadata: { leaveRequestId: options.leaveRequestId, status: options.status },
+    },
+  });
+}
+
+export async function notifyEmployeeOfLeaveDecision(options: {
+  leaveRequestId: string;
+  employeeId: string;
+  employeeName: string;
+  actorLabel: string;
+  status: "APPROVED" | "REJECTED";
+}) {
+  await prisma.notification.create({
+    data: {
+      title: "Votre demande de congé",
+      body: `Votre demande a été ${options.status === "APPROVED" ? "approuvée" : "rejetée"} par ${options.actorLabel}.`,
+      category: "INFO" as NotificationCategory,
+      employeeId: options.employeeId,
+      targetRole: "EMPLOYEE",
+      global: false,
+      metadata: {
+        leaveRequestId: options.leaveRequestId,
+        status: options.status,
+      },
+    },
+  });
 }

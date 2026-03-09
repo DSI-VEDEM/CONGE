@@ -54,6 +54,16 @@ export function Sidebar({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const handleLogout = useCallback(() => {
+    setShowLogoutModal(true);
+  }, []);
+  const confirmLogout = useCallback(() => {
+    setShowLogoutModal(false);
+    logout();
+    router.replace("/login");
+  }, [router]);
+  const cancelLogout = useCallback(() => setShowLogoutModal(false), []);
 
   const roleLabel = (emp?: EmployeeSession | null) => {
     if (!emp) return "";
@@ -134,7 +144,7 @@ export function Sidebar({
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 transition border border-vdm-gold-900"
+          className="p-2 rounded-xl bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 transition border border-vdm-gold-900 hover:text-white"
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -175,8 +185,8 @@ export function Sidebar({
                     key={link.to}
                     href={link.to}
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition ${
-                      isActive ? "bg-vdm-gold-700 text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition hover:text-white ${
+                      isActive ? "bg-vdm-gold-700 text-white hover:text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -188,10 +198,7 @@ export function Sidebar({
           ))}
 
           <button
-            onClick={() => {
-              logout();
-              router.replace("/login");
-            }}
+            onClick={handleLogout}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-red-300 hover:bg-red-700/20 transition w-full font-semibold"
           >
             <LogOut className="w-5 h-5" />
@@ -238,7 +245,7 @@ export function Sidebar({
                     key={link.to}
                     href={link.to}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl transition hover:text-white ${
-                      isActive ? "bg-vdm-gold-700 text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800"
+                      isActive ? "bg-vdm-gold-700 text-white hover:text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -252,16 +259,43 @@ export function Sidebar({
 
         <div className="p-3 border-t border-vdm-gold-800">
           <button
-            onClick={() => {
-              logout();
-              router.replace("/login");
-            }}
+            onClick={handleLogout}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-vdm-gold-100 hover:bg-vdm-gold-800 transition w-full font-semibold"
           >
             <LogOut className="w-5 h-5" />
             <span className="text-sm">Déconnexion</span>
           </button>
         </div>
+        {showLogoutModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+            onClick={cancelLogout}
+          >
+            <div
+              className="w-full max-w-sm rounded-[28px] bg-gradient-to-b from-vdm-gold-600/90 to-vdm-gold-500/90 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.35)] backdrop-blur"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p className="text-lg font-semibold text-white">Confirmation de déconnexion</p>
+              <p className="mt-2 text-sm text-white/80">
+                Vous allez être déconnecté. Souhaitez-vous vraiment quitter l’application ?
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 rounded-2xl bg-white/90 py-2 text-sm font-semibold text-vdm-gold-700 transition hover:bg-white"
+                >
+                  Me déconnecter
+                </button>
+                <button
+                  onClick={cancelLogout}
+                  className="flex-1 rounded-2xl border border-white/60 py-2 text-sm font-semibold text-white transition hover:border-white"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

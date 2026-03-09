@@ -9,7 +9,13 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
-import { parseDate, requireAuth, findActiveEmployeeByRole } from "@/lib/leave-requests";
+import {
+  parseDate,
+  requireAuth,
+  findActiveEmployeeByRole,
+  notifyAccountantOfLeaveRequest,
+  notifyCeoOfDirectorLeaveRequest,
+} from "@/lib/leave-requests";
 import { norm } from "@/lib/validators";
 import {
   calculateEntitledLeaveDaysForYear,
@@ -180,6 +186,22 @@ export async function POST(req: Request) {
       actorId,
       type: "SUBMIT",
     },
+  });
+
+  const actorName = [employee.firstName, employee.lastName].filter(Boolean).join(" ") || "Un collaborateur";
+  await notifyAccountantOfLeaveRequest({
+    leaveRequestId: created.id,
+    employeeName: actorName,
+    actorRole: role,
+    startDate,
+    endDate,
+  });
+  await notifyCeoOfDirectorLeaveRequest({
+    leaveRequestId: created.id,
+    employeeName: actorName,
+    actorRole: role,
+    startDate,
+    endDate,
   });
 
   if (autoCeo) {
