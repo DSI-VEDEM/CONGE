@@ -9,17 +9,17 @@ type LeaveOption = {
 };
 
 export const LEAVE_TYPE_OPTIONS: LeaveOption[] = [
-  { value: "ANNUAL_PAID", label: "Congé annuel payé" },
-  { value: "FAMILY_EXCEPTIONAL", label: "Congés exceptionnels familiaux" },
+  { value: "ANNUAL_PAID", label: "Congé payé" },
+  { value: "FAMILY_EXCEPTIONAL", label: "Congé familial exceptionnel" },
   { value: "MENSTRUAL", label: "Congé menstruel", allowedGenders: ["FEMALE"] },
-  { value: "CONGE_M", label: "Congé M (ancien)", allowedGenders: ["FEMALE"], hidden: true },
-  { value: "MATERNITY_PATERNITY", label: "Congé maternité / paternité" },
+  { value: "CONGE_M", label: "Congé M (historique)", allowedGenders: ["FEMALE"], hidden: true },
+  { value: "MATERNITY_PATERNITY", label: "Congé maternité/paternité" },
   { value: "SICKNESS", label: "Congé maladie" },
   { value: "UNPAID", label: "Congé sans solde" },
   { value: "TRAINING", label: "Congé de formation" },
   { value: "ANNUAL", label: "Ancien congé annuel", hidden: true },
   { value: "SICK", label: "Ancien congé maladie", hidden: true },
-  { value: "OTHER", label: "Autre type (historique)", hidden: true },
+  { value: "OTHER", label: "Autre type de congé", hidden: true },
 ] as const;
 
 export type LeaveTypeValue = LeaveType;
