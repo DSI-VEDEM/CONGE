@@ -82,6 +82,10 @@ export async function POST(req: Request) {
   const synced = await syncEmployeeLeaveBalance(prisma, actorId);
   if (!synced) return jsonError("Employé introuvable", 404);
   const employee = synced.employee;
+  const actorProfile = await prisma.employee.findUnique({
+    where: { id: actorId },
+    select: { firstName: true, lastName: true },
+  });
   // Vérifie que seuls les profils féminins peuvent demander un congé menstruel.
   if (isMenstrualLeaveType(leaveType) && employee.gender !== "FEMALE") {
     return jsonError("Congé menstruel réservé aux collaboratrices", 403);
@@ -188,7 +192,8 @@ export async function POST(req: Request) {
     },
   });
 
-  const actorName = [employee.firstName, employee.lastName].filter(Boolean).join(" ") || "Un collaborateur";
+  const actorName =
+    [actorProfile?.firstName, actorProfile?.lastName].filter(Boolean).join(" ") || "Un collaborateur";
   await notifyAccountantOfLeaveRequest({
     leaveRequestId: created.id,
     employeeName: actorName,

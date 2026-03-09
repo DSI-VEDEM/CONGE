@@ -12,11 +12,11 @@ export const dsiMenu: SidebarSection[] = [
       { label: "Historique", icon: "clock", to: "/dashboard/dsi/leave/history" },
     ],
   },
-{
+  {
     title: "Département Informatique",
     links: [
       { label: "Employés (actuels)", icon: "users", to: "/dashboard/dsi/department/employees" },
-      { label: "Historique des employés", icon: "users", to: "/dashboard/dsi/department/employees-history" },
+      { label: "Historique des employés", icon: "clock", to: "/dashboard/dsi/department/employees-history" },
       { label: "Demandes transmises", icon: "clipboard", to: "/dashboard/dsi/inbox" },
     ],
   },
@@ -24,6 +24,7 @@ export const dsiMenu: SidebarSection[] = [
     title: "Administration",
     links: [
       { label: "Validation des comptes", icon: "shield", to: "/dashboard/dsi/accounts/pending" },
+      { label: "Réinitialisation des mots de passe", icon: "shield", to: "/dashboard/dsi/password-reset" },
     ],
   },
   {

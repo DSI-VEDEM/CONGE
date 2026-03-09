@@ -15,6 +15,8 @@ type Req = {
   employeeName: string;
   profilePhotoUrl?: string | null;
   department?: string;
+  departmentId?: string | null;
+  departmentName?: string;
   period: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   note?: string;
@@ -116,7 +118,9 @@ export default function AccountantInbox() {
               lastName: x.employee?.lastName ?? "",
               employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
               profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
-              department: x.employee?.department?.type ?? x.employee?.department?.name ?? "",
+              department: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
+              departmentId: x.employee?.department?.id ?? null,
+              departmentName: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
               period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
               status: x.status,
               note: x.reason ?? "",
@@ -233,14 +237,19 @@ export default function AccountantInbox() {
     };
   }, [historyPage]);
 
-  const departments = useMemo(
-    () =>
-      Array.from(new Set(rows.map((row) => row.department).filter((dept): dept is string => !!dept))).sort(),
-    [rows]
-  );
+  const departmentFilters = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      if (!row.departmentId) continue;
+      map.set(row.departmentId, row.departmentName ?? row.department ?? "");
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name: name || "—" }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
 
   const filteredRows = useMemo(
-    () => (departmentFilter ? rows.filter((row) => row.department === departmentFilter) : rows),
+    () => (departmentFilter ? rows.filter((row) => row.departmentId === departmentFilter) : rows),
     [departmentFilter, rows]
   );
 
@@ -404,25 +413,26 @@ export default function AccountantInbox() {
           const isDirector = row.original.origin === "DEPT_HEAD" || row.original.origin === "SERVICE_HEAD";
           return (
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => approve(row.original.id)}
-                className="px-2 py-1 rounded-md bg-vdm-gold-700 text-white text-xs hover:bg-vdm-gold-800"
-              >
-                Valider
-              </button>
-              <button
-                onClick={() => reject(row.original.id)}
-                className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
-              >
-                Refuser
-              </button>
+              {!isDirector && (
+                <>
+                  <button
+                    onClick={() => approve(row.original.id)}
+                    className="px-2 py-1 rounded-md bg-vdm-gold-700 text-white text-xs hover:bg-vdm-gold-800"
+                  >
+                    Valider
+                  </button>
+                  <button
+                    onClick={() => reject(row.original.id)}
+                    className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+                  >
+                    Refuser
+                  </button>
+                </>
+              )}
               {isDirector ? (
-                <button
-                  onClick={() => forwardToCeo(row.original.id)}
-                  className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
-                >
-                  Transmettre au PDG
-                </button>
+                <span className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs font-semibold">
+                  Transmise automatiquement au PDG
+                </span>
               ) : (
                 <>
                   <button
@@ -451,7 +461,7 @@ export default function AccountantInbox() {
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Boîte de réception des demandes</div>
       <div className="text-sm text-vdm-gold-700 mb-4">
-        La comptable peut transmettre les demandes au directeur de département ou directement au PDG. Les demandes des responsables sont transmises au PDG.
+        La comptable peut transmettre les demandes des collaborateurs au directeur de département ou au PDG. Les demandes émises par un directeur sont transmises automatiquement au PDG, la comptable ne peut ni les valider ni les refuser et les retrouve dans son historique.
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -462,9 +472,9 @@ export default function AccountantInbox() {
           className="w-full sm:max-w-xs rounded-md border border-vdm-gold-200 bg-white px-3 py-2 text-sm text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
         >
           <option value="">Tous les départements</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
+          {departmentFilters.map((dept) => (
+            <option key={dept.id} value={dept.id}>
+              {dept.name}
             </option>
           ))}
         </select>

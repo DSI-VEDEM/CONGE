@@ -15,6 +15,7 @@ import {
   Users,
   ShieldCheck,
   FileText,
+  Lock,
 } from "lucide-react";
 
 import type { SidebarIconKey, SidebarSection } from "./sidebar-types";
@@ -28,6 +29,7 @@ const sidebarIconMap: Record<SidebarIconKey, React.ComponentType<React.SVGProps<
   users: Users,
   user: User,
   shield: ShieldCheck,
+  lock: Lock,
   "file-text": FileText,
 };
 

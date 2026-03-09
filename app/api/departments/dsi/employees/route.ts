@@ -47,6 +47,7 @@ export async function GET(req: Request) {
   const employees = await prisma.employee.findMany({
     where: {
       departmentId: dsiDepartment.id,
+      passwordResetRequested: true,
       ...serviceScoped,
     },
     select: {

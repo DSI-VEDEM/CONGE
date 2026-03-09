@@ -4,7 +4,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
-import type { NotificationCategory, EmployeeRole } from "@/generated/prisma/client";
+import type {
+  NotificationCategory,
+  EmployeeRole,
+  EmployeeStatus,
+  Prisma,
+} from "@/generated/prisma/client";
 
 const ALLOWED_CREATORS: EmployeeRole[] = ["CEO", "ACCOUNTANT"];
 
@@ -35,8 +40,8 @@ async function resolveRecipients(options: {
     return employee ? [employee] : [];
   }
 
-  const filter: Parameters<typeof prisma.employee.findMany>[0]["where"] = {
-    status: "ACTIVE",
+  const filter = {
+    status: "ACTIVE" as EmployeeStatus,
     ...(options.targetRole ? { role: options.targetRole } : {}),
   };
 
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
 
   const created = await prisma.notification.createMany({
     data: recipients.map((recipient) => {
-      const base: Parameters<typeof prisma.notification.createMany>[0]["data"][0] = {
+        const base: Prisma.NotificationCreateManyInput = {
         title,
         body: message,
         category,
@@ -95,7 +100,6 @@ export async function POST(req: Request) {
       }
       return base;
     }),
-    skipDuplicates: true,
   });
 
   return NextResponse.json({ ok: true, created: created.count });

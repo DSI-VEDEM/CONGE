@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
 import {
   describeActorRole,
-  notifyCeoAboutLeaveDecision,
   notifyEmployeeOfLeaveDecision,
   requireAuth,
   isFinalStatus,
@@ -28,7 +27,7 @@ export async function POST(req: Request, ctx: Ctx) {
       status: true,
       currentAssigneeId: true,
       reachedCeoAt: true,
-      employee: { select: { firstName: true, lastName: true } },
+      employee: { select: { firstName: true, lastName: true, role: true } },
     },
   });
 
@@ -42,6 +41,12 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const body = await req.json().catch(() => ({}));
   const comment = body?.comment ?? null;
+
+  const requesterRole = leave.employee?.role ?? "EMPLOYEE";
+  const isDirectorRequester = requesterRole === "DEPT_HEAD" || requesterRole === "SERVICE_HEAD";
+  if (role === "ACCOUNTANT" && isDirectorRequester) {
+    return jsonError("La comptable ne peut pas valider ou refuser une demande émise par un directeur", 403);
+  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const updatedLeave = await tx.leaveRequest.update({
@@ -66,12 +71,6 @@ export async function POST(req: Request, ctx: Ctx) {
     leave?.employee && leave.employee.firstName && leave.employee.lastName
       ? `${leave.employee.firstName} ${leave.employee.lastName}`
       : "cet employé";
-  await notifyCeoAboutLeaveDecision({
-    leaveRequestId: id,
-    employeeName: requesterName,
-    status: "REJECTED",
-    actorRole: role,
-  });
   await notifyEmployeeOfLeaveDecision({
     leaveRequestId: id,
     employeeId: leave.employeeId,

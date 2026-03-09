@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import type { EmployeeRole, NotificationCategory } from "@/generated/prisma/client";
-import type { EmployeeRole, NotificationCategory } from "@/generated/prisma/client";
 
 type Auth = { id: string; role: string; departmentId?: string | null };
 
@@ -114,6 +113,8 @@ export async function notifyAccountantOfLeaveRequest(options: {
       metadata: {
         leaveRequestId: options.leaveRequestId,
         actorRole: options.actorRole ?? null,
+        requesterName: options.employeeName,
+        actionPath: "/dashboard/accountant/inbox",
       },
     },
   });
@@ -145,6 +146,8 @@ export async function notifyCeoOfDirectorLeaveRequest(options: {
       metadata: {
         leaveRequestId: options.leaveRequestId,
         actorRole: options.actorRole,
+        requesterName: options.employeeName,
+        actionPath: "/dashboard/ceo/inbox",
       },
     },
   });
@@ -205,6 +208,8 @@ export async function notifyEmployeeOfLeaveDecision(options: {
       metadata: {
         leaveRequestId: options.leaveRequestId,
         status: options.status,
+        requesterName: options.employeeName,
+        actionPath: "/dashboard/employee/requests",
       },
     },
   });

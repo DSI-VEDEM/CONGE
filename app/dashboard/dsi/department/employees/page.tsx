@@ -21,6 +21,18 @@ type EmployeeRow = {
   serviceName?: string;
 };
 
+type DepartmentOption = {
+  id: string;
+  name: string;
+  type?: string | null;
+};
+
+type RawDepartment = {
+  id?: string | null;
+  name?: string | null;
+  type?: string | null;
+} | null | undefined;
+
 type EmployeeApiItem = {
   id: string;
   firstName: string;
@@ -54,6 +66,7 @@ const roleLabel: Record<EmployeeRow["role"], string> = {
 export default function DsiDepartmentEmployees() {
   const currentEmployee = useMemo(() => getEmployee(), []);
   const [rows, setRows] = useState<EmployeeRow[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -136,9 +149,41 @@ export default function DsiDepartmentEmployees() {
     }
   }, [currentEmployee?.id]);
 
+  const loadDepartments = useCallback(async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch("/api/departments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDepartmentOptions([]);
+        return;
+      }
+      const list = Array.isArray(data?.departments) ? data.departments : [];
+      const validDepartments = list.filter(
+        (dept: RawDepartment): dept is DepartmentOption => Boolean(dept?.id)
+      ) as DepartmentOption[];
+      setDepartmentOptions(
+        validDepartments.map((dept) => ({
+          id: dept.id,
+          name: dept.name ?? dept.type ?? "—",
+          type: dept.type ?? null,
+        }))
+      );
+    } catch {
+      setDepartmentOptions([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadEmployees();
   }, [loadEmployees]);
+
+  useEffect(() => {
+    loadDepartments();
+  }, [loadDepartments]);
 
   const columns = useMemo<ColumnDef<EmployeeRow>[]>(
     () => [
@@ -260,12 +305,26 @@ export default function DsiDepartmentEmployees() {
                 />
               </label>
               <label className="text-sm text-vdm-gold-900">
-                Département (ID)
-                <input
-                  value={draft.department ?? ""}
-                  onChange={(e) => setDraft({ ...draft, department: e.target.value })}
-                  className="mt-1 w-full rounded-md border border-vdm-gold-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                />
+                Département
+                  <select
+                    value={draft.department ?? ""}
+                    onChange={(e) => {
+                      const selected = departmentOptions.find((dept) => dept.id === e.target.value);
+                      setDraft({
+                        ...draft,
+                        department: e.target.value,
+                        departmentName: selected ? `${selected.name}` : draft.departmentName,
+                      });
+                    }}
+                    className="mt-1 w-full rounded-md border border-vdm-gold-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  >
+                    <option value="">Sélectionner un département</option>
+                    {departmentOptions.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
               </label>
               <label className="text-sm text-vdm-gold-900">
                 Service (ID)

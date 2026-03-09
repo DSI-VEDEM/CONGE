@@ -5,6 +5,7 @@ export type SidebarIconKey =
   | "users"
   | "user"
   | "shield"
+  | "lock"
   | "file-text";
 
 export type SidebarLink = {

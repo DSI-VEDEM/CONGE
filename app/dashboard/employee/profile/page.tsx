@@ -1,14 +1,18 @@
 "use client";
 
 import ProfileView from "@/app/components/ProfileView";
+import PasswordResetCard from "@/app/dashboard/employee/password-reset/PasswordResetCard";
 import { PROFILE_DOCUMENT_TYPES } from "@/lib/document-types";
 
 export default function EmployeeProfilePage() {
   return (
-    <div className="p-6">
-      <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Profil</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">Vos informations personnelles.</div>
+    <div className="p-6 space-y-6">
+      <div>
+        <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Profil</div>
+        <div className="text-sm text-vdm-gold-700 mb-4">Vos informations personnelles.</div>
+      </div>
       <ProfileView documentTypes={PROFILE_DOCUMENT_TYPES} />
+      <PasswordResetCard />
     </div>
   );
 }

@@ -14,7 +14,7 @@ export async function PATCH(req: Request) {
   const body = await req.json().catch(() => ({}));
   const markAll = Boolean(body?.markAll);
   const rawIds = Array.isArray(body?.notificationIds) ? body.notificationIds : [];
-  const notificationIds = rawIds.map((id) => String(id).trim()).filter(Boolean);
+  const notificationIds = rawIds.map((id: unknown) => String(id).trim()).filter(Boolean);
 
   if (!markAll && notificationIds.length === 0) {
     return jsonError("notificationIds requis ou markAll=true", 400);
