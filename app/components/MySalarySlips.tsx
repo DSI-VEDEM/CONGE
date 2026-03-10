@@ -140,7 +140,7 @@ export default function MySalarySlips() {
   }, []);
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-12 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-vdm-gold-900">Bulletins de salaire</h1>

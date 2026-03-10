@@ -27,6 +27,11 @@ function extractActionPath(metadata?: Record<string, unknown> | null) {
   return typeof candidate === "string" && candidate.trim() ? candidate : undefined;
 }
 
+function extractActionLabel(metadata?: Record<string, unknown> | null) {
+  const candidate = metadata?.["actionLabel"];
+  return typeof candidate === "string" && candidate.trim() ? candidate : undefined;
+}
+
 const CATEGORY_LABELS: Record<NotificationCategory, { text: string; color: string }> = {
   INFO: { text: "Info", color: "bg-vdm-gold-100 text-vdm-gold-800" },
   ALERT: { text: "Alerte", color: "bg-red-100 text-red-800" },
@@ -192,6 +197,7 @@ export default function NotificationBell() {
   const visibleNotifications = useMemo(() => sortedNotifications.slice(0, 6), [sortedNotifications]);
   const selectedRequesterName = selectedNotification ? extractRequesterName(selectedNotification.metadata) : undefined;
   const selectedActionPath = selectedNotification ? extractActionPath(selectedNotification.metadata) : undefined;
+  const selectedActionLabel = selectedNotification ? extractActionLabel(selectedNotification.metadata) : undefined;
   const readNotificationsCount = useMemo(() => notifications.filter((notification) => notification.isRead).length, [notifications]);
   const hasNotifications = notifications.length > 0;
   const handleNotificationClick = useCallback(
@@ -389,7 +395,7 @@ export default function NotificationBell() {
                   }}
                   className="rounded-lg bg-vdm-gold-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-sm transition hover:bg-vdm-gold-800"
                 >
-                  Voir la demande
+                  {selectedActionLabel ?? "Voir la demande"}
                 </button>
               </div>
             )}

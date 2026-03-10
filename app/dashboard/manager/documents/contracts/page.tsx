@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function ManagerContractsPage() {
-  redirect("/dashboard/employee/documents/contracts");
+  redirect("/dashboard/employee/administration/contracts");
 }

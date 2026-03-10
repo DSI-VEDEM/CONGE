@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { getToken } from "@/lib/auth-client";
 
 type Slip = {
@@ -122,7 +123,6 @@ export default function CeoSalarySlipSigning() {
   const [signedHasNext, setSignedHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
   const [signatureImageDataUrl, setSignatureImageDataUrl] = useState<string | null>(null);
@@ -342,7 +342,6 @@ export default function CeoSalarySlipSigning() {
 
       setSigningId(id);
       setError(null);
-      setSuccess(null);
 
       try {
         const payload = hasCustomPlacement
@@ -367,7 +366,7 @@ export default function CeoSalarySlipSigning() {
           return false;
         }
 
-        setSuccess(force ? "Bulletin re-signé et PDF régénéré" : "Bulletin signé");
+        toast.success(force ? "Bulletin re-signé et PDF régénéré" : "Bulletin signé");
         const signedPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu après signature");
         if (signedPreview) {
           setSignedPreviewSlip(signedPreview);
@@ -483,7 +482,6 @@ export default function CeoSalarySlipSigning() {
 
       setSavingSignature(true);
       setError(null);
-      setSuccess(null);
 
       try {
         const dataUrl = await fileToDataUrl(file);
@@ -501,7 +499,7 @@ export default function CeoSalarySlipSigning() {
           return;
         }
         setSignatureImageDataUrl(dataUrl);
-        setSuccess("Signature image mise à jour");
+        toast.success("Signature image mise à jour");
       } catch {
         setError("Erreur réseau");
       } finally {
@@ -513,7 +511,7 @@ export default function CeoSalarySlipSigning() {
   );
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-12 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-vdm-gold-900">Signature des bulletins</h1>
@@ -529,9 +527,6 @@ export default function CeoSalarySlipSigning() {
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      {success && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</div>
-      )}
 
       <section className="rounded-xl border border-vdm-gold-200 bg-white p-4 space-y-3">
         <div className="text-sm font-semibold text-vdm-gold-900">Ma signature (image remplaçable)</div>

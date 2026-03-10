@@ -4,8 +4,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
-import { documentRequiresValidityDate } from "@/lib/document-validity";
+import { documentRequiresValidityDate, DOCUMENTS_REQUIRING_VALID_UNTIL_SET } from "@/lib/document-validity";
 import type { DocumentType } from "@/lib/document-types";
+import type { NotificationCategory } from "@/generated/prisma/client";
+import { findActiveEmployeeByRole } from "@/lib/leave-requests";
 
 const DOCUMENT_TYPES = new Set([
   "ID_CARD",
@@ -58,6 +60,93 @@ function authFromRequest(req: Request) {
 
 function isGlobalReader(role: string) {
   return role === "CEO" || role === "ACCOUNTANT";
+}
+
+function isDocumentExpired(document: {
+  validUntil?: Date | null;
+  expirationNotificationSentAt?: Date | null;
+}) {
+  if (!document.validUntil) return false;
+  const validUntilDate = new Date(document.validUntil);
+  if (Number.isNaN(validUntilDate.getTime())) return false;
+  const reference = document.expirationNotificationSentAt
+    ? new Date(document.expirationNotificationSentAt)
+    : null;
+  if (reference && reference >= validUntilDate) {
+    return false;
+  }
+  return validUntilDate <= new Date();
+}
+
+function documentHasValidity(type?: DocumentType | null) {
+  if (!type) return false;
+  return DOCUMENTS_REQUIRING_VALID_UNTIL_SET.has(type);
+}
+
+async function ensureDocumentExpirationNotifications(documents: {
+  id: string;
+  employeeId: string;
+  type: DocumentType;
+  validUntil?: Date | null;
+  expirationNotificationSentAt?: Date | null;
+  contractDocumentTypeId?: string | null;
+  contractDocumentType?: { name?: string | null } | null;
+}[]) {
+  const ceo = await findActiveEmployeeByRole("CEO");
+  const expiredDocs = documents.filter(
+    (doc) => documentHasValidity(doc.type) && isDocumentExpired(doc)
+  );
+  await Promise.all(
+    expiredDocs.map(async (doc) => {
+      const docTypeName = doc.contractDocumentType?.name ?? "document";
+      const notifications: Promise<unknown>[] = [];
+      notifications.push(
+        prisma.notification.create({
+          data: {
+            title: "Document expiré",
+            body: `Votre ${docTypeName.toLowerCase()} a expiré. Pensez à le mettre à jour.`,
+            category: "ALERT" as NotificationCategory,
+            employeeId: doc.employeeId,
+            targetRole: "EMPLOYEE",
+            global: false,
+            metadata: {
+              employeeDocumentId: doc.id,
+              employeeId: doc.employeeId,
+              actionPath: "/dashboard/employee/administration/contracts",
+              actionLabel: "Voir documents",
+              eventType: "DOCUMENT_EXPIRATION",
+            },
+          },
+        })
+      );
+      if (ceo) {
+        const ownerLabel = doc.contractDocumentType?.name ?? "document";
+        notifications.push(
+          prisma.notification.create({
+            data: {
+              title: "Document expiré",
+              body: `Le ${ownerLabel.toLowerCase()} de ${doc.employeeId} a expiré.`,
+              category: "ALERT" as NotificationCategory,
+              employeeId: ceo.id,
+              targetRole: "CEO",
+              global: false,
+              metadata: {
+                employeeDocumentId: doc.id,
+                employeeId: doc.employeeId,
+                actionPath: "/dashboard/ceo/administration/contracts/documents",
+                eventType: "DOCUMENT_EXPIRATION",
+              },
+            },
+          })
+        );
+      }
+      await Promise.all(notifications);
+      await prisma.employeeDocument.update({
+        where: { id: doc.id },
+        data: { expirationNotificationSentAt: new Date() },
+      });
+    })
+  );
 }
 
 export async function GET(req: Request) {
@@ -119,6 +208,7 @@ export async function GET(req: Request) {
       relatedPersonName: true,
       childOrder: true,
       validUntil: true,
+      expirationNotificationSentAt: true,
       contractDocumentTypeId: true,
       contractDocumentType: {
         select: {
@@ -153,6 +243,7 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
   });
 
+  await ensureDocumentExpirationNotifications(documents);
   return NextResponse.json({ documents });
 }
 
@@ -183,7 +274,7 @@ export async function POST(req: Request) {
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    select: { id: true, childrenCount: true },
+    select: { id: true, childrenCount: true, firstName: true, lastName: true },
   });
   if (!employee) return jsonError("Employé introuvable", 404);
 
@@ -283,11 +374,55 @@ export async function POST(req: Request) {
       childOrder: true,
       validUntil: true,
       contractDocumentTypeId: true,
+      contractDocumentType: {
+        select: {
+          name: true,
+        },
+      },
       fileName: true,
       mimeType: true,
       createdAt: true,
     },
   });
+
+  if (type === "CONTRACT" && role === "ACCOUNTANT") {
+    const docTypeName = created.contractDocumentType?.name ?? "document contractuel";
+    const ceo = await findActiveEmployeeByRole("CEO");
+    if (ceo) {
+      const nameParts = [employee.firstName, employee.lastName].filter(Boolean);
+      const employeeLabel = nameParts.length > 0 ? nameParts.join(" ").trim() : "l'employé";
+      await prisma.notification.create({
+        data: {
+          title: "Nouveaux documents à signer",
+          body: `La comptable a téléchargé un document ${docTypeName.toLowerCase()} pour ${employeeLabel}. Merci de signer ce document.`,
+          category: "ACTION" as NotificationCategory,
+          employeeId: ceo.id,
+          targetRole: "CEO",
+          metadata: {
+            employeeDocumentId: created.id,
+            employeeId,
+            actionPath: "/dashboard/ceo/administration/contracts/documents",
+          },
+        },
+      });
+    }
+
+    await prisma.notification.create({
+      data: {
+        title: "Document ajouté",
+        body: `La comptable a partagé un ${docTypeName.toLowerCase()} pour vous. Consultez-le dans vos documents.`,
+        category: "INFO" as NotificationCategory,
+        employeeId,
+        targetRole: "EMPLOYEE",
+        metadata: {
+          employeeDocumentId: created.id,
+          employeeId,
+          actionPath: "/dashboard/employee/administration/contracts",
+          actionLabel: "Voir documents",
+        },
+      },
+    });
+  }
 
   return NextResponse.json({ document: created }, { status: 201 });
 }

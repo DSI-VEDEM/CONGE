@@ -21,7 +21,6 @@ export const employeeMenu: SidebarSection[] = [
     title: "Compte",
     links: [
       { label: "Profil", icon: "user", to: "/dashboard/employee/profile" },
-      { label: "Réinitialisation du mot de passe", icon: "lock", to: "/dashboard/employee/password-reset" },
     ],
   },
 ];

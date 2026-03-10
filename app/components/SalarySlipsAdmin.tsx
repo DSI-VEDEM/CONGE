@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { getToken } from "@/lib/auth-client";
 import {
   MONTH_LABELS,
@@ -52,8 +53,6 @@ export default function SalarySlipsAdmin() {
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [isUploadPreviewOpen, setIsUploadPreviewOpen] = useState(false);
 
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const refreshEmployees = useCallback(async () => {
     const token = getToken();
@@ -66,7 +65,7 @@ export default function SalarySlipsAdmin() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(String(data?.error ?? "Impossible de charger la liste des employés"));
+      toast.error(String(data?.error ?? "Impossible de charger la liste des employés"));
       return;
     }
 
@@ -103,7 +102,7 @@ export default function SalarySlipsAdmin() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setError(String(data?.error ?? "Impossible de charger les bulletins"));
+      toast.error(String(data?.error ?? "Impossible de charger les bulletins"));
       return;
     }
 
@@ -112,7 +111,6 @@ export default function SalarySlipsAdmin() {
 
   const refreshAll = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
     try {
       await Promise.all([refreshEmployees(), refreshSlips()]);
     } finally {
@@ -141,23 +139,21 @@ export default function SalarySlipsAdmin() {
     if (!token) return;
 
     if (!employeeId || !month || !year || !file) {
-      setError("Sélectionnez un employé, un mois, une année et un PDF.");
+      toast.error("Sélectionnez un employé, un mois, une année et un PDF.");
       return;
     }
 
     if (file.type !== "application/pdf") {
-      setError("Le bulletin doit être au format PDF.");
+      toast.error("Le bulletin doit être au format PDF.");
       return;
     }
     const yearNumber = Number(year);
     if (!Number.isInteger(yearNumber) || yearNumber > currentYear) {
-      setError(`L'année du bulletin ne doit pas dépasser ${currentYear}.`);
+      toast.error(`L'année du bulletin ne doit pas dépasser ${currentYear}.`);
       return;
     }
 
     setIsSubmitting(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const fileDataUrl = await fileToDataUrl(file);
@@ -180,16 +176,16 @@ export default function SalarySlipsAdmin() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(String(data?.error ?? "Import impossible"));
+        toast.error(String(data?.error ?? "Import impossible"));
         return;
       }
 
-      setSuccess("Bulletin importé avec succès.");
+      toast.success("Bulletin importé avec succès.");
       setFile(null);
       setIsUploadPreviewOpen(false);
       await refreshSlips();
     } catch {
-      setError("Erreur réseau");
+      toast.error("Erreur réseau");
     } finally {
       setIsSubmitting(false);
     }
@@ -207,13 +203,13 @@ export default function SalarySlipsAdmin() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(String(data?.error ?? "Impossible de télécharger le bulletin"));
+        toast.error(String(data?.error ?? "Impossible de télécharger le bulletin"));
         return;
       }
 
       const slip = data?.slip;
       if (!slip?.fileDataUrl || !slip?.fileName) {
-        setError("Fichier indisponible");
+        toast.error("Fichier indisponible");
         return;
       }
       const fileName = slip.signedAt
@@ -226,7 +222,7 @@ export default function SalarySlipsAdmin() {
       a.click();
       a.remove();
     } catch {
-      setError("Erreur réseau");
+      toast.error("Erreur réseau");
     } finally {
       setDownloadingId(null);
     }
@@ -298,7 +294,7 @@ export default function SalarySlipsAdmin() {
   }, [recentPage, recentTotalPages]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-12 space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-vdm-gold-900">Administration des bulletins</h1>
@@ -312,11 +308,6 @@ export default function SalarySlipsAdmin() {
           Rafraîchir
         </button>
       </div>
-
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      {success && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</div>
-      )}
 
       <section className="rounded-xl border border-vdm-gold-200 bg-white p-4 space-y-4">
         <h2 className="text-base font-semibold text-vdm-gold-900">Nouveau bulletin</h2>

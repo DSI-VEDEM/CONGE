@@ -315,6 +315,7 @@ model EmployeeDocument {
   relatedPersonName String?
   childOrder        Int?
   validUntil        DateTime?
+  expirationNotificationSentAt DateTime?
   fileName          String
   mimeType          String
   fileDataUrl       String

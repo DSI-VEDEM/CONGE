@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { getEmployee } from "@/lib/auth-client";
 import NotificationBell from "./NotificationBell";
+import { useNotificationBellContext } from "./notification-bell-context";
 
 function roleLabel(role?: string | null) {
   if (!role) return "";
@@ -21,6 +24,12 @@ export default function DashboardShell({
   children: React.ReactNode;
 }) {
   const employee = getEmployee();
+  const { setHasDedicatedBell } = useNotificationBellContext();
+
+  useEffect(() => {
+    setHasDedicatedBell(true);
+    return () => setHasDedicatedBell(false);
+  }, [setHasDedicatedBell]);
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white">

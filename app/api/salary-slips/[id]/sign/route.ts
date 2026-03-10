@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import type { NotificationCategory } from "@/generated/prisma/client";
 
 function authFromRequest(req: Request) {
   const v = verifyJwt(req);
@@ -183,6 +184,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         fileName: true,
         signedAt: true,
         signedBy: { select: { firstName: true, lastName: true, role: true } },
+        employee: { select: { firstName: true, lastName: true } },
       },
     });
   } catch (error: unknown) {
@@ -191,6 +193,38 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
     throw error;
   }
+
+  const signedSlip = signed as {
+    id: string;
+    employeeId: string;
+    year: number;
+    month: number;
+    fileName: string;
+    signedAt: string;
+    signedBy: { firstName?: string | null; lastName?: string | null; role?: string | null };
+    employee: { firstName?: string | null; lastName?: string | null };
+  };
+  const ownerNameParts = [signedSlip.employee.firstName, signedSlip.employee.lastName].filter(Boolean);
+  const ownerLabel = ownerNameParts.length > 0 ? ownerNameParts.join(" ").trim() : "Votre bulletin";
+  const monthLabel = String(signedSlip.month).padStart(2, "0");
+  const yearLabel = signedSlip.year;
+      await prisma.notification.create({
+        data: {
+          title: "Bulletin signé",
+          body: `Le PDG a signé le bulletin de ${ownerLabel} (${monthLabel}/${yearLabel}). Il est maintenant disponible dans Mes bulletins.`,
+          category: "INFO" as NotificationCategory,
+          employeeId: signedSlip.employeeId,
+          targetRole: null,
+          global: false,
+          metadata: {
+            salarySlipId: signedSlip.id,
+            year: signedSlip.year,
+            month: signedSlip.month,
+            actionPath: "/dashboard/employee/payslips",
+            actionLabel: "Voir bulletin signé",
+          },
+        },
+      });
 
   return NextResponse.json({ slip: signed }, { status: 200 });
 }

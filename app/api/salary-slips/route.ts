@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
+import type { NotificationCategory } from "@/generated/prisma/client";
+import { findActiveEmployeeByRole } from "@/lib/leave-requests";
 
 const PDF_DATA_URL_RE = /^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_URL_LENGTH = 14 * 1024 * 1024;
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },
-    select: { id: true },
+    select: { id: true, firstName: true, lastName: true },
   });
   if (!employee) return jsonError("Employé introuvable", 404);
 
@@ -183,6 +185,27 @@ export async function POST(req: Request) {
         createdAt: true,
       },
     });
+
+    const ceo = await findActiveEmployeeByRole("CEO");
+    if (ceo) {
+      const nameParts = [employee.firstName, employee.lastName].filter(Boolean);
+      const employeeLabel = nameParts.length > 0 ? nameParts.join(" ").trim() : "un employé";
+      const monthLabel = String(created.month).padStart(2, "0");
+      await prisma.notification.create({
+        data: {
+          title: "Bulletin prêt à signer",
+          body: `La comptable a importé un bulletin pour ${employeeLabel} (${monthLabel}/${created.year}). Merci de le signer.`,
+          category: "ACTION" as NotificationCategory,
+          employeeId: ceo.id,
+          targetRole: "CEO",
+          metadata: {
+            salarySlipId: created.id,
+            employeeId,
+            actionPath: "/dashboard/ceo/payslips/sign",
+          },
+        },
+      });
+    }
 
     return NextResponse.json({ slip: created }, { status: 201 });
   } catch (e: unknown) {
