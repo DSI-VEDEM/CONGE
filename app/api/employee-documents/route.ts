@@ -96,10 +96,18 @@ async function ensureDocumentExpirationNotifications(documents: {
   const expiredDocs = documents.filter(
     (doc) => documentHasValidity(doc.type) && isDocumentExpired(doc)
   );
+  if (expiredDocs.length === 0) {
+    return;
+  }
+  const employeeInfos = await loadDsiLeaderStatusForEmployees(expiredDocs.map((doc) => doc.employeeId));
   await Promise.all(
     expiredDocs.map(async (doc) => {
       const docTypeName = doc.contractDocumentType?.name ?? "document";
       const notifications: Promise<unknown>[] = [];
+      const employeeInfo = employeeInfos.get(doc.employeeId);
+      const employeeActionPath = employeeInfo
+        ? profilePathForEmployee(employeeInfo)
+        : "/dashboard/employee/profile";
       notifications.push(
         prisma.notification.create({
           data: {
@@ -112,7 +120,7 @@ async function ensureDocumentExpirationNotifications(documents: {
             metadata: {
               employeeDocumentId: doc.id,
               employeeId: doc.employeeId,
-              actionPath: "/dashboard/employee/administration/contracts",
+              actionPath: employeeActionPath,
               actionLabel: "Voir documents",
               eventType: "DOCUMENT_EXPIRATION",
             },
@@ -147,6 +155,75 @@ async function ensureDocumentExpirationNotifications(documents: {
       });
     })
   );
+}
+
+async function loadDsiLeaderStatusForEmployees(
+  employeeIds: string[]
+): Promise<Map<string, EmployeeProfileInfo>> {
+  const uniqueIds = Array.from(new Set(employeeIds.filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return new Map<string, EmployeeProfileInfo>();
+  }
+
+  const employees = await prisma.employee.findMany({
+    where: { id: { in: uniqueIds } },
+    select: {
+      id: true,
+      role: true,
+      department: { select: { type: true } },
+    },
+  });
+
+  const responsibilities = await prisma.departmentResponsibility.findMany({
+    where: {
+      employeeId: { in: uniqueIds },
+      endAt: null,
+      department: { type: "DSI" },
+      role: { in: ["RESPONSABLE", "CO_RESPONSABLE"] },
+    },
+    select: { employeeId: true },
+  });
+
+  const responsibleIds = new Set(responsibilities.map((item) => item.employeeId));
+  const infoMap = new Map<string, EmployeeProfileInfo>();
+
+  for (const employee of employees) {
+    const departmentType = employee.department?.type ?? null;
+    const isDeptHeadDsi = employee.role === "DEPT_HEAD" && departmentType === "DSI";
+    infoMap.set(employee.id, {
+      id: employee.id,
+      role: employee.role,
+      departmentType: departmentType,
+      isDsiLeader: Boolean(isDeptHeadDsi || responsibleIds.has(employee.id)),
+    });
+  }
+
+  return infoMap;
+}
+
+type EmployeeProfileInfo = {
+  id: string;
+  role: string;
+  departmentType: string | null;
+  isDsiLeader: boolean;
+};
+
+function profilePathForEmployee(info: EmployeeProfileInfo) {
+  switch (info.role) {
+    case "CEO":
+      return "/dashboard/ceo/profile";
+    case "ACCOUNTANT":
+      return "/dashboard/accountant/profile";
+    case "DEPT_HEAD":
+      if (info.isDsiLeader) {
+        return "/dashboard/dsi/profile";
+      }
+      return "/dashboard/operations/profile";
+    case "SERVICE_HEAD":
+      return "/dashboard/manager/profile";
+    default:
+      return "/dashboard/employee/profile";
+  }
 }
 
 export async function GET(req: Request) {
