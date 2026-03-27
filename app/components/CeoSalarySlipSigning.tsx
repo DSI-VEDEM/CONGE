@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { getToken } from "@/lib/auth-client";
 
@@ -126,7 +126,6 @@ export default function CeoSalarySlipSigning() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
   const [signatureImageDataUrl, setSignatureImageDataUrl] = useState<string | null>(null);
-  const [savingSignature, setSavingSignature] = useState(false);
   const [historyYearFilter, setHistoryYearFilter] = useState("ALL");
   const [previewSlip, setPreviewSlip] = useState<SlipPreview | null>(null);
   const [signedPreviewSlip, setSignedPreviewSlip] = useState<SlipPreview | null>(null);
@@ -138,15 +137,6 @@ export default function CeoSalarySlipSigning() {
   const previewFrameRef = useRef<HTMLDivElement | null>(null);
   const signatureBoxRef = useRef<HTMLDivElement | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
-
-  const fileToDataUrl = useCallback((file: File) => {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.onerror = () => reject(new Error("Impossible de lire l'image"));
-      reader.readAsDataURL(file);
-    });
-  }, []);
 
   const refreshSignature = useCallback(async () => {
     const token = getToken();
@@ -467,49 +457,6 @@ export default function CeoSalarySlipSigning() {
     dragOffsetRef.current = null;
   }, []);
 
-  const onSignatureFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      if (!file.type.startsWith("image/")) {
-        setError("La signature doit être une image");
-        return;
-      }
-
-      const token = getToken();
-      if (!token) return;
-
-      setSavingSignature(true);
-      setError(null);
-
-      try {
-        const dataUrl = await fileToDataUrl(file);
-        const res = await fetch("/api/ceo/signature", {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ signatureImageDataUrl: dataUrl }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(String(data?.error ?? "Impossible d'enregistrer la signature"));
-          return;
-        }
-        setSignatureImageDataUrl(dataUrl);
-        toast.success("Signature image mise à jour");
-      } catch {
-        setError("Erreur réseau");
-      } finally {
-        setSavingSignature(false);
-        event.target.value = "";
-      }
-    },
-    [fileToDataUrl]
-  );
-
   return (
     <div className="p-12 space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -529,26 +476,17 @@ export default function CeoSalarySlipSigning() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       <section className="rounded-xl border border-vdm-gold-200 bg-white p-4 space-y-3">
-        <div className="text-sm font-semibold text-vdm-gold-900">Ma signature (image remplaçable)</div>
-        <input
-          type="file"
-          accept="image/png,image/jpeg"
-          onChange={onSignatureFileChange}
-          disabled={savingSignature}
-          className="block w-full rounded-lg border border-vdm-gold-300 bg-vdm-gold-50 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-vdm-gold-800 file:px-3 file:py-1.5 file:text-white"
-        />
-        <div className="text-xs text-vdm-gold-700">
-          {savingSignature
-            ? "Enregistrement de la signature..."
-            : signatureImageDataUrl
-              ? "Signature actuelle enregistrée. Utilisez l'aperçu pour la positionner par drag and drop avant signature."
-              : "Aucune signature configurée pour le moment."}
-        </div>
-        {signatureImageDataUrl && (
+        <div className="text-sm font-semibold text-vdm-gold-900">Ma signature</div>
+        <p className="text-xs text-vdm-gold-700">
+          La signature utilisée est fixe (SIGNATURE.jpeg). Elle ne peut pas être modifiée depuis l’interface.
+        </p>
+        {signatureImageDataUrl ? (
           <div className="rounded-md border border-vdm-gold-200 bg-white p-2 inline-block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={signatureImageDataUrl} alt="Signature PDG" className="max-h-20 object-contain" />
           </div>
+        ) : (
+          <div className="text-xs text-vdm-gold-600">Signature indisponible, contactez l’administrateur.</div>
         )}
       </section>
 
