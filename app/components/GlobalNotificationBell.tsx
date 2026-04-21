@@ -4,11 +4,9 @@ import { usePathname } from "next/navigation";
 import NotificationBell from "./NotificationBell";
 import { useNotificationBellContext } from "./notification-bell-context";
 
-const HIDDEN_PATHS = ["/login"] as const;
-
 function shouldShowNotificationBell(pathname: string | null) {
   if (!pathname) return false;
-  return !HIDDEN_PATHS.some((hidden) => pathname.startsWith(hidden));
+  return pathname.startsWith("/dashboard");
 }
 
 export default function GlobalNotificationBell() {
