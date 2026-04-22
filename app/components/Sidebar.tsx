@@ -74,7 +74,7 @@ export function Sidebar({
     }
     if (emp.role === "SERVICE_HEAD") return "Directeur Adjoint";
     if (emp.role === "DEPT_HEAD") return "Directeur des opérations";
-    if (emp.role === "ACCOUNTANT") return "Comptable";
+    if (emp.role === "ACCOUNTANT") return "Directrice des Affaires Financières";
     if (emp.role === "CEO") return "PDG";
     return emp.role;
   };

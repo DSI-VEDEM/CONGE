@@ -73,6 +73,66 @@ export async function autoApproveOverdueForDeptHead(deptHeadId: string, days: nu
   return overdue.length;
 }
 
+export async function autoApproveOverdueDirectorLeavesForCeo(ceoId: string, days: number) {
+  if (!Number.isFinite(days) || days <= 0) return 0;
+
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const overdue = await prisma.leaveRequest.findMany({
+    where: {
+      status: { in: ["SUBMITTED", "PENDING"] },
+      employee: { role: { in: DIRECTOR_ROLES } },
+      reachedCeoAt: { lt: cutoff },
+    },
+    select: {
+      id: true,
+      employeeId: true,
+      employee: { select: { firstName: true, lastName: true } },
+    },
+  });
+
+  if (overdue.length === 0) return 0;
+
+  const ops = overdue.flatMap((leave) => [
+    prisma.leaveRequest.update({
+      where: { id: leave.id },
+      data: {
+        status: "APPROVED",
+        currentAssigneeId: null,
+        deptHeadAssignedAt: null,
+      },
+    }),
+    prisma.leaveDecision.create({
+      data: {
+        leaveRequestId: leave.id,
+        actorId: ceoId,
+        type: "APPROVE",
+        comment: "Auto-approval after CEO validation delay (director leave request).",
+      },
+    }),
+  ]);
+
+  await prisma.$transaction(ops);
+
+  const actorLabel = describeActorRole("CEO");
+  await Promise.all(
+    overdue.map((leave) => {
+      const employeeName =
+        [leave.employee?.firstName, leave.employee?.lastName].filter(Boolean).join(" ") || "cet employé";
+      return notifyEmployeeOfLeaveDecision({
+        leaveRequestId: leave.id,
+        employeeId: leave.employeeId,
+        employeeName,
+        actorLabel,
+        status: "APPROVED",
+      });
+    })
+  );
+
+  return overdue.length;
+}
+
 export function parseDate(value: string | null) {
   if (!value) return null;
   const d = new Date(value);

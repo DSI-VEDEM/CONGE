@@ -6,6 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import { getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
+import { countLeaveDaysInclusive } from "@/lib/leave-days";
 
 type LeaveItem = {
   id: string;
@@ -26,21 +27,6 @@ type HistoryItem = {
   decidedAt: string;
   days: number;
 };
-
-function toUtcDay(value: string | undefined) {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-function daysBetweenInclusive(start: string, end: string) {
-  const s = toUtcDay(start);
-  const e = toUtcDay(end);
-  if (s == null || e == null) return 0;
-  if (e < s) return 0;
-  return Math.floor((e - s) / 86400000) + 1;
-}
 
 function statusLabel(status: LeaveItem["status"] | HistoryItem["status"]) {
   if (status === "APPROVED") return "Validée";
@@ -122,7 +108,10 @@ export default function EmployeeRequests() {
                 year: leaveYear,
                 status: x.status,
                 decidedAt: formatDateDMY(x.decisions?.[0]?.createdAt),
-                days: startRaw && endRaw ? daysBetweenInclusive(startRaw, endRaw) : 0,
+                days:
+                  startRaw && endRaw
+                    ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
+                    : 0,
               };
             });
           setHistoryItems(mapped);

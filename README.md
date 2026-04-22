@@ -27,6 +27,8 @@ Créer un fichier `.env` à la racine et définir :
 DATABASE_URL=
 JWT_SECRET=
 DEPT_HEAD_VALIDATION_DAYS=5
+CEO_DIRECTOR_VALIDATION_DAYS=2
+LEAVE_AUTO_APPROVE_SECRET=
 ```
 
 ## Prisma

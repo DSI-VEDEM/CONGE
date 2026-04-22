@@ -228,6 +228,7 @@ model Employee {
   leaveDecisions         LeaveDecision[] @relation("LeaveActor")
   receivedLeaveDecisions LeaveDecision[] @relation("LeaveDecisionTo")
   createdBlackouts       LeaveBlackout[]
+  createdHolidays        Holiday[]
 
   /// Indique qu'une réinitialisation de mot de passe a été demandée
   passwordResetRequested Boolean @default(false)
@@ -239,6 +240,24 @@ model Employee {
   @@index([status])
   @@index([departmentId])
   @@index([serviceId])
+}
+
+model Holiday {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  /// Date fériée (jour complet)
+  date  DateTime
+  label String?
+
+  /// Créé par (comptable/DAF)
+  createdById String?   @db.ObjectId
+  createdBy   Employee? @relation(fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  createdAt DateTime @default(now())
+
+  @@unique([date])
+  @@index([date])
+  @@index([createdById])
 }
 
 model Notification {

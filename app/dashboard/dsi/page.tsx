@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getEmployee, getToken } from "@/lib/auth-client";
 import DashboardCharts from "@/app/components/DashboardCharts";
+import { isPaidLeaveType } from "@/lib/leave-types";
+import { countLeaveDaysOverlapInYear } from "@/lib/leave-days";
 
 type LeaveItem = {
   id: string;
+  type: string;
   startDate: string;
   endDate: string;
   status: "SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -36,29 +39,6 @@ const MONTHS = [
   "Déc",
 ];
 
-function toUtcDay(value: string | undefined) {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-function overlapDaysInYear(start: string, end: string, year: number) {
-  const startUtc = toUtcDay(start);
-  const endUtc = toUtcDay(end);
-  if (startUtc == null || endUtc == null) return 0;
-  if (endUtc < startUtc) return 0;
-
-  const yearStart = Date.UTC(year, 0, 1);
-  const yearEnd = Date.UTC(year, 11, 31);
-
-  const s = Math.max(startUtc, yearStart);
-  const e = Math.min(endUtc, yearEnd);
-  if (s > e) return 0;
-
-  return Math.floor((e - s) / 86400000) + 1;
-}
-
 function consumedDaysForYear(leaves: LeaveItem[], year: number) {
   let total = 0;
   for (const leave of leaves) {
@@ -67,7 +47,13 @@ function consumedDaysForYear(leaves: LeaveItem[], year: number) {
       leave.status === "PENDING" ||
       leave.status === "SUBMITTED"
     ) {
-      total += overlapDaysInYear(leave.startDate, leave.endDate, year);
+      if (!isPaidLeaveType(leave.type)) continue;
+      total += countLeaveDaysOverlapInYear({
+        start: leave.startDate,
+        end: leave.endDate,
+        year,
+        type: leave.type,
+      });
     }
   }
   return total;

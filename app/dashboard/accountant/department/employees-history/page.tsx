@@ -6,6 +6,7 @@ import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
 import { getEmployee, getToken } from "@/lib/auth-client";
 import { formatDateDMY } from "@/lib/date-format";
+import { countLeaveDaysInclusive } from "@/lib/leave-days";
 
 type HistoryItem = {
   id: string;
@@ -44,21 +45,6 @@ type LeaveApiItem = {
     actor?: { firstName?: string; lastName?: string; role?: string } | null;
   }>;
 };
-
-function toUtcDay(value: string | undefined) {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-}
-
-function daysBetweenInclusive(start: string, end: string) {
-  const s = toUtcDay(start);
-  const e = toUtcDay(end);
-  if (s == null || e == null) return 0;
-  if (e < s) return 0;
-  return Math.floor((e - s) / 86400000) + 1;
-}
 
 function statusLabel(status: HistoryItem["status"]) {
   if (status === "APPROVED") return "Validée";
@@ -123,7 +109,10 @@ export default function AccountantDeptEmployeesHistory() {
               actor?.role ||
               "-",
             decidedAt: decidedAtRaw ? formatDateDMY(decidedAtRaw) : "-",
-            days: startRaw && endRaw ? daysBetweenInclusive(startRaw, endRaw) : 0,
+            days:
+              startRaw && endRaw
+                ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: item.type })
+                : 0,
           };
         });
 

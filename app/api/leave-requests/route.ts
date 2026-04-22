@@ -20,7 +20,7 @@ import { norm } from "@/lib/validators";
 import {
   calculateEntitledLeaveDaysForYear,
   consumedLeaveDaysForYear,
-  requestedLeaveDays,
+  requestedLeaveDaysForType,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
 import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
   // On travaille sur l'année en cours pour le calcul des droits.
   const currentYear = new Date().getUTCFullYear();
-  const requested = requestedLeaveDays(startDate, endDate);
+  const requested = requestedLeaveDaysForType(startDate, endDate, leaveType);
   if (leaveType === "ANNUAL_PAID") {
     const consumed = await consumedLeaveDaysForYear(prisma, actorId, currentYear);
     const nextYearEntitlement = calculateEntitledLeaveDaysForYear(

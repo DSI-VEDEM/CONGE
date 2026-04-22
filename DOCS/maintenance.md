@@ -36,6 +36,8 @@ Ce document est destiné à un.e développeur.se qui doit maintenir l’applicat
   DATABASE_URL=
   JWT_SECRET=
   DEPT_HEAD_VALIDATION_DAYS=5
+  CEO_DIRECTOR_VALIDATION_DAYS=2
+  LEAVE_AUTO_APPROVE_SECRET=
   SEED_ADMIN_PASSWORD=ChangeMe123!
   ```
   Les variables peuvent être surchargées dans `.env.production` lorsque vous déployez.

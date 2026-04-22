@@ -15,7 +15,7 @@ export const operationsMenu: SidebarSection[] = [
   {
     title: "Direction des opérations",
     links: [
-      { label: "Employés (actuels)", icon: "users", to: "/dashboard/operations/department/employees" },
+      { label: "Employés de mon service", icon: "users", to: "/dashboard/operations/department/employees" },
       {
         label: "Historique des employés",
         icon: "users",

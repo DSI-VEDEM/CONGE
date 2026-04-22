@@ -4,9 +4,11 @@ import { formatDateDMY } from "@/lib/date-format";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getEmployee, getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
-import { DEFAULT_LEAVE_TYPE, leaveOptionsForGender, type LeaveTypeValue } from "@/lib/leave-types";
+import { DEFAULT_LEAVE_TYPE, leaveOptionsForGender, isPaidLeaveType, type LeaveTypeValue } from "@/lib/leave-types";
+import { countLeaveDaysInclusive, countLeaveDaysOverlapInYear } from "@/lib/leave-days";
 
 type LeaveItem = {
+  type: string;
   startDate: string;
   endDate: string;
   status: "SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -31,19 +33,6 @@ function toUtcDay(value: string | undefined) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-function overlapDaysInYear(start: string, end: string, year: number) {
-  const startUtc = toUtcDay(start);
-  const endUtc = toUtcDay(end);
-  if (startUtc == null || endUtc == null) return 0;
-  if (endUtc < startUtc) return 0;
-  const yearStart = Date.UTC(year, 0, 1);
-  const yearEnd = Date.UTC(year, 11, 31);
-  const s = Math.max(startUtc, yearStart);
-  const e = Math.min(endUtc, yearEnd);
-  if (s > e) return 0;
-  return Math.floor((e - s) / 86400000) + 1;
-}
-
 function consumedDaysForYear(leaves: LeaveItem[], year: number) {
   let total = 0;
   for (const leave of leaves) {
@@ -52,18 +41,16 @@ function consumedDaysForYear(leaves: LeaveItem[], year: number) {
       leave.status === "PENDING" ||
       leave.status === "SUBMITTED"
     ) {
-      total += overlapDaysInYear(leave.startDate, leave.endDate, year);
+      if (!isPaidLeaveType(leave.type)) continue;
+      total += countLeaveDaysOverlapInYear({
+        start: leave.startDate,
+        end: leave.endDate,
+        year,
+        type: leave.type,
+      });
     }
   }
   return total;
-}
-
-function daysBetweenInclusive(start: string, end: string) {
-  const s = toUtcDay(start);
-  const e = toUtcDay(end);
-  if (s == null || e == null) return 0;
-  if (e < s) return 0;
-  return Math.floor((e - s) / 86400000) + 1;
 }
 
 function rangesOverlap(start: string, end: string, blackoutStart: string, blackoutEnd: string) {
@@ -130,8 +117,11 @@ export default function EmployeeLeaveNew() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const todayUtc = useMemo(() => toUtcDay(toLocalDateInputValue(new Date())), []);
   const daysRequested = useMemo(
-    () => (startDate && endDate ? daysBetweenInclusive(startDate, endDate) : 0),
-    [startDate, endDate]
+    () =>
+      startDate && endDate
+        ? countLeaveDaysInclusive({ start: startDate, end: endDate, type })
+        : 0,
+    [startDate, endDate, type]
   );
   const isExhausted = balance <= 0;
   const employeeGender = getEmployee()?.gender ?? null;
@@ -296,7 +286,7 @@ export default function EmployeeLeaveNew() {
       toast.error("Veuillez renseigner la date de début et la date de fin.");
       return;
     }
-    const daysRequested = daysBetweenInclusive(startDate, endDate);
+    const daysRequested = countLeaveDaysInclusive({ start: startDate, end: endDate, type });
     if (daysRequested < 1) {
       toast.error("La période saisie est invalide.");
       return;

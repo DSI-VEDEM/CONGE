@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PAID_LEAVE_VALUES, isPaidLeaveType } from "@/lib/leave-types";
+import { countWeekdaysInclusive, countCalendarDaysInclusive } from "@/lib/leave-days";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 const BASE_ANNUAL_DAYS = 25;
@@ -116,7 +117,8 @@ function overlapDaysInYear(start: Date, end: Date, year: number) {
   const s = Math.max(startUtc, yearStart);
   const e = Math.min(endUtc, yearEnd);
   if (s > e) return 0;
-  return Math.floor((e - s) / 86400000) + 1;
+  // Les congés payés (ANNUAL_PAID/ANNUAL) se comptent en jours ouvrables (hors samedi/dimanche).
+  return countWeekdaysInclusive(new Date(s), new Date(e));
 }
 
 export async function consumedLeaveDaysForYear(
@@ -218,8 +220,12 @@ export async function syncAllActiveEmployeesLeaveBalance(asOf: Date = new Date()
 }
 
 export function requestedLeaveDays(startDate: Date, endDate: Date) {
-  const startUtc = startOfUtcDay(startDate);
-  const endUtc = startOfUtcDay(endDate);
-  if (endUtc < startUtc) return 0;
-  return Math.floor((endUtc - startUtc) / 86400000) + 1;
+  return countCalendarDaysInclusive(startDate, endDate);
+}
+
+export function requestedLeaveDaysForType(startDate: Date, endDate: Date, type?: unknown) {
+  if (isPaidLeaveType(type)) {
+    return countWeekdaysInclusive(startDate, endDate);
+  }
+  return countCalendarDaysInclusive(startDate, endDate);
 }
