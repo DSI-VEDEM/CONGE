@@ -2,6 +2,7 @@ export type SidebarIconKey =
   | "home"
   | "clipboard"
   | "clock"
+  | "calendar"
   | "users"
   | "user"
   | "shield"

@@ -248,6 +248,9 @@ model Holiday {
   /// Date fériée (jour complet)
   date  DateTime
   label String?
+  /// Si true, ce jour est férié chaque année (mois/jour pris depuis `date`).
+  /// Stockage: on ancre la date sur une année "technique" (cf. lib/holidays.ts).
+  isRecurring Boolean? @default(false)
 
   /// Créé par (comptable/DAF)
   createdById String?   @db.ObjectId
@@ -256,7 +259,6 @@ model Holiday {
   createdAt DateTime @default(now())
 
   @@unique([date])
-  @@index([date])
   @@index([createdById])
 }
 

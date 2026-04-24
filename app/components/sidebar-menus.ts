@@ -64,6 +64,7 @@ export const accountantMenu: SidebarSection[] = [
     links: [
       { label: "Contrats à ajouter", icon: "shield", to: "/dashboard/accountant/administration/contracts/types", },
       { label: "Documents contractuels", icon: "file-text", to: "/dashboard/accountant/administration/contracts/documents", },
+      { label: "Jours fériés", icon: "shield", to: "/dashboard/accountant/holidays" },
       { label: "Bulletins à ajouter", icon: "shield", to: "/dashboard/accountant/payslips/imported" },
       { label: "Bulletins employés", icon: "file-text", to: "/dashboard/accountant/payslips/imported/by-year" },
       { label: "Documents RH employés", icon: "file-text", to: "/dashboard/accountant/documents/employees", },

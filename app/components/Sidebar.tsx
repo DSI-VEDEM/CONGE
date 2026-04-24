@@ -8,6 +8,7 @@ import {
   Home,
   ClipboardCheck,
   Clock,
+  CalendarDays,
   User,
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ const sidebarIconMap: Record<SidebarIconKey, React.ComponentType<React.SVGProps<
   home: Home,
   clipboard: ClipboardCheck,
   clock: Clock,
+  calendar: CalendarDays,
   users: Users,
   user: User,
   shield: ShieldCheck,
@@ -67,17 +69,8 @@ export function Sidebar({
   }, [router]);
   const cancelLogout = useCallback(() => setShowLogoutModal(false), []);
 
-  const roleLabel = (emp?: EmployeeSession | null) => {
-    if (!emp) return "";
-    if (emp.isDsiAdmin || emp.departmentType === "DSI") {
-      return "Directeur du service informatique";
-    }
-    if (emp.role === "SERVICE_HEAD") return "Directeur Adjoint";
-    if (emp.role === "DEPT_HEAD") return "Directeur des opérations";
-    if (emp.role === "ACCOUNTANT") return "Directrice des Affaires Financières";
-    if (emp.role === "CEO") return "PDG";
-    return emp.role;
-  };
+
+  const subtitleLine = employee ? String(employee.jobTitle ?? "").trim() : "";
 
   const [menuHeight, setMenuHeight] = useState(0);
   useEffect(() => {
@@ -168,7 +161,7 @@ export function Sidebar({
             <div className="text-sm font-semibold text-vdm-gold-100">
               {isMounted && employee ? `${employee.firstName} ${employee.lastName}` : "Utilisateur"}
             </div>
-            <div className="text-xs text-vdm-gold-200">{isMounted ? roleLabel(employee) : ""}</div>
+            <div className="text-xs text-vdm-gold-200">{isMounted ? subtitleLine : ""}</div>
           </div>
 
           {sections.map((section, idx) => (
@@ -226,7 +219,7 @@ export function Sidebar({
             <div className="text-sm font-semibold text-vdm-gold-100">
               {isMounted && employee ? `${employee.firstName} ${employee.lastName}` : "Utilisateur"}
             </div>
-            <div className="text-xs text-vdm-gold-200">{isMounted ? roleLabel(employee) : ""}</div>
+            <div className="text-xs text-vdm-gold-200">{isMounted ? subtitleLine : ""}</div>
           </div>
         </div>
 

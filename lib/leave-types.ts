@@ -15,7 +15,7 @@ export const LEAVE_TYPE_OPTIONS: LeaveOption[] = [
   { value: "CONGE_M", label: "Congé M (historique)", allowedGenders: ["FEMALE"], hidden: true },
   { value: "MATERNITY_PATERNITY", label: "Congé maternité/paternité" },
   { value: "SICKNESS", label: "Congé maladie" },
-  { value: "UNPAID", label: "Congé sans solde" },
+  { value: "UNPAID", label: "Mise à  disponibilité " },
   { value: "TRAINING", label: "Congé de formation" },
   { value: "ANNUAL", label: "Ancien congé annuel", hidden: true },
   { value: "SICK", label: "Ancien congé maladie", hidden: true },

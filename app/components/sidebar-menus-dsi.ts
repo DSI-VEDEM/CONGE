@@ -25,6 +25,7 @@ export const dsiMenu: SidebarSection[] = [
     links: [
       { label: "Validation des comptes", icon: "shield", to: "/dashboard/dsi/accounts/pending" },
       { label: "Réinitialisation des mots de passe", icon: "shield", to: "/dashboard/dsi/password-reset" },
+      { label: "Jours fériés", icon: "calendar", to: "/dashboard/dsi/holidays" },
     ],
   },
   {

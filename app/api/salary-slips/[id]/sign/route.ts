@@ -137,12 +137,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const maxWidth = Math.min(220, width * 0.35);
     const maxHeight = Math.min(90, height * 0.15);
-    const scale = Math.min(maxWidth / embeddedImage.width, maxHeight / embeddedImage.height);
+    // Réduction légère pour éviter de trop couvrir le contenu.
+    const scale = Math.min(maxWidth / embeddedImage.width, maxHeight / embeddedImage.height) * 0.9;
     const drawWidth = embeddedImage.width * scale;
     const drawHeight = embeddedImage.height * scale;
 
-    let drawX = width - drawWidth - 24;
-    let drawY = 18;
+    // Par défaut: signature en bas à gauche.
+    let drawX = 24;
+    // Descendre un peu plus.
+    let drawY = 10;
 
     // Position personnalisée depuis l'aperçu (ratios normalisés).
     if (placementX != null && placementYTop != null) {

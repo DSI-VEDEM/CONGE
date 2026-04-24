@@ -139,6 +139,9 @@ export default function EmployeeDocumentsSection({
   const [editFileInputKey, setEditFileInputKey] = useState(0);
   const [isEditingBusy, setIsEditingBusy] = useState(false);
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ id: string; fileName: string; url: string; mimeType: string } | null>(
+    null
+  );
   const [deleteModalDoc, setDeleteModalDoc] = useState<EmployeeDocument | null>(null);
   const employeeFilterControl = hasGlobalAccess ? (
     <>
@@ -556,7 +559,14 @@ export default function EmployeeDocumentsSection({
     setDeleteModalDoc(doc);
   };
 
-  const openDocument = async (doc: EmployeeDocument) => {
+  useEffect(() => {
+    if (!previewDoc) return;
+    return () => {
+      URL.revokeObjectURL(previewDoc.url);
+    };
+  }, [previewDoc]);
+
+  const openDocumentPreview = async (doc: EmployeeDocument) => {
     const token = getToken();
     if (!token) return;
 
@@ -569,7 +579,36 @@ export default function EmployeeDocumentsSection({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         toast.error(String(data?.error ?? "Impossible d'ouvrir le document"));
-        setOpeningDocId(null);
+        return;
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setPreviewDoc({
+        id: doc.id,
+        fileName: doc.fileName,
+        url: objectUrl,
+        mimeType: blob.type || doc.mimeType || "application/octet-stream",
+      });
+    } catch {
+      toast.error("Erreur réseau lors de l'ouverture du document");
+    } finally {
+      setOpeningDocId(null);
+    }
+  };
+
+  const downloadDocument = async (doc: EmployeeDocument) => {
+    const token = getToken();
+    if (!token) return;
+
+    setOpeningDocId(doc.id);
+    try {
+      // GET /api/employee-documents/:id/file pour télécharger le binaire.
+      const res = await fetch(`/api/employee-documents/${doc.id}/file`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Impossible de télécharger le document"));
         return;
       }
       const blob = await res.blob();
@@ -581,9 +620,9 @@ export default function EmployeeDocumentsSection({
       link.rel = "noreferrer";
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
-      setOpeningDocId(null);
     } catch {
-      toast.error("Erreur réseau lors de l'ouverture du document");
+      toast.error("Erreur réseau lors du téléchargement du document");
+    } finally {
       setOpeningDocId(null);
     }
   };
@@ -869,7 +908,17 @@ export default function EmployeeDocumentsSection({
                           <div>
                             <div className="text-sm font-semibold text-vdm-gold-900">{typeLabel(doc.type, documentTypes)}</div>
                             <div className="text-xs text-vdm-gold-700">
-                              Fichier: {doc.fileName} | Ajouté le: {formatDate(doc.createdAt)}
+                              Fichier:{" "}
+                              <button
+                                type="button"
+                                onClick={() => openDocumentPreview(doc)}
+                                disabled={openingDocId === doc.id}
+                                className="text-vdm-gold-800 hover:underline disabled:opacity-70"
+                                title="Cliquer pour ouvrir l’aperçu"
+                              >
+                                {doc.fileName}
+                              </button>{" "}
+                              | Ajouté le: {formatDate(doc.createdAt)}
                             </div>
                             {doc.relatedPersonName ? (
                               <div className="text-xs text-vdm-gold-700">
@@ -894,11 +943,19 @@ export default function EmployeeDocumentsSection({
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() => openDocument(doc)}
+                            onClick={() => openDocumentPreview(doc)}
                             disabled={openingDocId === doc.id}
                             className="px-3 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
                           >
-                            {openingDocId === doc.id ? "Ouverture..." : "Ouvrir / Télécharger"}
+                            {openingDocId === doc.id ? "Chargement..." : "Aperçu"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDocument(doc)}
+                            disabled={openingDocId === doc.id}
+                            className="px-3 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
+                          >
+                            {openingDocId === doc.id ? "..." : "Télécharger"}
                           </button>
                           {canManageDocument(doc) ? (
                             <>
@@ -1046,6 +1103,51 @@ export default function EmployeeDocumentsSection({
               className="w-full max-h-[85vh] object-contain bg-black"
               priority
             />
+          </div>
+        </div>
+      ) : null}
+
+      {previewDoc ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setPreviewDoc(null)}>
+          <div
+            className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu du document</h3>
+                <p className="text-xs text-vdm-gold-700">{previewDoc.fileName}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = previewDoc.url;
+                    link.download = previewDoc.fileName;
+                    link.click();
+                  }}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Télécharger
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            <div className="p-4 h-full min-h-0">
+              {previewDoc.mimeType.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewDoc.url} alt="Aperçu document" />
+              ) : (
+                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewDoc.url} title="Aperçu document" />
+              )}
+            </div>
           </div>
         </div>
       ) : null}

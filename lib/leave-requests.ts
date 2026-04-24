@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import type { EmployeeRole, NotificationCategory } from "@/generated/prisma/client";
 
-type Auth = { id: string; role: string; departmentId?: string | null };
+type Auth = {
+  id: string;
+  role: string;
+  departmentId?: string | null;
+  isDsiAdmin?: boolean;
+  departmentType?: string | null;
+};
 
 export function requireAuth(req: Request) {
   const v = verifyJwt(req);
@@ -13,7 +19,9 @@ export function requireAuth(req: Request) {
 
   const role = String(v.payload?.role ?? "");
   const departmentId = v.payload?.departmentId ?? null;
-  const auth: Auth = { id, role, departmentId };
+  const isDsiAdmin = Boolean(v.payload?.isDsiAdmin);
+  const departmentType = v.payload?.departmentType ?? null;
+  const auth: Auth = { id, role, departmentId, isDsiAdmin, departmentType };
   return { ok: true as const, auth };
 }
 

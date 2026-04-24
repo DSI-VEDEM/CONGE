@@ -54,6 +54,8 @@ export default function MySalarySlips() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewSlip, setPreviewSlip] = useState<{ id: string; fileName: string; fileDataUrl: string } | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const token = getToken();
@@ -139,6 +141,38 @@ export default function MySalarySlips() {
     }
   }, []);
 
+  const openPreview = useCallback(async (id: string) => {
+    const token = getToken();
+    if (!token) return;
+
+    setPreviewLoadingId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/salary-slips/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(String(data?.error ?? "Impossible d'ouvrir l'aperçu"));
+        return;
+      }
+      const slip = data?.slip;
+      if (!slip?.fileDataUrl || !slip?.fileName) {
+        setError("Fichier indisponible");
+        return;
+      }
+      setPreviewSlip({
+        id: String(slip.id),
+        fileName: String(slip.fileName),
+        fileDataUrl: String(slip.fileDataUrl),
+      });
+    } catch {
+      setError("Erreur réseau");
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  }, []);
+
   return (
     <div className="p-12 space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -194,14 +228,24 @@ export default function MySalarySlips() {
                         {formatDateTime(String(slip.signedAt ?? slip.createdAt))}
                       </div>
                       <div>
-                        <button
-                          type="button"
-                          onClick={() => downloadSlip(slip.id)}
-                          disabled={downloadingId === slip.id}
-                          className="w-full px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
-                        >
-                          {downloadingId === slip.id ? "Téléchargement..." : "Télécharger"}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openPreview(slip.id)}
+                            disabled={previewLoadingId === slip.id}
+                            className="flex-1 px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
+                          >
+                            {previewLoadingId === slip.id ? "Chargement..." : "Aperçu"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadSlip(slip.id)}
+                            disabled={downloadingId === slip.id}
+                            className="flex-1 px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
+                          >
+                            {downloadingId === slip.id ? "Téléchargement..." : "Télécharger"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -211,6 +255,41 @@ export default function MySalarySlips() {
           </div>
         )}
       </div>
+
+      {previewSlip ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setPreviewSlip(null)}>
+          <div
+            className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu du bulletin</h3>
+                <p className="text-xs text-vdm-gold-700">{previewSlip.fileName}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadSlip(previewSlip.id)}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Télécharger
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSlip(null)}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            <div className="p-4 h-full min-h-0">
+              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewSlip.fileDataUrl} title="Aperçu bulletin" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

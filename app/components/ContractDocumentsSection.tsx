@@ -82,6 +82,11 @@ export default function ContractDocumentsSection({
   const [uploadEmployeeId, setUploadEmployeeId] = useState(employee.id);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ id: string; fileName: string; url: string; mimeType: string } | null>(
+    null
+  );
   const [highlightedDocumentTypeId, setHighlightedDocumentTypeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,6 +99,25 @@ export default function ContractDocumentsSection({
   const [documentTypeFilter, setDocumentTypeFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set<string>());
+
+  useEffect(() => {
+    if (!previewFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(previewFile);
+    setPreviewUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [previewFile]);
+
+  useEffect(() => {
+    if (!previewDoc) return;
+    return () => {
+      URL.revokeObjectURL(previewDoc.url);
+    };
+  }, [previewDoc]);
   useEffect(() => {
     if (!showEmployeeFilter && !showUploader && !enableEmployeeFilter) return;
     const token = getToken();
@@ -370,6 +394,7 @@ export default function ContractDocumentsSection({
       }
       toast.success("Document contractuel ajouté.");
       setSelectedFile(null);
+      if (previewFile === selectedFile) setPreviewFile(null);
       setFileInputKey((prev) => prev + 1);
       fetchDocuments();
     } catch (readError) {
@@ -380,7 +405,7 @@ export default function ContractDocumentsSection({
     }
   };
 
-  const openDocument = async (doc: ContractDocument) => {
+  const openDocumentPreview = async (doc: ContractDocument) => {
     const token = getToken();
     if (!token) return;
     setOpeningDocId(doc.id);
@@ -397,11 +422,35 @@ export default function ContractDocumentsSection({
       }
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
+      setPreviewDoc({
+        id: doc.id,
+        fileName: doc.fileName,
+        url: objectUrl,
+        mimeType: blob.type || doc.mimeType || "application/octet-stream",
+      });
+    } finally {
+      setOpeningDocId(null);
+    }
+  };
+
+  const downloadDocument = async (doc: ContractDocument) => {
+    const token = getToken();
+    if (!token) return;
+    setOpeningDocId(doc.id);
+    try {
+      const res = await fetch(`/api/employee-documents/${doc.id}/file`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Impossible de télécharger le document"));
+        return;
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
       link.download = doc.fileName;
-      link.target = "_blank";
-      link.rel = "noreferrer";
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
     } finally {
@@ -442,6 +491,7 @@ export default function ContractDocumentsSection({
     if (isEditingDoc) return;
     setEditingDocId(null);
     setEditSelectedFile(null);
+    setPreviewFile(null);
   };
 
   const saveDocumentEdit = async (doc: ContractDocument) => {
@@ -476,6 +526,7 @@ export default function ContractDocumentsSection({
       toast.success("Document modifié.");
       setEditingDocId(null);
       setEditSelectedFile(null);
+      setPreviewFile(null);
       fetchDocuments();
     } catch {
       toast.error("Erreur réseau lors de la modification");
@@ -637,6 +688,33 @@ export default function ContractDocumentsSection({
                     className="mt-1 block w-full rounded-md border border-vdm-gold-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
                   />
                 </label>
+                {selectedFile ? (
+                  <div className="rounded-lg border border-vdm-gold-200 bg-white p-3">
+                    <div className="text-sm font-medium text-vdm-gold-900 truncate" title={selectedFile.name}>
+                      Fichier sélectionné: {selectedFile.name}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewFile(selectedFile)}
+                        className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
+                      >
+                        Aperçu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (previewFile === selectedFile) setPreviewFile(null);
+                          setSelectedFile(null);
+                          setFileInputKey((prev) => prev + 1);
+                        }}
+                        className="px-3 py-1.5 rounded-md border border-red-300 text-red-700 text-sm hover:bg-red-50"
+                      >
+                        Retirer le fichier
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   onClick={uploadDocument}
@@ -690,7 +768,15 @@ export default function ContractDocumentsSection({
                           <div key={doc.id} className="border border-vdm-gold-200 rounded-md p-3 flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="text-sm font-semibold text-vdm-gold-900">{doc.fileName}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => openDocumentPreview(doc)}
+                                  disabled={openingDocId === doc.id}
+                                  className="text-left text-sm font-semibold text-vdm-gold-900 hover:underline disabled:opacity-70"
+                                  title="Cliquer pour ouvrir l’aperçu"
+                                >
+                                  {doc.fileName}
+                                </button>
                                 <div className="text-xs text-vdm-gold-700">
                                   {employeeLabel(doc.employee)} · ajouté le {formatDate(doc.createdAt)}
                                 </div>
@@ -698,11 +784,19 @@ export default function ContractDocumentsSection({
                               <div className="flex gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => openDocument(doc)}
+                                  onClick={() => openDocumentPreview(doc)}
                                   disabled={openingDocId === doc.id}
                                   className="px-3 py-1 rounded-md border border-vdm-gold-300 text-xs text-vdm-gold-800 hover:bg-vdm-gold-50"
                                 >
-                                  {openingDocId === doc.id ? "Ouverture..." : "Ouvrir"}
+                                  {openingDocId === doc.id ? "Chargement..." : "Aperçu"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadDocument(doc)}
+                                  disabled={openingDocId === doc.id}
+                                  className="px-3 py-1 rounded-md border border-vdm-gold-300 text-xs text-vdm-gold-800 hover:bg-vdm-gold-50"
+                                >
+                                  {openingDocId === doc.id ? "..." : "Télécharger"}
                                 </button>
                                 <button
                                   type="button"
@@ -730,6 +824,32 @@ export default function ContractDocumentsSection({
                                   onChange={(e) => setEditSelectedFile(e.target.files?.[0] ?? null)}
                                   className="w-full border border-vdm-gold-200 rounded-md p-2 text-xs focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
                                 />
+                                {editSelectedFile ? (
+                                  <div className="rounded-lg border border-vdm-gold-200 bg-white p-2">
+                                    <div className="text-xs text-vdm-gold-800 truncate" title={editSelectedFile.name}>
+                                      {editSelectedFile.name}
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewFile(editSelectedFile)}
+                                        className="px-3 py-1 rounded-md border border-vdm-gold-300 text-xs text-vdm-gold-800 hover:bg-vdm-gold-50"
+                                      >
+                                        Aperçu
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (previewFile === editSelectedFile) setPreviewFile(null);
+                                          setEditSelectedFile(null);
+                                        }}
+                                        className="px-3 py-1 rounded-md border border-red-300 text-xs text-red-700 hover:bg-red-50"
+                                      >
+                                        Retirer
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : null}
                                 <div className="flex gap-2">
                                   <button
                                     type="button"
@@ -769,6 +889,82 @@ export default function ContractDocumentsSection({
           */}
         </section>
       )}
+
+      {previewFile && previewUrl ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setPreviewFile(null)}>
+          <div
+            className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu avant envoi</h3>
+                <p className="text-xs text-vdm-gold-700">{previewFile.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewFile(null)}
+                className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="p-4 h-full min-h-0">
+              {previewFile.type.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewUrl} alt="Aperçu document" />
+              ) : (
+                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewUrl} title="Aperçu document" />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {previewDoc ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setPreviewDoc(null)}>
+          <div
+            className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu du document</h3>
+                <p className="text-xs text-vdm-gold-700">{previewDoc.fileName}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = previewDoc.url;
+                    link.download = previewDoc.fileName;
+                    link.click();
+                  }}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Télécharger
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            <div className="p-4 h-full min-h-0">
+              {previewDoc.mimeType.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewDoc.url} alt="Aperçu document" />
+              ) : (
+                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewDoc.url} title="Aperçu document" />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

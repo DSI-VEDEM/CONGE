@@ -8,7 +8,7 @@ export default function AccountantImportedPayslipsPage() {
   return (
     <RequireAuth>
       <RoleGate allow={["ACCOUNTANT"]}>
-        <SalarySlipsAdmin />
+        <SalarySlipsAdmin showIndividualImport={false} />
       </RoleGate>
     </RequireAuth>
   );

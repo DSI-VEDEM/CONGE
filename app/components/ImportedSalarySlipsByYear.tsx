@@ -20,6 +20,8 @@ export default function ImportedSalarySlipsByYear() {
   const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewSlip, setPreviewSlip] = useState<{ id: string; fileName: string; fileDataUrl: string } | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -132,7 +134,7 @@ export default function ImportedSalarySlipsByYear() {
   }, [employees, employeeFilter]);
 
   const downloadSlip = useCallback(
-    async (slip: SalarySlip) => {
+    async (slip: Pick<SalarySlip, "id">) => {
       setError(null);
       const token = getToken();
       if (!token) {
@@ -141,23 +143,28 @@ export default function ImportedSalarySlipsByYear() {
       }
       setDownloadingId(slip.id);
       try {
-        const res = await fetch(`/api/salary-slips/${slip.id}/file`, {
+        const res = await fetch(`/api/salary-slips/${slip.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
           setError(String(data?.error ?? "Impossible de télécharger le bulletin"));
           return;
         }
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
+
+        const downloadedSlip = data?.slip;
+        if (!downloadedSlip?.fileDataUrl || !downloadedSlip?.fileName) {
+          setError("Fichier indisponible");
+          return;
+        }
+
+        const fileName = downloadedSlip.signedAt
+          ? String(downloadedSlip.fileName).replace(/\.pdf$/i, "-signe.pdf")
+          : String(downloadedSlip.fileName);
         const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = slip.fileName;
-        link.target = "_blank";
-        link.rel = "noreferrer";
+        link.href = String(downloadedSlip.fileDataUrl);
+        link.download = fileName;
         link.click();
-        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
       } catch {
         setError("Erreur réseau lors du téléchargement");
       } finally {
@@ -166,6 +173,43 @@ export default function ImportedSalarySlipsByYear() {
     },
     []
   );
+
+  const openPreview = useCallback(async (slip: SalarySlip) => {
+    setError(null);
+    const token = getToken();
+    if (!token) {
+      setError("Session invalide");
+      return;
+    }
+
+    setPreviewLoadingId(slip.id);
+    try {
+      const res = await fetch(`/api/salary-slips/${slip.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(String(data?.error ?? "Impossible d'ouvrir l'aperçu"));
+        return;
+      }
+
+      const previewedSlip = data?.slip;
+      if (!previewedSlip?.fileDataUrl || !previewedSlip?.fileName) {
+        setError("Fichier indisponible");
+        return;
+      }
+
+      setPreviewSlip({
+        id: String(previewedSlip.id),
+        fileName: String(previewedSlip.fileName),
+        fileDataUrl: String(previewedSlip.fileDataUrl),
+      });
+    } catch {
+      setError("Erreur réseau lors de l'ouverture de l'aperçu");
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -281,14 +325,24 @@ export default function ImportedSalarySlipsByYear() {
                                 </td>
                                 <td className="px-4 py-3">{formatDate(slip.createdAt)}</td>
                                 <td className="px-4 py-3 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => downloadSlip(slip)}
-                                    disabled={downloadingId === slip.id}
-                                    className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
-                                  >
-                                    {downloadingId === slip.id ? "Téléchargement..." : "Télécharger"}
-                                  </button>
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => openPreview(slip)}
+                                      disabled={previewLoadingId === slip.id}
+                                      className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
+                                    >
+                                      {previewLoadingId === slip.id ? "Chargement..." : "Aperçu"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadSlip(slip)}
+                                      disabled={downloadingId === slip.id}
+                                      className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
+                                    >
+                                      {downloadingId === slip.id ? "Téléchargement..." : "Télécharger"}
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -303,6 +357,42 @@ export default function ImportedSalarySlipsByYear() {
           </div>
         )}
       </section>
+
+      {previewSlip ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setPreviewSlip(null)}>
+          <div
+            className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu du bulletin</h3>
+                <p className="text-xs text-vdm-gold-700">{previewSlip.fileName}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadSlip(previewSlip)}
+                  disabled={downloadingId === previewSlip.id}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
+                >
+                  {downloadingId === previewSlip.id ? "Téléchargement..." : "Télécharger"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSlip(null)}
+                  className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            <div className="p-4 h-full min-h-0">
+              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewSlip.fileDataUrl} title="Aperçu bulletin" />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

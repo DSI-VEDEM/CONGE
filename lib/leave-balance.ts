@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { PAID_LEAVE_VALUES, isPaidLeaveType } from "@/lib/leave-types";
-import { countWeekdaysInclusive, countCalendarDaysInclusive } from "@/lib/leave-days";
+import { countCalendarDaysInclusive, countLeaveDaysInclusive, countLeaveDaysOverlapInYear } from "@/lib/leave-days";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { expandRecurringAnchorToYear, normalizeUtcDateOnly, utcYearRange } from "@/lib/holidays";
 
 const BASE_ANNUAL_DAYS = 25;
 
@@ -108,48 +109,65 @@ export function calculateEntitledLeaveDays(employee: EmployeeBalanceSource, asOf
   return calculateEntitledLeaveDaysForYear(employee, asOf.getUTCFullYear());
 }
 
-function overlapDaysInYear(start: Date, end: Date, year: number) {
-  const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
-  const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
-  if (endUtc < startUtc) return 0;
-  const yearStart = Date.UTC(year, 0, 1);
-  const yearEnd = Date.UTC(year, 11, 31);
-  const s = Math.max(startUtc, yearStart);
-  const e = Math.min(endUtc, yearEnd);
-  if (s > e) return 0;
-  // Les congés payés (ANNUAL_PAID/ANNUAL) se comptent en jours ouvrables (hors samedi/dimanche).
-  return countWeekdaysInclusive(new Date(s), new Date(e));
-}
-
 export async function consumedLeaveDaysForYear(
   db: PrismaLike,
   employeeId: string,
   year: number
 ) {
-  const yearStart = new Date(Date.UTC(year, 0, 1));
-  const nextYearStart = new Date(Date.UTC(year + 1, 0, 1));
+  const { start: yearStart, endExclusive: nextYearStart } = utcYearRange(year);
 
-  const leaves = await db.leaveRequest.findMany({
-    where: {
-      employeeId,
-      status: { in: ["SUBMITTED", "PENDING", "APPROVED"] },
-      type: { in: PAID_LEAVE_VALUES },
-      // Garder uniquement les congés qui chevauchent l'année demandée.
-      startDate: { lt: nextYearStart },
-      endDate: { gte: yearStart },
-    },
-    select: {
-      startDate: true,
-      endDate: true,
-    },
-  });
+  const [leaves, oneOff, recurring] = await Promise.all([
+    db.leaveRequest.findMany({
+      where: {
+        employeeId,
+        status: { in: ["SUBMITTED", "PENDING", "APPROVED"] },
+        type: { in: PAID_LEAVE_VALUES },
+        // Garder uniquement les congés qui chevauchent l'année demandée.
+        startDate: { lt: nextYearStart },
+        endDate: { gte: yearStart },
+      },
+      select: {
+        startDate: true,
+        endDate: true,
+        type: true,
+      },
+    }),
+    db.holiday.findMany({
+      where: { isRecurring: { not: true }, date: { gte: yearStart, lt: nextYearStart } },
+      select: { date: true },
+    }),
+    db.holiday.findMany({
+      where: { isRecurring: true },
+      select: { date: true },
+    }),
+  ]);
 
-  return leaves.reduce((acc, leave) => acc + overlapDaysInYear(leave.startDate, leave.endDate, year), 0);
+  const holidayDates = [
+    ...oneOff.map((h) => normalizeUtcDateOnly(h.date)),
+    ...recurring
+      .map((h) => expandRecurringAnchorToYear(h.date, year))
+      .filter(Boolean)
+      .map((d) => d as Date),
+  ];
+
+  return leaves.reduce(
+    (acc, leave) =>
+      acc +
+      countLeaveDaysOverlapInYear({
+        start: leave.startDate,
+        end: leave.endDate,
+        year,
+        type: leave.type,
+        holidays: holidayDates,
+      }),
+    0
+  );
 }
 
 export function consumedLeaveDaysForYearFromLeaves(
   leaves: Array<{ startDate: Date; endDate: Date; status: string; type?: string }>,
-  year: number
+  year: number,
+  holidays?: Array<string | Date>
 ) {
   return leaves.reduce((acc, leave) => {
     if (leave.status !== "SUBMITTED" && leave.status !== "PENDING" && leave.status !== "APPROVED") {
@@ -158,7 +176,16 @@ export function consumedLeaveDaysForYearFromLeaves(
     if (!isPaidLeaveType(leave.type)) {
       return acc;
     }
-    return acc + overlapDaysInYear(leave.startDate, leave.endDate, year);
+    return (
+      acc +
+      countLeaveDaysOverlapInYear({
+        start: leave.startDate,
+        end: leave.endDate,
+        year,
+        type: leave.type,
+        holidays,
+      })
+    );
   }, 0);
 }
 
@@ -223,9 +250,11 @@ export function requestedLeaveDays(startDate: Date, endDate: Date) {
   return countCalendarDaysInclusive(startDate, endDate);
 }
 
-export function requestedLeaveDaysForType(startDate: Date, endDate: Date, type?: unknown) {
-  if (isPaidLeaveType(type)) {
-    return countWeekdaysInclusive(startDate, endDate);
-  }
-  return countCalendarDaysInclusive(startDate, endDate);
+export function requestedLeaveDaysForType(
+  startDate: Date,
+  endDate: Date,
+  type?: unknown,
+  holidays?: Array<string | Date>
+) {
+  return countLeaveDaysInclusive({ start: startDate, end: endDate, type, holidays });
 }

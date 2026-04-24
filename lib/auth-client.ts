@@ -10,6 +10,7 @@ export type EmployeeSession = {
   matricule?: string | null;
   firstName: string;
   lastName: string;
+  jobTitle?: string | null;
   phone?: string | null;
   profilePhotoUrl?: string | null;
   fullAddress?: string | null;

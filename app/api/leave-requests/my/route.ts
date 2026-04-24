@@ -8,6 +8,7 @@ import {
   consumedLeaveDaysForYearFromLeaves,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
+import { expandRecurringAnchorToYear, normalizeUtcDateOnly, utcYearRange } from "@/lib/holidays";
 
 export async function GET(req: Request) {
   const authRes = requireAuth(req);
@@ -48,6 +49,23 @@ export async function GET(req: Request) {
 
   const annualLeaveBalance = Number(employee?.leaveBalance ?? 0);
   const currentYear = new Date().getUTCFullYear();
+  const { start: yearStart, endExclusive: yearEndExclusive } = utcYearRange(currentYear);
+  const [oneOff, recurring] = await Promise.all([
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: { not: true }, date: { gte: yearStart, lt: yearEndExclusive } },
+        select: { date: true },
+      })
+      .catch(() => []),
+    prisma.holiday.findMany({ where: { isRecurring: true }, select: { date: true } }).catch(() => []),
+  ]);
+  const holidayDates = [
+    ...oneOff.map((h) => normalizeUtcDateOnly(h.date)),
+    ...recurring
+      .map((h) => expandRecurringAnchorToYear(h.date, currentYear))
+      .filter(Boolean)
+      .map((d) => d as Date),
+  ];
   const currentYearCalc = employee
     ? calculateEntitledLeaveDaysForYear(
         {
@@ -74,7 +92,8 @@ export async function GET(req: Request) {
       status: leave.status,
       type: leave.type,
     })),
-    currentYear
+    currentYear,
+    holidayDates
   );
   const remainingCurrentYear = Math.max(0, annualLeaveBalance - consumedCurrentYear);
   const nextYearLeaveBalance = employee

@@ -3,6 +3,14 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/leave-requests";
+import { expandRecurringAnchorToYear, utcYearRange } from "@/lib/holidays";
+
+function parseYearParam(value: string | null) {
+  if (!value) return null;
+  const year = Number(value);
+  if (!Number.isInteger(year) || year < 2000 || year > 3000) return null;
+  return year;
+}
 
 function supportsLeaveBlackoutEmployeeIds() {
   const client = prisma as unknown as {
@@ -30,24 +38,52 @@ export async function GET(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: employeeId, role, departmentId } = authRes.auth;
+  const url = new URL(req.url);
+  const yearParam = parseYearParam(url.searchParams.get("year"));
+  const resolvedYear = yearParam ?? new Date().getUTCFullYear();
+  const { start, endExclusive } = utcYearRange(resolvedYear);
+
   const supportsEmployeeIds = supportsLeaveBlackoutEmployeeIds();
-  const allBlackouts = await prisma.leaveBlackout.findMany({
-    select: {
-      id: true,
-      startDate: true,
-      endDate: true,
-      departmentId: true,
-      ...(supportsEmployeeIds ? { employeeIds: true } : {}),
-    },
-    orderBy: { startDate: "asc" },
-  });
+  const [allBlackouts, oneOff, recurring] = await Promise.all([
+    prisma.leaveBlackout.findMany({
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        departmentId: true,
+        ...(supportsEmployeeIds ? { employeeIds: true } : {}),
+      },
+      orderBy: { startDate: "asc" },
+    }),
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: { not: true }, date: { gte: start, lt: endExclusive } },
+        select: { id: true, date: true, label: true },
+        orderBy: { date: "asc" },
+      })
+      .catch(() => []),
+    prisma.holiday
+      .findMany({ where: { isRecurring: true }, select: { id: true, date: true, label: true }, orderBy: { date: "asc" } })
+      .catch(() => []),
+  ]);
+
+  const recurringExpanded = recurring
+    .map((h) => {
+      const expanded = expandRecurringAnchorToYear(h.date, resolvedYear);
+      if (!expanded) return null;
+      return { ...h, date: expanded };
+    })
+    .filter(Boolean) as Array<(typeof recurring)[number] & { date: Date }>;
+
+  const holidays = [...oneOff, ...recurringExpanded].sort((a, b) => a.date.getTime() - b.date.getTime());
+
   const blackouts =
     role === "CEO"
       ? allBlackouts
       : allBlackouts.filter((b) => appliesToEmployee(b, { id: employeeId, departmentId }));
 
   if (role !== "CEO") {
-    return NextResponse.json({ leaves: [], blackouts });
+    return NextResponse.json({ leaves: [], blackouts, holidays });
   }
 
   const leaves = await prisma.leaveRequest.findMany({
@@ -68,5 +104,5 @@ export async function GET(req: Request) {
     orderBy: { startDate: "asc" },
   });
 
-  return NextResponse.json({ leaves, blackouts });
+  return NextResponse.json({ leaves, blackouts, holidays });
 }

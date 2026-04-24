@@ -13,6 +13,24 @@ function toUtcDayMs(value: string | Date | null | undefined) {
   return startOfUtcDayMs(d);
 }
 
+function isWeekdayUtc(utcDayMs: number) {
+  const dow = new Date(utcDayMs).getUTCDay(); // 0=Sun, 6=Sat
+  return dow !== 0 && dow !== 6;
+}
+
+function countHolidayWeekdaysInRange(startUtcDayMs: number, endUtcDayMs: number, holidays?: Array<string | Date>) {
+  if (!Array.isArray(holidays) || holidays.length === 0) return 0;
+  const unique = new Set<number>();
+  for (const h of holidays) {
+    const day = toUtcDayMs(h);
+    if (day == null) continue;
+    if (day < startUtcDayMs || day > endUtcDayMs) continue;
+    if (!isWeekdayUtc(day)) continue;
+    unique.add(day);
+  }
+  return unique.size;
+}
+
 export function countCalendarDaysInclusive(start: string | Date, end: string | Date) {
   const s = toUtcDayMs(start);
   const e = toUtcDayMs(end);
@@ -45,10 +63,20 @@ export function countLeaveDaysInclusive(options: {
   start: string | Date;
   end: string | Date;
   type?: unknown;
+  holidays?: Array<string | Date>;
 }) {
-  return isPaidLeaveType(options.type)
-    ? countWeekdaysInclusive(options.start, options.end)
-    : countCalendarDaysInclusive(options.start, options.end);
+  if (!isPaidLeaveType(options.type)) {
+    return countCalendarDaysInclusive(options.start, options.end);
+  }
+
+  const startUtc = toUtcDayMs(options.start);
+  const endUtc = toUtcDayMs(options.end);
+  if (startUtc == null || endUtc == null) return 0;
+  if (endUtc < startUtc) return 0;
+
+  const weekdays = countWeekdaysInclusive(new Date(startUtc), new Date(endUtc));
+  const holidayWeekdays = countHolidayWeekdaysInRange(startUtc, endUtc, options.holidays);
+  return Math.max(0, weekdays - holidayWeekdays);
 }
 
 export function countLeaveDaysOverlapInYear(options: {
@@ -56,6 +84,7 @@ export function countLeaveDaysOverlapInYear(options: {
   end: string | Date;
   year: number;
   type?: unknown;
+  holidays?: Array<string | Date>;
 }) {
   const startUtc = toUtcDayMs(options.start);
   const endUtc = toUtcDayMs(options.end);
@@ -68,8 +97,11 @@ export function countLeaveDaysOverlapInYear(options: {
   const e = Math.min(endUtc, yearEnd);
   if (s > e) return 0;
 
-  return isPaidLeaveType(options.type)
-    ? countWeekdaysInclusive(new Date(s), new Date(e))
-    : countCalendarDaysInclusive(new Date(s), new Date(e));
-}
+  if (!isPaidLeaveType(options.type)) {
+    return countCalendarDaysInclusive(new Date(s), new Date(e));
+  }
 
+  const weekdays = countWeekdaysInclusive(new Date(s), new Date(e));
+  const holidayWeekdays = countHolidayWeekdaysInRange(s, e, options.holidays);
+  return Math.max(0, weekdays - holidayWeekdays);
+}

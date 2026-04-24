@@ -61,8 +61,9 @@ const MONTH_LABELS = [
 ];
 
 const DEFAULT_SIGNATURE_PLACEMENT: SignaturePlacement = {
-  x: 0.6,
-  yTop: 0.84,
+  // Bas-gauche
+  x: 0.02,
+  yTop: 0.99,
 };
 
 function toPeriod(year: number, month: number) {
@@ -130,6 +131,8 @@ export default function CeoSalarySlipSigning() {
   const [previewSlip, setPreviewSlip] = useState<SlipPreview | null>(null);
   const [signedPreviewSlip, setSignedPreviewSlip] = useState<SlipPreview | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const [rejectComment, setRejectComment] = useState("");
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [signaturePlacement, setSignaturePlacement] = useState<SignaturePlacement>(DEFAULT_SIGNATURE_PLACEMENT);
   const [hasCustomPlacement, setHasCustomPlacement] = useState(false);
   const [isDraggingSignature, setIsDraggingSignature] = useState(false);
@@ -381,6 +384,7 @@ export default function CeoSalarySlipSigning() {
       const slipPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu");
       if (slipPreview) {
         setPreviewSlip(slipPreview);
+        setRejectComment("");
       }
     } catch {
       setError("Erreur réseau");
@@ -388,6 +392,48 @@ export default function CeoSalarySlipSigning() {
       setPreviewLoadingId(null);
     }
   }, [loadSlipPreview]);
+
+  const rejectSlip = useCallback(
+    async (id: string) => {
+      const token = getToken();
+      if (!token) return false;
+
+      const comment = rejectComment.trim();
+      if (comment.length < 3) {
+        setError("Veuillez laisser un message (au moins 3 caractères).");
+        return false;
+      }
+
+      setRejectingId(id);
+      setError(null);
+      try {
+        const res = await fetch(`/api/salary-slips/${id}/reject`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ comment }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(String(data?.error ?? "Refus impossible"));
+          return false;
+        }
+        toast.success("Bulletin refusé et supprimé (message envoyé à la comptable).");
+        setPreviewSlip(null);
+        setRejectComment("");
+        await refresh();
+        return true;
+      } catch {
+        setError("Erreur réseau");
+        return false;
+      } finally {
+        setRejectingId(null);
+      }
+    },
+    [refresh, rejectComment]
+  );
 
   const openSignedSlipPreview = useCallback(async (id: string) => {
     setPreviewLoadingId(id);
@@ -657,7 +703,7 @@ export default function CeoSalarySlipSigning() {
                     onPointerUp={stopDraggingSignature}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={signatureImageDataUrl} alt="Signature PDG" className="w-44 max-h-24 object-contain" />
+                    <img src={signatureImageDataUrl} alt="Signature PDG" className="w-40 max-h-20 object-contain" />
                   </div>
                 )}
               </div>
@@ -667,6 +713,36 @@ export default function CeoSalarySlipSigning() {
                 <p className="text-xs text-vdm-gold-700">
                   La position est appliquée au PDF final au moment de la signature et réutilisée pour les signatures suivantes.
                 </p>
+
+                <div className="rounded-lg border border-vdm-gold-200 bg-white p-3">
+                  <p className="text-sm font-semibold text-vdm-gold-900">Refuser et supprimer</p>
+                  <p className="mt-1 text-xs text-vdm-gold-700">
+                    Laissez un message à la comptable, puis supprimez ce bulletin non signé.
+                  </p>
+                  <textarea
+                    value={rejectComment}
+                    onChange={(e) => setRejectComment(e.target.value)}
+                    rows={3}
+                    placeholder="Motif / commentaire…"
+                    className="mt-2 w-full rounded-md border border-vdm-gold-300 bg-white px-3 py-2 text-sm text-vdm-gold-900 placeholder:text-vdm-gold-400 focus:outline-none focus:ring-2 focus:ring-vdm-gold-300"
+                    disabled={rejectingId === previewSlip.id || signingId === previewSlip.id}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      void rejectSlip(previewSlip.id);
+                    }}
+                    disabled={
+                      !rejectComment.trim() ||
+                      rejectingId === previewSlip.id ||
+                      signingId === previewSlip.id ||
+                      false
+                    }
+                    className="mt-2 w-full px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {rejectingId === previewSlip.id ? "Suppression..." : "Refuser et supprimer"}
+                  </button>
+                </div>
 
                 <button
                   type="button"

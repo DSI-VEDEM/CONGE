@@ -16,6 +16,7 @@ type LeaveItem = {
 };
 
 type CalendarBlackout = { startDate: string; endDate: string };
+type CalendarHoliday = { date: string; label?: string | null };
 
 const BASE_ALLOWANCE = 25;
 
@@ -33,7 +34,7 @@ function toUtcDay(value: string | undefined) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-function consumedDaysForYear(leaves: LeaveItem[], year: number) {
+function consumedDaysForYear(leaves: LeaveItem[], year: number, holidayDates: string[]) {
   let total = 0;
   for (const leave of leaves) {
     if (leave.status === "APPROVED" || leave.status === "PENDING" || leave.status === "SUBMITTED") {
@@ -43,6 +44,7 @@ function consumedDaysForYear(leaves: LeaveItem[], year: number) {
         end: leave.endDate,
         year,
         type: leave.type,
+        holidays: holidayDates,
       });
     }
   }
@@ -110,11 +112,15 @@ export default function OperationsLeaveNew() {
   const { year, month, cells } = useMemo(() => buildMonth(current), [current]);
   const monthLabel = formatDateDMY(new Date(current.getFullYear(), current.getMonth(), 1));
   const [blackouts, setBlackouts] = useState<CalendarBlackout[]>([]);
+  const [holidays, setHolidays] = useState<CalendarHoliday[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const todayUtc = useMemo(() => toUtcDay(toLocalDateInputValue(new Date())), []);
   const daysRequested = useMemo(
-    () => (startDate && endDate ? countLeaveDaysInclusive({ start: startDate, end: endDate, type }) : 0),
-    [startDate, endDate, type]
+    () =>
+      startDate && endDate
+        ? countLeaveDaysInclusive({ start: startDate, end: endDate, type, holidays: holidays.map((h) => h.date) })
+        : 0,
+    [startDate, endDate, holidays, type]
   );
   const isExhausted = balance <= 0;
   const employeeGender = getEmployee()?.gender ?? null;
@@ -139,17 +145,17 @@ export default function OperationsLeaveNew() {
     const base = Number(data?.annualLeaveBalance ?? data?.employee?.leaveBalance ?? BASE_ALLOWANCE);
     const remaining = Number(
       data?.remainingCurrentYear ??
-        (() => {
-          const year = new Date().getFullYear();
-          const consumedDays = consumedDaysForYear(nextLeaves, year);
-          return Math.max(0, base - consumedDays);
-        })()
+      (() => {
+        const year = new Date().getFullYear();
+        const consumedDays = consumedDaysForYear(nextLeaves, year, holidays.map((h) => h.date));
+        return Math.max(0, base - consumedDays);
+      })()
     );
     setBaseAllowance(base);
     setBalance(Math.max(0, remaining));
     setSeniorityYears(Number(data?.seniorityYears ?? 0));
     setSeniorityBonusDays(Number(data?.seniorityBonusDays ?? 0));
-  }, []);
+  }, [holidays]);
 
   useEffect(() => {
     let active = true;
@@ -174,14 +180,17 @@ export default function OperationsLeaveNew() {
     const token = getToken();
     if (!token) return;
     const load = async () => {
-      const res = await fetch("/api/leave-requests/calendar", {
+      const res = await fetch(`/api/leave-requests/calendar?year=${encodeURIComponent(String(year))}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) setBlackouts(data?.blackouts ?? []);
+      if (res.ok) {
+        setBlackouts(data?.blackouts ?? []);
+        setHolidays(data?.holidays ?? []);
+      }
     };
     load();
-  }, []);
+  }, [year]);
 
   const goPrev = () => setCurrent((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const goNext = () => setCurrent((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
@@ -224,6 +233,24 @@ export default function OperationsLeaveNew() {
     if (selectedDay == null) return [];
     return blackouts.filter((b) => inRange(selectedDay, month, year, b.startDate, b.endDate));
   }, [blackouts, selectedDay, month, year]);
+
+  const holidaysByDate = useMemo(() => {
+    const map = new Map<string, CalendarHoliday[]>();
+    for (const holiday of holidays) {
+      const key = String(holiday?.date ?? "").slice(0, 10);
+      if (!key) continue;
+      const next = map.get(key) ?? [];
+      next.push(holiday);
+      map.set(key, next);
+    }
+    return map;
+  }, [holidays]);
+
+  const selectedHolidays = useMemo(() => {
+    if (selectedDay == null) return [];
+    const value = toDateValueForDay(year, month, selectedDay);
+    return holidaysByDate.get(value) ?? [];
+  }, [holidaysByDate, month, selectedDay, year]);
 
   const hasBlackoutOverlap = useCallback(
     (start: string, end: string) => blackouts.some((b) => rangesOverlap(start, end, b.startDate, b.endDate)),
@@ -275,7 +302,12 @@ export default function OperationsLeaveNew() {
       toast.error("Veuillez renseigner la date de début et la date de fin.");
       return;
     }
-    const daysRequested = countLeaveDaysInclusive({ start: startDate, end: endDate, type });
+    const daysRequested = countLeaveDaysInclusive({
+      start: startDate,
+      end: endDate,
+      type,
+      holidays: holidays.map((h) => h.date),
+    });
     if (daysRequested < 1) {
       toast.error("La période saisie est invalide.");
       return;
@@ -475,6 +507,8 @@ export default function OperationsLeaveNew() {
               const blackout = hasBlackout(day);
               const past = isPastDay(day);
               const dateValue = day != null ? toDateValueForDay(year, month, day) : "";
+              const holidayItems = dateValue ? holidaysByDate.get(dateValue) ?? [] : [];
+              const isHoliday = holidayItems.length > 0;
               const isSelectedStart = !!day && dateValue === startDate;
               const isSelectedEnd = !!day && dateValue === endDate;
               const inSelectedRange = !!day && !!startDate && !!endDate && rangesOverlap(dateValue, dateValue, startDate, endDate);
@@ -506,10 +540,22 @@ export default function OperationsLeaveNew() {
                       : "hover:bg-vdm-gold-50"
                   } ${blackout ? "bg-gray-200 text-gray-500" : ""} ${
                     past ? "bg-vdm-gold-50/70 text-vdm-gold-400" : ""
-                  } ${day && !blackout && !past ? "cursor-pointer" : "cursor-not-allowed"}`}
+                  } ${isHoliday && day && !blackout && !past && !leaveClass ? "ring-1 ring-sky-400" : ""} ${
+                    day && !blackout && !past ? "cursor-pointer" : "cursor-not-allowed"
+                  }`}
+                  title={
+                    isHoliday
+                      ? `Jour férié${holidayItems.some((h) => h.label) ? ` : ${holidayItems.map((h) => h.label).filter(Boolean).join(", ")}` : ""}`
+                      : blackout
+                      ? "Période bloquée"
+                      : ""
+                  }
                 >
                   <div className="leading-none">{day ?? "-"}</div>
-                  <div className="mt-1 flex gap-1">{blackout ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> : null}</div>
+                  <div className="mt-1 flex gap-1">
+                    {blackout ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> : null}
+                    {!blackout && isHoliday ? <span className="h-1.5 w-1.5 rounded-full bg-sky-500" /> : null}
+                  </div>
                 </button>
               );
             })}
@@ -532,6 +578,10 @@ export default function OperationsLeaveNew() {
               <span className="h-2 w-2 rounded-full bg-red-500" />
               Jours refusés
             </div>
+            <div className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-sky-500" />
+              Jours fériés
+            </div>
             {selectedDay != null ? (
               <div className="text-vdm-gold-700">Sélection : {selectedDateLabel}</div>
             ) : (
@@ -547,6 +597,16 @@ export default function OperationsLeaveNew() {
 
           {selectedDay != null ? (
             <div className="mt-2 rounded-md border border-vdm-gold-100 bg-vdm-gold-50/50 p-3 text-xs text-gray-700">
+              {selectedHolidays.length === 0 ? null : (
+                <div className="mb-2">
+                  <div className="font-semibold text-vdm-gold-800">Jour férié</div>
+                  <ul className="mt-1 space-y-1">
+                    {selectedHolidays.map((h, i) => (
+                      <li key={`${h.date}-${i}`}>{h.label ? h.label : formatDateDMY(h.date)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {selectedBlackouts.length === 0 ? (
                 <div>Aucune période bloquée ce jour.</div>
               ) : (

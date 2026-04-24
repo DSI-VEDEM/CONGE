@@ -25,6 +25,7 @@ import {
 } from "@/lib/leave-balance";
 import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
+import { expandRecurringAnchorsBetweenInclusive, normalizeUtcDateOnly } from "@/lib/holidays";
 
 /// Vérifie si la compilation Prisma inclut le champ `employeeIds` pour les blackouts (selon la version du schéma).
 function supportsLeaveBlackoutEmployeeIds() {
@@ -93,7 +94,29 @@ export async function POST(req: Request) {
 
   // On travaille sur l'année en cours pour le calcul des droits.
   const currentYear = new Date().getUTCFullYear();
-  const requested = requestedLeaveDaysForType(startDate, endDate, leaveType);
+  const [oneOffHolidays, recurringHolidays] = await Promise.all([
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: { not: true }, date: { gte: startDate, lte: endDate } },
+        select: { date: true },
+      })
+      .catch(() => []),
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: true },
+        select: { date: true },
+      })
+      .catch(() => []),
+  ]);
+  const holidayDates = [
+    ...oneOffHolidays.map((h) => normalizeUtcDateOnly(h.date)),
+    ...expandRecurringAnchorsBetweenInclusive(
+      recurringHolidays.map((h) => h.date),
+      startDate,
+      endDate
+    ),
+  ];
+  const requested = requestedLeaveDaysForType(startDate, endDate, leaveType, holidayDates);
   if (leaveType === "ANNUAL_PAID") {
     const consumed = await consumedLeaveDaysForYear(prisma, actorId, currentYear);
     const nextYearEntitlement = calculateEntitledLeaveDaysForYear(
