@@ -95,7 +95,7 @@ export async function GET(req: Request) {
     currentYear,
     holidayDates
   );
-  const remainingCurrentYear = Math.max(0, annualLeaveBalance - consumedCurrentYear);
+  const remainingCurrentYear = annualLeaveBalance - consumedCurrentYear;
   const nextYearLeaveBalance = employee
     ? calculateEntitledLeaveDaysForYear(
         {
@@ -109,7 +109,8 @@ export async function GET(req: Request) {
         currentYear + 1
       ).entitlement
     : 0;
-  const availableWithAdvance = remainingCurrentYear + nextYearLeaveBalance;
+  const alreadyBorrowed = Math.max(0, -remainingCurrentYear);
+  const availableWithAdvance = Math.max(0, remainingCurrentYear + nextYearLeaveBalance);
 
   return NextResponse.json({
     leaves,
@@ -117,6 +118,7 @@ export async function GET(req: Request) {
     annualLeaveBalance,
     remainingCurrentYear,
     nextYearLeaveBalance,
+    alreadyBorrowed,
     availableWithAdvance,
     seniorityYears: currentYearCalc.seniorityYears,
     seniorityBonusDays: currentYearCalc.bonusDays,

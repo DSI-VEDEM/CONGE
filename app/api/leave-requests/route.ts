@@ -23,7 +23,7 @@ import {
   requestedLeaveDaysForType,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
-import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
+import { isAnticipatedPaidLeaveType, isLeaveType, isMenstrualLeaveType, isPaidLeaveType } from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
 import { expandRecurringAnchorsBetweenInclusive, normalizeUtcDateOnly } from "@/lib/holidays";
 
@@ -117,12 +117,13 @@ export async function POST(req: Request) {
     ),
   ];
   const requested = requestedLeaveDaysForType(startDate, endDate, leaveType, holidayDates);
-  if (leaveType === "ANNUAL_PAID") {
+  if (isPaidLeaveType(leaveType)) {
     const consumed = await consumedLeaveDaysForYear(prisma, actorId, currentYear);
+    const currentEntitlement = Number(employee.leaveBalance ?? 0);
     const nextYearEntitlement = calculateEntitledLeaveDaysForYear(
       {
         id: employee.id,
-        leaveBalance: Number(employee.leaveBalance ?? 0),
+        leaveBalance: currentEntitlement,
         leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
         hireDate: employee.hireDate ?? null,
         companyEntryDate: employee.companyEntryDate ?? null,
@@ -130,17 +131,37 @@ export async function POST(req: Request) {
       },
       currentYear + 1
     ).entitlement;
-    const availableCurrentYear = Math.max(0, Number(employee.leaveBalance ?? 0) - consumed);
-    // Solde disponible = reste current year + avance potentielle sur l'année suivante.
-    const available = Math.max(0, availableCurrentYear + nextYearEntitlement);
-    if (requested > available) {
-      return jsonError("La demande dépasse votre solde de congés disponible", 409, {
-        available,
+    const remainingCurrentYear = currentEntitlement - consumed;
+    const availableCurrentYear = Math.max(0, remainingCurrentYear);
+    const alreadyBorrowed = Math.max(0, consumed - currentEntitlement);
+    const availableAnticipated = Math.max(0, nextYearEntitlement - alreadyBorrowed);
+
+    if (isAnticipatedPaidLeaveType(leaveType)) {
+      if (availableCurrentYear > 0) {
+        return jsonError("Le congé anticipé est disponible uniquement quand le congé payé est épuisé", 409, {
+          availableCurrentYear,
+          requested,
+        });
+      }
+      if (requested > availableAnticipated) {
+        return jsonError("La demande dépasse votre avance de congés disponible", 409, {
+          available: availableAnticipated,
+          availableCurrentYear,
+          nextYearAdvance: nextYearEntitlement,
+          alreadyBorrowed,
+          requested,
+          consumed,
+          entitlement: currentEntitlement,
+        });
+      }
+    } else if (requested > availableCurrentYear) {
+      return jsonError("La demande dépasse votre solde de congés payés", 409, {
+        available: availableCurrentYear,
         availableCurrentYear,
-        nextYearAdvance: nextYearEntitlement,
+        nextYearAdvance: 0,
         requested,
         consumed,
-        entitlement: employee.leaveBalance,
+        entitlement: currentEntitlement,
       });
     }
   }

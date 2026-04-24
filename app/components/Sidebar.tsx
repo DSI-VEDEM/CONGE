@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 import type { SidebarIconKey, SidebarSection } from "./sidebar-types";
-import type { EmployeeSession } from "@/lib/auth-client";
 import { getEmployee, logout } from "@/lib/auth-client";
 
 const sidebarIconMap: Record<SidebarIconKey, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {

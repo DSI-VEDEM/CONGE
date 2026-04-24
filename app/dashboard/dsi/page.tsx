@@ -94,7 +94,7 @@ export default function DsiDashboard() {
       setAnnualBalance(normalizedBase);
       const remainingFromApi = Number(myData?.remainingCurrentYear ?? NaN);
       const year = new Date().getFullYear();
-      const fallbackRemaining = Math.max(0, normalizedBase - consumedDaysForYear(nextLeaves, year));
+      const fallbackRemaining = normalizedBase - consumedDaysForYear(nextLeaves, year);
       setRemainingBalance(
         Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining
       );
@@ -160,7 +160,7 @@ export default function DsiDashboard() {
       }
     }
 
-    const balance = Math.max(0, remainingBalance);
+    const balance = remainingBalance;
 
     return {
       balance,

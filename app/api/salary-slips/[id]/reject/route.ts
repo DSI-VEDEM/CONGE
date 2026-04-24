@@ -22,7 +22,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const authRes = authFromRequest(req);
   if (!authRes.ok) return authRes.error;
 
-  const { id: actorId, role } = authRes.auth;
+  const { role } = authRes.auth;
   if (role !== "CEO") return jsonError("Seul le PDG peut refuser un bulletin", 403);
 
   const { id } = await ctx.params;

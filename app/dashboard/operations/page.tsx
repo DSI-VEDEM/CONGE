@@ -44,6 +44,7 @@ export default function OperationsDashboard() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
   const [baseAllowance, setBaseAllowance] = useState<number>(BASE_ALLOWANCE);
+  const [remainingBalance, setRemainingBalance] = useState<number>(BASE_ALLOWANCE);
 
   const refreshData = useCallback(async () => {
     const token = getToken();
@@ -56,9 +57,15 @@ export default function OperationsDashboard() {
 
     const myData = await myRes.json().catch(() => ({}));
     if (myRes.ok) {
-      setLeaves(myData?.leaves ?? []);
-      const base = Number(myData?.employee?.leaveBalance ?? BASE_ALLOWANCE);
-      setBaseAllowance(Number.isFinite(base) ? base : BASE_ALLOWANCE);
+      const nextLeaves = myData?.leaves ?? [];
+      setLeaves(nextLeaves);
+      const base = Number(myData?.annualLeaveBalance ?? myData?.employee?.leaveBalance ?? BASE_ALLOWANCE);
+      const normalizedBase = Number.isFinite(base) ? base : BASE_ALLOWANCE;
+      setBaseAllowance(normalizedBase);
+      const remainingFromApi = Number(myData?.remainingCurrentYear ?? NaN);
+      const year = new Date().getFullYear();
+      const fallbackRemaining = normalizedBase - consumedDaysForYear(nextLeaves, year);
+      setRemainingBalance(Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining);
     }
 
     const pendingData = await pendingRes.json().catch(() => ({}));
@@ -109,8 +116,7 @@ export default function OperationsDashboard() {
       }
     }
 
-    const consumedDays = consumedDaysForYear(leaves, year);
-    const balance = Math.max(0, baseAllowance - consumedDays);
+    const balance = remainingBalance;
 
     return {
       balance,
@@ -125,7 +131,7 @@ export default function OperationsDashboard() {
         { name: "Solde", value: balance },
       ],
     };
-  }, [leaves, pendingLeaves.length, baseAllowance]);
+  }, [leaves, pendingLeaves.length, remainingBalance]);
 
   return (
     <div className="p-6 space-y-4">

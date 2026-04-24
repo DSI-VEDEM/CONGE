@@ -101,6 +101,7 @@ enum LeaveStatus {
 /// Catégories de congés utilisées pour le calcul du solde.
 enum LeaveType {
   ANNUAL_PAID
+  ANTICIPATED_PAID
   ANNUAL
   FAMILY_EXCEPTIONAL
   MENSTRUAL

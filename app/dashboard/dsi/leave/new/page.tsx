@@ -4,7 +4,13 @@ import { formatDateDMY } from "@/lib/date-format";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getEmployee, getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
-import { DEFAULT_LEAVE_TYPE, leaveOptionsForGender, isPaidLeaveType, type LeaveTypeValue } from "@/lib/leave-types";
+import {
+  DEFAULT_LEAVE_TYPE,
+  isAnticipatedPaidLeaveType,
+  leaveOptionsForGender,
+  isPaidLeaveType,
+  type LeaveTypeValue,
+} from "@/lib/leave-types";
 import { countLeaveDaysInclusive, countLeaveDaysOverlapInYear } from "@/lib/leave-days";
 
 type LeaveItem = {
@@ -109,6 +115,8 @@ export default function DsiLeaveNew() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [balance, setBalance] = useState<number>(BASE_ALLOWANCE);
   const [annualBalance, setAnnualBalance] = useState<number>(BASE_ALLOWANCE);
+  const [advanceBalance, setAdvanceBalance] = useState<number>(0);
+  const [borrowedDays, setBorrowedDays] = useState<number>(0);
   const [seniorityYears, setSeniorityYears] = useState<number>(0);
   const [seniorityBonusDays, setSeniorityBonusDays] = useState<number>(0);
   const today = useMemo(() => toLocalDateInputValue(new Date()), []);
@@ -128,7 +136,15 @@ export default function DsiLeaveNew() {
   );
   const isExhausted = balance <= 0;
   const employeeGender = getEmployee()?.gender ?? null;
-  const leaveOptions = useMemo(() => leaveOptionsForGender(employeeGender), [employeeGender]);
+  const canUseAnticipatedPaid = isExhausted && advanceBalance > 0;
+  const leaveOptions = useMemo(
+    () =>
+      leaveOptionsForGender(employeeGender, {
+        remainingPaidLeaveDays: balance,
+        canUseAnticipatedPaid,
+      }),
+    [balance, canUseAnticipatedPaid, employeeGender]
+  );
 
   useEffect(() => {
     if (leaveOptions.length && !leaveOptions.some((option) => option.value === type)) {
@@ -152,11 +168,13 @@ export default function DsiLeaveNew() {
       (() => {
         const year = new Date().getFullYear();
         const consumedDays = consumedDaysForYear(nextLeaves, year, holidays.map((h) => h.date));
-        return Math.max(0, base - consumedDays);
+        return base - consumedDays;
       })()
     );
     setAnnualBalance(base);
-    setBalance(Math.max(0, remaining));
+    setBalance(remaining);
+    setAdvanceBalance(Number(data?.availableWithAdvance ?? Math.max(0, remaining)));
+    setBorrowedDays(Number(data?.alreadyBorrowed ?? Math.max(0, -remaining)));
     setSeniorityYears(Number(data?.seniorityYears ?? 0));
     setSeniorityBonusDays(Number(data?.seniorityBonusDays ?? 0));
   }, [holidays]);
@@ -300,10 +318,6 @@ export default function DsiLeaveNew() {
   );
 
   const submit = async () => {
-    if (isExhausted) {
-      toast.error("Solde de congés épuisé.");
-      return;
-    }
     if (!startDate || !endDate) {
       toast.error("Veuillez renseigner la date de début et la date de fin.");
       return;
@@ -318,8 +332,13 @@ export default function DsiLeaveNew() {
       toast.error("La période saisie est invalide.");
       return;
     }
-    if (daysRequested > balance) {
-      toast.error("La demande dépasse votre solde de congés.");
+    const paidAvailable = isAnticipatedPaidLeaveType(type) ? advanceBalance : Math.max(0, balance);
+    if (isPaidLeaveType(type) && daysRequested > paidAvailable) {
+      toast.error(
+        isAnticipatedPaidLeaveType(type)
+          ? "La demande dépasse votre avance de congés disponible."
+          : "La demande dépasse votre solde de congés payés."
+      );
       return;
     }
     if (hasBlackoutOverlap(startDate, endDate)) {
@@ -350,7 +369,8 @@ export default function DsiLeaveNew() {
         refreshBalance();
         window.dispatchEvent(new Event("leave-requests-updated"));
       } else {
-        toast.error("Erreur lors de l'envoi.", { id: t });
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Erreur lors de l'envoi."), { id: t });
       }
     } catch {
       toast.error("Erreur réseau lors de l'envoi.", { id: t });
@@ -364,8 +384,12 @@ export default function DsiLeaveNew() {
 
       <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 grid gap-3 md:grid-cols-2">
         {isExhausted ? (
-          <div className="md:col-span-2 text-sm text-red-600">
-            Votre solde de congés est épuisé. Impossible de soumettre une nouvelle demande.
+          <div className="md:col-span-2 text-sm text-amber-700">
+            {canUseAnticipatedPaid
+              ? `Votre solde de congés payés est épuisé. Congé anticipé disponible : ${formatLeaveDays(advanceBalance)} jour${
+                  advanceBalance > 1 ? "s" : ""
+                }.`
+              : "Votre solde de congés payés est épuisé."}
           </div>
         ) : null}
         <div>
@@ -373,7 +397,6 @@ export default function DsiLeaveNew() {
           <select
             value={type}
             onChange={(e) => setType(e.target.value as LeaveTypeValue)}
-            disabled={isExhausted}
             className="w-full border border-vdm-gold-200 rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
           >
             {leaveOptions.map((option) => (
@@ -391,6 +414,12 @@ export default function DsiLeaveNew() {
               Ancienneté : {seniorityYears} an{seniorityYears > 1 ? "s" : ""} | Bonus : +{formatLeaveDays(seniorityBonusDays)}{" "}
               {Number(seniorityBonusDays) === 1 ? "jour" : "jours"}
             </div>
+            {isExhausted ? (
+              <div className="text-xs text-amber-700">
+                Avance disponible : {formatLeaveDays(advanceBalance)} jour{advanceBalance > 1 ? "s" : ""}
+                {borrowedDays > 0 ? ` | Déjà emprunté : ${formatLeaveDays(borrowedDays)} jour${borrowedDays > 1 ? "s" : ""}` : ""}
+              </div>
+            ) : null}
           </div>
           <button
             type="button"
@@ -415,7 +444,6 @@ export default function DsiLeaveNew() {
               }
             }}
             min={today}
-            disabled={isExhausted}
             className="w-full border border-vdm-gold-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
           />
         </div>
@@ -434,7 +462,6 @@ export default function DsiLeaveNew() {
               setEndDate(nextEnd);
             }}
             min={startDate || today}
-            disabled={isExhausted}
             className="w-full border border-vdm-gold-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
           />
         </div>
@@ -452,7 +479,6 @@ export default function DsiLeaveNew() {
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            disabled={isExhausted}
             className="w-full border border-vdm-gold-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
             placeholder="Ex. : repos, raison familiale..."
           />
@@ -461,7 +487,6 @@ export default function DsiLeaveNew() {
         <div className="md:col-span-2">
           <button
             onClick={submit}
-            disabled={isExhausted}
             className="px-3 py-2 rounded-md bg-vdm-gold-700 text-white text-sm hover:bg-vdm-gold-800"
           >
             Envoyer

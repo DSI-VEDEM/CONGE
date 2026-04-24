@@ -164,6 +164,26 @@ export async function consumedLeaveDaysForYear(
   );
 }
 
+async function debtCarriedIntoYear(
+  db: PrismaLike,
+  employee: EmployeeBalanceSource,
+  employeeId: string,
+  targetYear: number
+) {
+  const firstTrackedDate = resolveHireDate(employee) ?? employee.createdAt;
+  const firstTrackedYear = Math.min(firstTrackedDate.getUTCFullYear(), targetYear);
+  let carriedDebt = 0;
+
+  for (let year = firstTrackedYear; year < targetYear; year += 1) {
+    const entitlement = calculateEntitledLeaveDaysForYear(employee, year).entitlement;
+    const effectiveEntitlement = roundToOneDecimal(Math.max(0, entitlement - carriedDebt));
+    const consumed = await consumedLeaveDaysForYear(db, employeeId, year);
+    carriedDebt = roundToOneDecimal(Math.max(0, consumed - effectiveEntitlement));
+  }
+
+  return carriedDebt;
+}
+
 export function consumedLeaveDaysForYearFromLeaves(
   leaves: Array<{ startDate: Date; endDate: Date; status: string; type?: string }>,
   year: number,
@@ -207,9 +227,7 @@ export async function syncEmployeeLeaveBalance(db: PrismaLike, employeeId: strin
 
   const currentYear = asOf.getUTCFullYear();
   const currentCalc = calculateEntitledLeaveDaysForYear(employee, currentYear);
-  const previousCalc = calculateEntitledLeaveDaysForYear(employee, currentYear - 1);
-  const previousConsumed = await consumedLeaveDaysForYear(db, employeeId, currentYear - 1);
-  const debtFromPreviousYear = Math.max(0, roundToOneDecimal(previousConsumed - previousCalc.entitlement));
+  const debtFromPreviousYear = await debtCarriedIntoYear(db, employee, employeeId, currentYear);
   const effectiveEntitlement = roundToOneDecimal(Math.max(0, currentCalc.entitlement - debtFromPreviousYear));
 
   if (Math.abs(Number(employee.leaveBalance) - effectiveEntitlement) < 0.0001) {

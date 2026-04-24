@@ -67,6 +67,7 @@ function statusLabel(status: LeaveItem["status"]) {
 export default function EmployeeDashboard() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [baseAllowance, setBaseAllowance] = useState<number>(BASE_ALLOWANCE);
+  const [remainingBalance, setRemainingBalance] = useState<number>(BASE_ALLOWANCE);
 
   const refreshData = useCallback(async () => {
     const token = getToken();
@@ -76,9 +77,15 @@ export default function EmployeeDashboard() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return;
-    setLeaves(data.leaves || []);
-    const base = Number(data.employee?.leaveBalance || BASE_ALLOWANCE);
-    setBaseAllowance(Number.isFinite(base) ? base : BASE_ALLOWANCE);
+    const nextLeaves = data.leaves || [];
+    setLeaves(nextLeaves);
+    const base = Number(data.annualLeaveBalance ?? data.employee?.leaveBalance ?? BASE_ALLOWANCE);
+    const normalizedBase = Number.isFinite(base) ? base : BASE_ALLOWANCE;
+    setBaseAllowance(normalizedBase);
+    const remainingFromApi = Number(data.remainingCurrentYear ?? NaN);
+    const year = new Date().getFullYear();
+    const fallbackRemaining = normalizedBase - consumedDaysForYear(nextLeaves, year);
+    setRemainingBalance(Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining);
   }, []);
 
   useEffect(() => {
@@ -131,7 +138,7 @@ export default function EmployeeDashboard() {
     }
 
     const consumedDays = consumedDaysForYear(leaves, year);
-    const balance = Math.max(0, baseAllowance - consumedDays);
+    const balance = remainingBalance;
 
     const lineData = MONTHS.map((name, idx) => ({ name, value: monthlyCounts[idx] }));
     const pieData = [
@@ -153,7 +160,7 @@ export default function EmployeeDashboard() {
       : "Aucune";
 
     return { balance, pendingCount, lastLabel, lineData, pieData, barData };
-  }, [leaves, baseAllowance]);
+  }, [leaves, remainingBalance]);
 
   return (
     <RequireAuth>
