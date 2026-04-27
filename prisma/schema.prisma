@@ -199,6 +199,10 @@ model Employee {
   leaveBalance           Float          @default(25)
   /// Ajustements manuels apportés par le CEO/comptable
   leaveBalanceAdjustment Float          @default(0)
+  /// Jours de congés déjà consommés avant déploiement (appliqués une seule année)
+  firstYearLeaveUsedDays Float          @default(0)
+  /// Année d'application de `firstYearLeaveUsedDays` (null = inactif)
+  firstYearLeaveUsedYear Int?
 
   // Auto-relation (approbation) => NoAction obligatoire sur un côté
   approvedById   String?    @db.ObjectId

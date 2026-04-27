@@ -125,6 +125,8 @@ export async function POST(req: Request) {
         id: employee.id,
         leaveBalance: currentEntitlement,
         leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
+        firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
+        firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
         hireDate: employee.hireDate ?? null,
         companyEntryDate: employee.companyEntryDate ?? null,
         createdAt: employee.createdAt,

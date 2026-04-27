@@ -17,6 +17,10 @@ type EmployeeRow = {
   jobTitle?: string | null;
   role: "CEO" | "ACCOUNTANT" | "DEPT_HEAD" | "SERVICE_HEAD" | "EMPLOYEE";
   status: "PENDING" | "ACTIVE" | "REJECTED";
+  leaveBalance?: number;
+  leaveBalanceAdjustment?: number;
+  firstYearLeaveUsedDays?: number;
+  firstYearLeaveUsedYear?: number | null;
   department?: string | null;
   service?: string | null;
   departmentName?: string;
@@ -31,6 +35,12 @@ const roleLabel: Record<EmployeeRow["role"], string> = {
   EMPLOYEE: "Employé",
 };
 
+function formatLeaveDays(value?: number) {
+  const normalized = Number(value ?? 0);
+  if (!Number.isFinite(normalized)) return "0";
+  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1).replace(/\.0$/, "");
+}
+
 type EmployeeApiItem = {
   id: string;
   firstName: string;
@@ -41,6 +51,10 @@ type EmployeeApiItem = {
   jobTitle?: string | null;
   role?: EmployeeRow["role"];
   status?: EmployeeRow["status"];
+  leaveBalance?: number;
+  leaveBalanceAdjustment?: number;
+  firstYearLeaveUsedDays?: number;
+  firstYearLeaveUsedYear?: number | null;
   departmentId?: string | null;
   serviceId?: string | null;
   department?: { id: string; name?: string | null; type?: string | null } | null;
@@ -49,9 +63,14 @@ type EmployeeApiItem = {
 
 export default function AccountantDepartmentEmployees() {
   const currentEmployee = useMemo(() => getEmployee(), []);
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFirstYearModalOpen, setIsFirstYearModalOpen] = useState(false);
+  const [selectedForFirstYear, setSelectedForFirstYear] = useState<EmployeeRow | null>(null);
+  const [firstYearUsedInput, setFirstYearUsedInput] = useState("");
+  const [isSavingFirstYearUsed, setIsSavingFirstYearUsed] = useState(false);
 
   const [draft, setDraft] = useState<EmployeeRow | null>(null);
 
@@ -63,6 +82,19 @@ export default function AccountantDepartmentEmployees() {
     if (isSaving) return;
     setDraft(null);
   }, [isSaving]);
+
+  const openFirstYearModal = useCallback((row: EmployeeRow) => {
+    setSelectedForFirstYear(row);
+    setFirstYearUsedInput(formatLeaveDays(row.firstYearLeaveUsedDays));
+    setIsFirstYearModalOpen(true);
+  }, []);
+
+  const closeFirstYearModal = useCallback(() => {
+    if (isSavingFirstYearUsed) return;
+    setIsFirstYearModalOpen(false);
+    setSelectedForFirstYear(null);
+    setFirstYearUsedInput("");
+  }, [isSavingFirstYearUsed]);
 
   const loadEmployees = useCallback(async () => {
     const token = getToken();
@@ -90,6 +122,10 @@ export default function AccountantDepartmentEmployees() {
         jobTitle: e.jobTitle,
         role: e.role ?? "EMPLOYEE",
         status: e.status ?? "ACTIVE",
+        leaveBalance: Number(e.leaveBalance ?? 0),
+        leaveBalanceAdjustment: Number(e.leaveBalanceAdjustment ?? 0),
+        firstYearLeaveUsedDays: Number(e.firstYearLeaveUsedDays ?? 0),
+        firstYearLeaveUsedYear: e.firstYearLeaveUsedYear ?? null,
         department: e.departmentId ?? null,
         service: e.serviceId ?? null,
         departmentName: e.department?.name ?? e.department?.type ?? "—",
@@ -134,6 +170,51 @@ export default function AccountantDepartmentEmployees() {
     }
   }, [draft, loadEmployees]);
 
+  const saveFirstYearUsedDays = useCallback(async () => {
+    if (!selectedForFirstYear) return;
+    const token = getToken();
+    if (!token) return;
+    const amount = Number(firstYearUsedInput.replace(",", ".").trim());
+    if (!Number.isFinite(amount) || amount < 0) {
+      toast.error("Nombre de jours invalide");
+      return;
+    }
+    setIsSavingFirstYearUsed(true);
+    const t = toast.loading("Mise à jour du solde 1ère année...");
+    try {
+      const res = await fetch(`/api/employees/${selectedForFirstYear.id}/leave-balance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "SET_FIRST_YEAR_USED", amount }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(String(data?.error ?? "Échec de la mise à jour"), { id: t });
+        return;
+      }
+      const employee = data?.employee;
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === selectedForFirstYear.id
+            ? {
+                ...row,
+                leaveBalance: Number(employee?.leaveBalance ?? row.leaveBalance ?? 0),
+                leaveBalanceAdjustment: Number(employee?.leaveBalanceAdjustment ?? row.leaveBalanceAdjustment ?? 0),
+                firstYearLeaveUsedDays: Number(employee?.firstYearLeaveUsedDays ?? 0),
+                firstYearLeaveUsedYear: employee?.firstYearLeaveUsedYear ?? null,
+              }
+            : row
+        )
+      );
+      toast.success("Solde première année mis à jour", { id: t });
+      closeFirstYearModal();
+    } catch {
+      toast.error("Erreur réseau pendant la mise à jour", { id: t });
+    } finally {
+      setIsSavingFirstYearUsed(false);
+    }
+  }, [closeFirstYearModal, firstYearUsedInput, selectedForFirstYear]);
+
   useEffect(() => {
     loadEmployees();
   }, [loadEmployees]);
@@ -173,6 +254,20 @@ export default function AccountantDepartmentEmployees() {
       },
       { header: "Statut", accessorKey: "status" },
       {
+        header: "Solde congé",
+        accessorKey: "leaveBalance",
+        cell: ({ row }) => `${formatLeaveDays(row.original.leaveBalance)} j`,
+      },
+      {
+        header: "Déjà utilisé (1ère année)",
+        accessorKey: "firstYearLeaveUsedDays",
+        cell: ({ row }) => {
+          const year = row.original.firstYearLeaveUsedYear;
+          if (!year || Number(row.original.firstYearLeaveUsedDays ?? 0) <= 0) return "0 j";
+          return `${formatLeaveDays(row.original.firstYearLeaveUsedDays)} j (${year})`;
+        },
+      },
+      {
         header: "Département",
         accessorKey: "department",
         cell: ({ row }) => row.original.departmentName ?? "—",
@@ -186,16 +281,24 @@ export default function AccountantDepartmentEmployees() {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => (
-          <button
-            onClick={() => startEdit(row.original)}
-            className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
-          >
-            Modifier
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => openFirstYearModal(row.original)}
+              className="px-2 py-1 rounded-md border border-amber-300 text-amber-800 text-xs hover:bg-amber-50"
+            >
+              Ajuster 1ère année
+            </button>
+            <button
+              onClick={() => startEdit(row.original)}
+              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+            >
+              Modifier
+            </button>
+          </div>
         ),
       },
     ],
-    [startEdit]
+    [openFirstYearModal, startEdit]
   );
 
   return (
@@ -214,6 +317,57 @@ export default function AccountantDepartmentEmployees() {
       />
 
       {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des employés...</div> : null}
+
+      {isFirstYearModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white border border-vdm-gold-200 shadow-2xl p-5 space-y-4">
+            <div>
+              <div className="text-lg font-semibold text-vdm-gold-900">Ajuster le solde de la 1ère année</div>
+              <div className="text-sm text-vdm-gold-700">
+                {selectedForFirstYear
+                  ? `${selectedForFirstYear.firstName} ${selectedForFirstYear.lastName}`
+                  : "Employé sélectionné"}
+              </div>
+              <div className="text-xs text-vdm-gold-700 mt-1">Année concernée : {currentYear}</div>
+            </div>
+
+            <label className="text-sm text-vdm-gold-900 block">
+              Jours déjà consommés avant déploiement
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={firstYearUsedInput}
+                onChange={(e) => setFirstYearUsedInput(e.target.value)}
+                className="mt-1 w-full rounded-md border border-vdm-gold-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                disabled={isSavingFirstYearUsed}
+                placeholder="Ex : 4"
+              />
+            </label>
+
+            <div className="text-xs text-vdm-gold-700">
+              Cette valeur s&apos;applique uniquement sur {currentYear}. Mettez 0 pour retirer l&apos;ajustement.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={closeFirstYearModal}
+                className="px-3 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
+                disabled={isSavingFirstYearUsed}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={saveFirstYearUsedDays}
+                className="px-3 py-2 rounded-md bg-vdm-gold-700 text-white text-sm hover:bg-vdm-gold-800 disabled:opacity-60"
+                disabled={isSavingFirstYearUsed}
+              >
+                {isSavingFirstYearUsed ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {draft ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

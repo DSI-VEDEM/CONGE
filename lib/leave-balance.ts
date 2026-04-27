@@ -10,6 +10,8 @@ type EmployeeBalanceSource = {
   id: string;
   leaveBalance: number;
   leaveBalanceAdjustment: number;
+  firstYearLeaveUsedDays: number;
+  firstYearLeaveUsedYear: number | null;
   hireDate: Date | null;
   companyEntryDate: Date | null;
   createdAt: Date;
@@ -46,6 +48,11 @@ function seniorityBonusDays(seniorityYears: number) {
 
 function resolveHireDate(employee: EmployeeBalanceSource) {
   return employee.companyEntryDate ?? employee.hireDate ?? null;
+}
+
+function firstYearLeaveUsedDaysForYear(employee: Pick<EmployeeBalanceSource, "firstYearLeaveUsedDays" | "firstYearLeaveUsedYear">, year: number) {
+  if (employee.firstYearLeaveUsedYear !== year) return 0;
+  return Math.max(0, Number(employee.firstYearLeaveUsedDays ?? 0));
 }
 
 function monthsWorkedInYear(hireDate: Date, year: number) {
@@ -116,7 +123,7 @@ export async function consumedLeaveDaysForYear(
 ) {
   const { start: yearStart, endExclusive: nextYearStart } = utcYearRange(year);
 
-  const [leaves, oneOff, recurring] = await Promise.all([
+  const [leaves, oneOff, recurring, employee] = await Promise.all([
     db.leaveRequest.findMany({
       where: {
         employeeId,
@@ -140,6 +147,10 @@ export async function consumedLeaveDaysForYear(
       where: { isRecurring: true },
       select: { date: true },
     }),
+    db.employee.findUnique({
+      where: { id: employeeId },
+      select: { firstYearLeaveUsedDays: true, firstYearLeaveUsedYear: true },
+    }),
   ]);
 
   const holidayDates = [
@@ -150,7 +161,7 @@ export async function consumedLeaveDaysForYear(
       .map((d) => d as Date),
   ];
 
-  return leaves.reduce(
+  const consumedFromRequests = leaves.reduce(
     (acc, leave) =>
       acc +
       countLeaveDaysOverlapInYear({
@@ -162,6 +173,12 @@ export async function consumedLeaveDaysForYear(
       }),
     0
   );
+
+  const consumedBeforeDeployment = employee
+    ? firstYearLeaveUsedDaysForYear(employee, year)
+    : 0;
+
+  return consumedFromRequests + consumedBeforeDeployment;
 }
 
 async function debtCarriedIntoYear(
@@ -187,9 +204,10 @@ async function debtCarriedIntoYear(
 export function consumedLeaveDaysForYearFromLeaves(
   leaves: Array<{ startDate: Date; endDate: Date; status: string; type?: string }>,
   year: number,
-  holidays?: Array<string | Date>
+  holidays?: Array<string | Date>,
+  consumedBeforeDeployment = 0
 ) {
-  return leaves.reduce((acc, leave) => {
+  const consumedFromRequests = leaves.reduce((acc, leave) => {
     if (leave.status !== "SUBMITTED" && leave.status !== "PENDING" && leave.status !== "APPROVED") {
       return acc;
     }
@@ -207,6 +225,8 @@ export function consumedLeaveDaysForYearFromLeaves(
       })
     );
   }, 0);
+
+  return consumedFromRequests + Math.max(0, Number(consumedBeforeDeployment ?? 0));
 }
 
 export async function syncEmployeeLeaveBalance(db: PrismaLike, employeeId: string, asOf: Date = new Date()) {
@@ -216,6 +236,8 @@ export async function syncEmployeeLeaveBalance(db: PrismaLike, employeeId: strin
       id: true,
       leaveBalance: true,
       leaveBalanceAdjustment: true,
+      firstYearLeaveUsedDays: true,
+      firstYearLeaveUsedYear: true,
       hireDate: true,
       companyEntryDate: true,
       createdAt: true,
@@ -241,6 +263,8 @@ export async function syncEmployeeLeaveBalance(db: PrismaLike, employeeId: strin
       id: true,
       leaveBalance: true,
       leaveBalanceAdjustment: true,
+      firstYearLeaveUsedDays: true,
+      firstYearLeaveUsedYear: true,
       hireDate: true,
       companyEntryDate: true,
       createdAt: true,

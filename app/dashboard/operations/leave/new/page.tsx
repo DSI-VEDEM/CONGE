@@ -132,7 +132,7 @@ export default function OperationsLeaveNew() {
   );
   const isExhausted = balance <= 0;
   const employeeGender = getEmployee()?.gender ?? null;
-  const canUseAnticipatedPaid = isExhausted && advanceBalance > 0;
+  const canUseAnticipatedPaid = isExhausted && advanceBalance >= 1;
   const leaveOptions = useMemo(
     () =>
       leaveOptionsForGender(employeeGender, {

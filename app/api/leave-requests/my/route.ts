@@ -24,6 +24,8 @@ export async function GET(req: Request) {
         id: true,
         leaveBalance: true,
         leaveBalanceAdjustment: true,
+        firstYearLeaveUsedDays: true,
+        firstYearLeaveUsedYear: true,
         hireDate: true,
         companyEntryDate: true,
         createdAt: true,
@@ -72,6 +74,8 @@ export async function GET(req: Request) {
           id: employee.id,
           leaveBalance: Number(employee.leaveBalance ?? 0),
           leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
+          firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
+          firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
           hireDate: employee.hireDate ?? null,
           companyEntryDate: employee.companyEntryDate ?? null,
           createdAt: employee.createdAt,
@@ -85,6 +89,10 @@ export async function GET(req: Request) {
         monthsWorkedThisYear: 0,
         seniorityYears: 0,
       };
+  const firstYearUsedDaysCurrentYear =
+    employee && employee.firstYearLeaveUsedYear === currentYear
+      ? Math.max(0, Number(employee.firstYearLeaveUsedDays ?? 0))
+      : 0;
   const consumedCurrentYear = consumedLeaveDaysForYearFromLeaves(
     leaves.map((leave) => ({
       startDate: leave.startDate,
@@ -93,7 +101,8 @@ export async function GET(req: Request) {
       type: leave.type,
     })),
     currentYear,
-    holidayDates
+    holidayDates,
+    firstYearUsedDaysCurrentYear
   );
   const remainingCurrentYear = annualLeaveBalance - consumedCurrentYear;
   const nextYearLeaveBalance = employee
@@ -102,6 +111,8 @@ export async function GET(req: Request) {
           id: employee.id,
           leaveBalance: Number(employee.leaveBalance ?? 0),
           leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
+          firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
+          firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
           hireDate: employee.hireDate ?? null,
           companyEntryDate: employee.companyEntryDate ?? null,
           createdAt: employee.createdAt,
@@ -120,6 +131,8 @@ export async function GET(req: Request) {
     nextYearLeaveBalance,
     alreadyBorrowed,
     availableWithAdvance,
+    firstYearLeaveUsedDays: firstYearUsedDaysCurrentYear,
+    firstYearLeaveUsedYear: employee?.firstYearLeaveUsedYear ?? null,
     seniorityYears: currentYearCalc.seniorityYears,
     seniorityBonusDays: currentYearCalc.bonusDays,
     monthlyAccruedDays: currentYearCalc.monthlyAccrued,
