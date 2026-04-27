@@ -1,5 +1,12 @@
 import type { SidebarSection } from "./sidebar-types";
 
+const LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
+const LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC = Date.UTC(2027, 0, 1, 0, 0, 0, 0);
+const NOW_UTC_MS = Date.now();
+const SHOW_FIRST_YEAR_ADJUSTMENT_LINK =
+  NOW_UTC_MS >= LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC &&
+  NOW_UTC_MS < LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC;
+
 export const employeeMenu: SidebarSection[] = [
   { title: null, links: [{ label: "Tableau de bord", icon: "home", to: "/dashboard/employee" }] },
   {
@@ -45,6 +52,15 @@ export const accountantMenu: SidebarSection[] = [
     title: "Département DAF",
     links: [
       { label: "Employés DAF", icon: "users", to: "/dashboard/accountant/department/employees" },
+      ...(SHOW_FIRST_YEAR_ADJUSTMENT_LINK
+        ? [
+            {
+              label: "Ajuster solde",
+              icon: "shield" as const,
+              to: "/dashboard/accountant/department/leave-adjustment",
+            },
+          ]
+        : []),
       {
         label: "Historique des employés",
         icon: "clock",

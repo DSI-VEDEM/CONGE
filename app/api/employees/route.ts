@@ -42,6 +42,8 @@ export async function GET(req: Request) {
       status: true,
       leaveBalance: true,
       leaveBalanceAdjustment: true,
+      firstYearLeaveUsedDays: true,
+      firstYearLeaveUsedYear: true,
       hireDate: true,
       companyEntryDate: true,
       departmentId: true,

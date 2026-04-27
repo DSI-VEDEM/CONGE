@@ -61,7 +61,15 @@ type EmployeeApiItem = {
   service?: { id: string; name?: string | null; type?: string | null } | null;
 };
 
-export default function AccountantDepartmentEmployees() {
+type AccountantDepartmentEmployeesProps = {
+  employeeScope?: "DAF" | "ALL";
+  adjustmentOnly?: boolean;
+};
+
+export default function AccountantDepartmentEmployees({
+  employeeScope = "DAF",
+  adjustmentOnly = false,
+}: AccountantDepartmentEmployeesProps) {
   const currentEmployee = useMemo(() => getEmployee(), []);
   const currentYear = useMemo(() => new Date().getFullYear(), []);
   const [rows, setRows] = useState<EmployeeRow[]>([]);
@@ -101,7 +109,8 @@ export default function AccountantDepartmentEmployees() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const empRes = await fetch("/api/departments/daf/employees", {
+      const endpoint = employeeScope === "ALL" ? "/api/employees?fast=1" : "/api/departments/daf/employees";
+      const empRes = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -132,11 +141,17 @@ export default function AccountantDepartmentEmployees() {
         serviceName: e.service?.name ?? e.service?.type ?? "—",
       })) as EmployeeRow[];
 
-      setRows(employees.filter((e) => e.id !== currentEmployee?.id));
+      setRows(
+        employees.filter(
+          (e) =>
+            e.id !== currentEmployee?.id &&
+            (adjustmentOnly ? e.role !== "CEO" : true)
+        )
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [currentEmployee?.id]);
+  }, [adjustmentOnly, currentEmployee?.id, employeeScope]);
 
   const saveEdit = useCallback(async () => {
     if (!draft) return;
@@ -286,26 +301,32 @@ export default function AccountantDepartmentEmployees() {
               onClick={() => openFirstYearModal(row.original)}
               className="px-2 py-1 rounded-md border border-amber-300 text-amber-800 text-xs hover:bg-amber-50"
             >
-              Ajuster 1ère année
+              Ajuster
             </button>
-            <button
-              onClick={() => startEdit(row.original)}
-              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
-            >
-              Modifier
-            </button>
+            {adjustmentOnly ? null : (
+              <button
+                onClick={() => startEdit(row.original)}
+                className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+              >
+                Modifier
+              </button>
+            )}
           </div>
         ),
       },
     ],
-    [openFirstYearModal, startEdit]
+    [adjustmentOnly, openFirstYearModal, startEdit]
   );
 
   return (
     <div className="p-6">
-      <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Employés actuels (DAF)</div>
+      <div className="text-xl font-semibold mb-1 text-vdm-gold-800">
+        {adjustmentOnly ? "Ajustement congés 1ère année" : "Employés actuels (DAF)"}
+      </div>
       <div className="text-sm text-vdm-gold-700 mb-4">
-        Liste des employés du DAF avec toutes les informations. Cliquez sur Modifier pour éditer.
+        {adjustmentOnly
+          ? "Tous les employés sont affichés, y compris les directeurs."
+          : "Liste des employés du DAF avec toutes les informations. Cliquez sur Modifier pour éditer."}
       </div>
 
       <DataTable
@@ -346,7 +367,7 @@ export default function AccountantDepartmentEmployees() {
             </label>
 
             <div className="text-xs text-vdm-gold-700">
-              Cette valeur s&apos;applique uniquement sur {currentYear}. Mettez 0 pour retirer l&apos;ajustement.
+              Cette valeur s'applique uniquement sur {currentYear}. Mettez 0 pour retirer l'ajustement.
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -373,7 +394,7 @@ export default function AccountantDepartmentEmployees() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-xl bg-white border border-vdm-gold-200 shadow-2xl p-5 space-y-4">
             <div>
-              <div className="text-lg font-semibold text-vdm-gold-900">Modifier l&apos;employé</div>
+              <div className="text-lg font-semibold text-vdm-gold-900">Modifier l'employé</div>
               <div className="text-sm text-vdm-gold-700">
                 {draft.firstName} {draft.lastName}
               </div>

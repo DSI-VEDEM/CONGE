@@ -13,7 +13,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const authRes = requireAuth(req);
   if (!authRes.ok) return authRes.error;
 
-  const { role, departmentId: actorDepartmentId } = authRes.auth;
+  const { role } = authRes.auth;
   const canManage = role === "CEO" || role === "ACCOUNTANT";
   if (!canManage) return jsonError("Accès refusé", 403);
 
@@ -52,15 +52,9 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const target = await prisma.employee.findUnique({
     where: { id },
-    select: { id: true, departmentId: true },
+    select: { id: true },
   });
   if (!target) return jsonError("Employé introuvable", 404);
-
-  if (role !== "CEO") {
-    if (!actorDepartmentId || actorDepartmentId !== target.departmentId) {
-      return jsonError("Accès refusé", 403);
-    }
-  }
 
   const updated = await prisma.$transaction(async (tx) => {
     const employee = await tx.employee.findUnique({
