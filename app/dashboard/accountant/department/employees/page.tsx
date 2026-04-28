@@ -21,6 +21,8 @@ type EmployeeRow = {
   leaveBalanceAdjustment?: number;
   firstYearLeaveUsedDays?: number;
   firstYearLeaveUsedYear?: number | null;
+  hireDate?: string | null;
+  companyEntryDate?: string | null;
   department?: string | null;
   service?: string | null;
   departmentName?: string;
@@ -41,6 +43,30 @@ function formatLeaveDays(value?: number) {
   return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1).replace(/\.0$/, "");
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}-${month}-${date.getUTCFullYear()}`;
+}
+
+function addOneYearDate(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getUTCFullYear() + 1;
+  const month = date.getUTCMonth();
+  const maxDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const day = Math.min(date.getUTCDate(), maxDay);
+  return new Date(Date.UTC(year, month, day)).toISOString();
+}
+
+function entryDateFor(row: Pick<EmployeeRow, "companyEntryDate" | "hireDate">) {
+  return row.companyEntryDate ?? row.hireDate ?? null;
+}
+
 type EmployeeApiItem = {
   id: string;
   firstName: string;
@@ -55,6 +81,8 @@ type EmployeeApiItem = {
   leaveBalanceAdjustment?: number;
   firstYearLeaveUsedDays?: number;
   firstYearLeaveUsedYear?: number | null;
+  hireDate?: string | null;
+  companyEntryDate?: string | null;
   departmentId?: string | null;
   serviceId?: string | null;
   department?: { id: string; name?: string | null; type?: string | null } | null;
@@ -71,7 +99,6 @@ export default function AccountantDepartmentEmployees({
   adjustmentOnly = false,
 }: AccountantDepartmentEmployeesProps) {
   const currentEmployee = useMemo(() => getEmployee(), []);
-  const currentYear = useMemo(() => new Date().getFullYear(), []);
   const [rows, setRows] = useState<EmployeeRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -135,6 +162,8 @@ export default function AccountantDepartmentEmployees({
         leaveBalanceAdjustment: Number(e.leaveBalanceAdjustment ?? 0),
         firstYearLeaveUsedDays: Number(e.firstYearLeaveUsedDays ?? 0),
         firstYearLeaveUsedYear: e.firstYearLeaveUsedYear ?? null,
+        hireDate: e.hireDate ?? null,
+        companyEntryDate: e.companyEntryDate ?? null,
         department: e.departmentId ?? null,
         service: e.serviceId ?? null,
         departmentName: e.department?.name ?? e.department?.type ?? "—",
@@ -195,7 +224,7 @@ export default function AccountantDepartmentEmployees({
       return;
     }
     setIsSavingFirstYearUsed(true);
-    const t = toast.loading("Mise à jour du solde 1ère année...");
+    const t = toast.loading("Mise à jour des jours déjà consommés...");
     try {
       const res = await fetch(`/api/employees/${selectedForFirstYear.id}/leave-balance`, {
         method: "POST",
@@ -221,7 +250,7 @@ export default function AccountantDepartmentEmployees({
             : row
         )
       );
-      toast.success("Solde première année mis à jour", { id: t });
+      toast.success("Jours déjà consommés mis à jour", { id: t });
       closeFirstYearModal();
     } catch {
       toast.error("Erreur réseau pendant la mise à jour", { id: t });
@@ -263,18 +292,28 @@ export default function AccountantDepartmentEmployees({
         cell: ({ row }) => row.original.jobTitle ?? "—",
       },
       {
+        header: "Date d'entrée",
+        accessorFn: (row) => entryDateFor(row) ?? "",
+        cell: ({ row }) => formatDate(entryDateFor(row.original)),
+      },
+      {
+        header: "Droit congé payé",
+        accessorFn: (row) => addOneYearDate(entryDateFor(row)) ?? "",
+        cell: ({ row }) => formatDate(addOneYearDate(entryDateFor(row.original))),
+      },
+      {
         header: "Rôle",
         accessorKey: "role",
         cell: ({ row }) => roleLabel[row.original.role] ?? row.original.role,
       },
       { header: "Statut", accessorKey: "status" },
       {
-        header: "Solde congé",
+        header: "Droit cycle",
         accessorKey: "leaveBalance",
         cell: ({ row }) => `${formatLeaveDays(row.original.leaveBalance)} j`,
       },
       {
-        header: "Déjà utilisé (1ère année)",
+        header: "Déjà utilisé (cycle)",
         accessorKey: "firstYearLeaveUsedDays",
         cell: ({ row }) => {
           const year = row.original.firstYearLeaveUsedYear;
@@ -343,13 +382,15 @@ export default function AccountantDepartmentEmployees({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white border border-vdm-gold-200 shadow-2xl p-5 space-y-4">
             <div>
-              <div className="text-lg font-semibold text-vdm-gold-900">Ajuster le solde de la 1ère année</div>
+              <div className="text-lg font-semibold text-vdm-gold-900">Ajuster les jours déjà consommés</div>
               <div className="text-sm text-vdm-gold-700">
                 {selectedForFirstYear
                   ? `${selectedForFirstYear.firstName} ${selectedForFirstYear.lastName}`
                   : "Employé sélectionné"}
               </div>
-              <div className="text-xs text-vdm-gold-700 mt-1">Année concernée : {currentYear}</div>
+              <div className="text-xs text-vdm-gold-700 mt-1">
+                Date d'entrée : {selectedForFirstYear ? formatDate(entryDateFor(selectedForFirstYear)) : "—"}
+              </div>
             </div>
 
             <label className="text-sm text-vdm-gold-900 block">
@@ -367,7 +408,7 @@ export default function AccountantDepartmentEmployees({
             </label>
 
             <div className="text-xs text-vdm-gold-700">
-              Cette valeur s'applique uniquement sur {currentYear}. Mettez 0 pour retirer l'ajustement.
+              Cette valeur s'applique uniquement au cycle courant de l'employé. Mettez 0 pour retirer l'ajustement.
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

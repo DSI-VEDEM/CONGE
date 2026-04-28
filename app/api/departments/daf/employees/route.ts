@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
 export async function GET(req: Request) {
   const v = verifyJwt(req);
@@ -63,6 +64,8 @@ export async function GET(req: Request) {
       leaveBalanceAdjustment: true,
       firstYearLeaveUsedDays: true,
       firstYearLeaveUsedYear: true,
+      hireDate: true,
+      companyEntryDate: true,
       departmentId: true,
       serviceId: true,
       department: { select: { id: true, name: true, type: true } },
@@ -72,5 +75,16 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ employees });
+  const syncedBalances = new Map<string, number>();
+  for (const employee of employees) {
+    const synced = await syncEmployeeLeaveBalance(prisma, employee.id);
+    if (synced) syncedBalances.set(employee.id, Number(synced.employee.leaveBalance ?? employee.leaveBalance ?? 0));
+  }
+
+  return NextResponse.json({
+    employees: employees.map((employee) => ({
+      ...employee,
+      leaveBalance: syncedBalances.get(employee.id) ?? employee.leaveBalance,
+    })),
+  });
 }

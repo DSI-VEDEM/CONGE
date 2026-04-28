@@ -105,3 +105,32 @@ export function countLeaveDaysOverlapInYear(options: {
   const holidayWeekdays = countHolidayWeekdaysInRange(s, e, options.holidays);
   return Math.max(0, weekdays - holidayWeekdays);
 }
+
+export function countLeaveDaysOverlapInRange(options: {
+  start: string | Date;
+  end: string | Date;
+  rangeStart: string | Date;
+  rangeEndExclusive: string | Date;
+  type?: unknown;
+  holidays?: Array<string | Date>;
+}) {
+  const startUtc = toUtcDayMs(options.start);
+  const endUtc = toUtcDayMs(options.end);
+  const rangeStartUtc = toUtcDayMs(options.rangeStart);
+  const rangeEndExclusiveUtc = toUtcDayMs(options.rangeEndExclusive);
+  if (startUtc == null || endUtc == null || rangeStartUtc == null || rangeEndExclusiveUtc == null) return 0;
+  if (endUtc < startUtc || rangeEndExclusiveUtc <= rangeStartUtc) return 0;
+
+  const rangeEndUtc = rangeEndExclusiveUtc - MS_PER_DAY;
+  const s = Math.max(startUtc, rangeStartUtc);
+  const e = Math.min(endUtc, rangeEndUtc);
+  if (s > e) return 0;
+
+  if (!isPaidLeaveType(options.type)) {
+    return countCalendarDaysInclusive(new Date(s), new Date(e));
+  }
+
+  const weekdays = countWeekdaysInclusive(new Date(s), new Date(e));
+  const holidayWeekdays = countHolidayWeekdaysInRange(s, e, options.holidays);
+  return Math.max(0, weekdays - holidayWeekdays);
+}

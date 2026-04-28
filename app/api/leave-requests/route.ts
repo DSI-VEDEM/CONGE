@@ -18,8 +18,10 @@ import {
 } from "@/lib/leave-requests";
 import { norm } from "@/lib/validators";
 import {
-  calculateEntitledLeaveDaysForYear,
-  consumedLeaveDaysForYear,
+  calculateEntitledLeaveDaysForCycle,
+  consumedLeaveDaysForRange,
+  debtCarriedIntoCycle,
+  getLeaveCycleForDate,
   requestedLeaveDaysForType,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
@@ -48,6 +50,13 @@ function appliesToEmployee(
   if (targetIds.includes(employee.id)) return true;
   if (blackout.departmentId && employee.departmentId && blackout.departmentId === employee.departmentId) return true;
   return !blackout.departmentId && targetIds.length === 0;
+}
+
+function formatDateForMessage(value: Date | null | undefined) {
+  if (!value) return "";
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}-${month}-${value.getUTCFullYear()}`;
 }
 
 export async function POST(req: Request) {
@@ -92,8 +101,6 @@ export async function POST(req: Request) {
     return jsonError("Congé menstruel réservé aux collaboratrices", 403);
   }
 
-  // On travaille sur l'année en cours pour le calcul des droits.
-  const currentYear = new Date().getUTCFullYear();
   const [oneOffHolidays, recurringHolidays] = await Promise.all([
     prisma.holiday
       .findMany({
@@ -118,12 +125,22 @@ export async function POST(req: Request) {
   ];
   const requested = requestedLeaveDaysForType(startDate, endDate, leaveType, holidayDates);
   if (isPaidLeaveType(leaveType)) {
-    const consumed = await consumedLeaveDaysForYear(prisma, actorId, currentYear);
-    const currentEntitlement = Number(employee.leaveBalance ?? 0);
-    const nextYearEntitlement = calculateEntitledLeaveDaysForYear(
+    const leaveCycle = getLeaveCycleForDate(employee, startDate);
+    if (!leaveCycle.isPaidLeaveEligible) {
+      return jsonError(
+        `Vous aurez droit aux congés payés à partir du ${formatDateForMessage(leaveCycle.eligibilityDate)}`,
+        403,
+        {
+          paidLeaveEligible: false,
+          paidLeaveEligibilityDate: leaveCycle.eligibilityDate,
+        }
+      );
+    }
+
+    const cycleCalc = calculateEntitledLeaveDaysForCycle(
       {
         id: employee.id,
-        leaveBalance: currentEntitlement,
+        leaveBalance: Number(employee.leaveBalance ?? 0),
         leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
         firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
         firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
@@ -131,7 +148,23 @@ export async function POST(req: Request) {
         companyEntryDate: employee.companyEntryDate ?? null,
         createdAt: employee.createdAt,
       },
-      currentYear + 1
+      startDate
+    );
+    const debtFromPreviousCycle = await debtCarriedIntoCycle(prisma, employee, actorId, leaveCycle.start);
+    const currentEntitlement = Math.max(0, cycleCalc.entitlement - debtFromPreviousCycle);
+    const consumed = await consumedLeaveDaysForRange(prisma, actorId, leaveCycle.start, leaveCycle.endExclusive);
+    const nextYearEntitlement = calculateEntitledLeaveDaysForCycle(
+      {
+        id: employee.id,
+        leaveBalance: Number(employee.leaveBalance ?? 0),
+        leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
+        firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
+        firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
+        hireDate: employee.hireDate ?? null,
+        companyEntryDate: employee.companyEntryDate ?? null,
+        createdAt: employee.createdAt,
+      },
+      leaveCycle.endExclusive
     ).entitlement;
     const remainingCurrentYear = currentEntitlement - consumed;
     const availableCurrentYear = Math.max(0, remainingCurrentYear);

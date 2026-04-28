@@ -115,6 +115,8 @@ export default function OperationsLeaveNew() {
   const [borrowedDays, setBorrowedDays] = useState<number>(0);
   const [seniorityYears, setSeniorityYears] = useState<number>(0);
   const [seniorityBonusDays, setSeniorityBonusDays] = useState<number>(0);
+  const [paidLeaveEligible, setPaidLeaveEligible] = useState(true);
+  const [paidLeaveEligibilityDate, setPaidLeaveEligibilityDate] = useState<string | null>(null);
   const today = useMemo(() => toLocalDateInputValue(new Date()), []);
   const [current, setCurrent] = useState(() => new Date());
   const { year, month, cells } = useMemo(() => buildMonth(current), [current]);
@@ -132,14 +134,14 @@ export default function OperationsLeaveNew() {
   );
   const isExhausted = balance <= 0;
   const employeeGender = getEmployee()?.gender ?? null;
-  const canUseAnticipatedPaid = isExhausted && advanceBalance >= 1;
+  const canUseAnticipatedPaid = paidLeaveEligible && isExhausted && advanceBalance >= 1;
   const leaveOptions = useMemo(
     () =>
       leaveOptionsForGender(employeeGender, {
-        remainingPaidLeaveDays: balance,
+        remainingPaidLeaveDays: paidLeaveEligible ? balance : 0,
         canUseAnticipatedPaid,
       }),
-    [balance, canUseAnticipatedPaid, employeeGender]
+    [balance, canUseAnticipatedPaid, employeeGender, paidLeaveEligible]
   );
 
   useEffect(() => {
@@ -173,6 +175,8 @@ export default function OperationsLeaveNew() {
     setBorrowedDays(Number(data?.alreadyBorrowed ?? Math.max(0, -remaining)));
     setSeniorityYears(Number(data?.seniorityYears ?? 0));
     setSeniorityBonusDays(Number(data?.seniorityBonusDays ?? 0));
+    setPaidLeaveEligible(Boolean(data?.paidLeaveEligible ?? true));
+    setPaidLeaveEligibilityDate(data?.paidLeaveEligibilityDate ?? null);
   }, [holidays]);
 
   useEffect(() => {
@@ -326,6 +330,14 @@ export default function OperationsLeaveNew() {
       toast.error("La période saisie est invalide.");
       return;
     }
+    if (!paidLeaveEligible && isPaidLeaveType(type)) {
+      toast.error(
+        paidLeaveEligibilityDate
+          ? `Vous aurez droit aux congés payés à partir du ${formatDateDMY(paidLeaveEligibilityDate)}.`
+          : "Vous n'avez pas encore droit aux congés payés."
+      );
+      return;
+    }
     const paidAvailable = isAnticipatedPaidLeaveType(type) ? advanceBalance : Math.max(0, balance);
     if (isPaidLeaveType(type) && daysRequested > paidAvailable) {
       toast.error(
@@ -377,7 +389,14 @@ export default function OperationsLeaveNew() {
       <div className="text-sm text-vdm-gold-700 mb-4">Soumettez votre demande de congé.</div>
 
       <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 grid gap-3 md:grid-cols-2">
-        {isExhausted ? (
+        {!paidLeaveEligible ? (
+          <div className="md:col-span-2 text-sm text-amber-700">
+            Congés payés disponibles à partir du{" "}
+            {paidLeaveEligibilityDate ? formatDateDMY(paidLeaveEligibilityDate) : "premier anniversaire d'entrée"}.
+          </div>
+        ) : null}
+
+        {paidLeaveEligible && isExhausted ? (
           <div className="md:col-span-2 text-sm text-amber-700">
             {canUseAnticipatedPaid
               ? `Votre solde de congés payés est épuisé. Congé anticipé disponible : ${formatLeaveDays(advanceBalance)} jour${
@@ -404,13 +423,13 @@ export default function OperationsLeaveNew() {
         <div className="flex items-end justify-between gap-2 text-sm text-vdm-gold-700">
           <div className="space-y-0.5">
             <div>
-              Solde restant annuel : {formatLeaveDays(balance)} / {formatLeaveDays(baseAllowance)} JOURS
+              Solde restant période : {formatLeaveDays(balance)} / {formatLeaveDays(baseAllowance)} JOURS
             </div>
             <div className="text-xs text-vdm-gold-600">
               Ancienneté : {seniorityYears} an{seniorityYears > 1 ? "s" : ""} | Bonus : +{formatLeaveDays(seniorityBonusDays)}{" "}
               {Number(seniorityBonusDays) === 1 ? "jour" : "jours"}
             </div>
-            {isExhausted ? (
+            {paidLeaveEligible && isExhausted ? (
               <div className="text-xs text-amber-700">
                 Avance disponible : {formatLeaveDays(advanceBalance)} jour{advanceBalance > 1 ? "s" : ""}
                 {borrowedDays > 0 ? ` | Déjà emprunté : ${formatLeaveDays(borrowedDays)} jour${borrowedDays > 1 ? "s" : ""}` : ""}

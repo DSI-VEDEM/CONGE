@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
 import { requireAuth } from "@/lib/leave-requests";
-import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import { getLeaveCycleForDate, syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
 type Ctx = { params: Promise<{ id: string }> };
 type LeaveBalanceAction = "RESET" | "INCREASE" | "SET" | "SET_FIRST_YEAR_USED";
@@ -59,7 +59,13 @@ export async function POST(req: Request, ctx: Ctx) {
   const updated = await prisma.$transaction(async (tx) => {
     const employee = await tx.employee.findUnique({
       where: { id },
-      select: { id: true, leaveBalanceAdjustment: true },
+      select: {
+        id: true,
+        leaveBalanceAdjustment: true,
+        hireDate: true,
+        companyEntryDate: true,
+        createdAt: true,
+      },
     });
 
     if (!employee) return null;
@@ -74,11 +80,12 @@ export async function POST(req: Request, ctx: Ctx) {
             ? amount
             : currentAdjustment;
 
-    const currentYear = new Date().getUTCFullYear();
+    const currentCycle = getLeaveCycleForDate(employee, new Date());
+    const currentCycleYear = currentCycle.start.getUTCFullYear();
     const updateData =
       action === "SET_FIRST_YEAR_USED"
         ? amount > 0
-          ? { firstYearLeaveUsedDays: amount, firstYearLeaveUsedYear: currentYear }
+          ? { firstYearLeaveUsedDays: amount, firstYearLeaveUsedYear: currentCycleYear }
           : { firstYearLeaveUsedDays: 0, firstYearLeaveUsedYear: null }
         : { leaveBalanceAdjustment: nextAdjustment };
 

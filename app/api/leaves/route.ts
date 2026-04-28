@@ -4,14 +4,30 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyJwt, jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
-import { isLeaveType, isMenstrualLeaveType } from "@/lib/leave-types";
+import { isAnticipatedPaidLeaveType, isLeaveType, isMenstrualLeaveType, isPaidLeaveType } from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
+import {
+  calculateEntitledLeaveDaysForCycle,
+  consumedLeaveDaysForRange,
+  debtCarriedIntoCycle,
+  getLeaveCycleForDate,
+  requestedLeaveDaysForType,
+  syncEmployeeLeaveBalance,
+} from "@/lib/leave-balance";
+import { expandRecurringAnchorsBetweenInclusive, normalizeUtcDateOnly } from "@/lib/holidays";
 
 function parseDate(value: string | null) {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+function formatDateForMessage(value: Date | null | undefined) {
+  if (!value) return "";
+  const day = String(value.getUTCDate()).padStart(2, "0");
+  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}-${month}-${value.getUTCFullYear()}`;
 }
 
 export async function GET(req: Request) {
@@ -71,15 +87,79 @@ export async function POST(req: Request) {
     return jsonError("startDate doit être avant endDate", 400);
   }
 
-  const actor = await prisma.employee.findUnique({
-    where: { id: employeeId },
-    select: { gender: true },
-  });
-  if (!actor) {
+  const synced = await syncEmployeeLeaveBalance(prisma, employeeId);
+  if (!synced) {
     return jsonError("Employé introuvable", 404);
   }
+  const actor = synced.employee;
   if (isMenstrualLeaveType(leaveType) && actor.gender !== "FEMALE") {
     return jsonError("Congé menstruel réservé aux collaboratrices", 403);
+  }
+
+  const [oneOffHolidays, recurringHolidays] = await Promise.all([
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: { not: true }, date: { gte: startDate, lte: endDate } },
+        select: { date: true },
+      })
+      .catch(() => []),
+    prisma.holiday
+      .findMany({
+        where: { isRecurring: true },
+        select: { date: true },
+      })
+      .catch(() => []),
+  ]);
+  const holidayDates = [
+    ...oneOffHolidays.map((h) => normalizeUtcDateOnly(h.date)),
+    ...expandRecurringAnchorsBetweenInclusive(
+      recurringHolidays.map((h) => h.date),
+      startDate,
+      endDate
+    ),
+  ];
+  const requested = requestedLeaveDaysForType(startDate, endDate, leaveType, holidayDates);
+  if (isPaidLeaveType(leaveType)) {
+    const leaveCycle = getLeaveCycleForDate(actor, startDate);
+    if (!leaveCycle.isPaidLeaveEligible) {
+      return jsonError(
+        `Vous aurez droit aux congés payés à partir du ${formatDateForMessage(leaveCycle.eligibilityDate)}`,
+        403,
+        {
+          paidLeaveEligible: false,
+          paidLeaveEligibilityDate: leaveCycle.eligibilityDate,
+        }
+      );
+    }
+
+    const cycleCalc = calculateEntitledLeaveDaysForCycle(actor, startDate);
+    const debtFromPreviousCycle = await debtCarriedIntoCycle(prisma, actor, employeeId, leaveCycle.start);
+    const currentEntitlement = Math.max(0, cycleCalc.entitlement - debtFromPreviousCycle);
+    const consumed = await consumedLeaveDaysForRange(prisma, employeeId, leaveCycle.start, leaveCycle.endExclusive);
+    const nextCycleEntitlement = calculateEntitledLeaveDaysForCycle(actor, leaveCycle.endExclusive).entitlement;
+    const availableCurrentCycle = Math.max(0, currentEntitlement - consumed);
+    const alreadyBorrowed = Math.max(0, consumed - currentEntitlement);
+    const availableAnticipated = Math.max(0, nextCycleEntitlement - alreadyBorrowed);
+
+    if (isAnticipatedPaidLeaveType(leaveType)) {
+      if (availableCurrentCycle > 0) {
+        return jsonError("Le congé anticipé est disponible uniquement quand le congé payé est épuisé", 409, {
+          availableCurrentYear: availableCurrentCycle,
+          requested,
+        });
+      }
+      if (requested > availableAnticipated) {
+        return jsonError("La demande dépasse votre avance de congés disponible", 409, {
+          available: availableAnticipated,
+          requested,
+        });
+      }
+    } else if (requested > availableCurrentCycle) {
+      return jsonError("La demande dépasse votre solde de congés payés", 409, {
+        available: availableCurrentCycle,
+        requested,
+      });
+    }
   }
 
   // On cible un comptable actif pour valider ou mettre le congé en attente

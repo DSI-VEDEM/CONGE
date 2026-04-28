@@ -4,11 +4,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/leave-requests";
 import {
-  calculateEntitledLeaveDaysForYear,
-  consumedLeaveDaysForYearFromLeaves,
+  calculateEntitledLeaveDaysForCycle,
+  consumedLeaveDaysForRangeFromLeaves,
+  firstYearLeaveUsedDaysForCycle,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
-import { expandRecurringAnchorToYear, normalizeUtcDateOnly, utcYearRange } from "@/lib/holidays";
+import { expandRecurringAnchorsBetweenInclusive, normalizeUtcDateOnly } from "@/lib/holidays";
 
 export async function GET(req: Request) {
   const authRes = requireAuth(req);
@@ -50,26 +51,10 @@ export async function GET(req: Request) {
   ]);
 
   const annualLeaveBalance = Number(employee?.leaveBalance ?? 0);
-  const currentYear = new Date().getUTCFullYear();
-  const { start: yearStart, endExclusive: yearEndExclusive } = utcYearRange(currentYear);
-  const [oneOff, recurring] = await Promise.all([
-    prisma.holiday
-      .findMany({
-        where: { isRecurring: { not: true }, date: { gte: yearStart, lt: yearEndExclusive } },
-        select: { date: true },
-      })
-      .catch(() => []),
-    prisma.holiday.findMany({ where: { isRecurring: true }, select: { date: true } }).catch(() => []),
-  ]);
-  const holidayDates = [
-    ...oneOff.map((h) => normalizeUtcDateOnly(h.date)),
-    ...recurring
-      .map((h) => expandRecurringAnchorToYear(h.date, currentYear))
-      .filter(Boolean)
-      .map((d) => d as Date),
-  ];
-  const currentYearCalc = employee
-    ? calculateEntitledLeaveDaysForYear(
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentCycleCalc = employee
+    ? calculateEntitledLeaveDaysForCycle(
         {
           id: employee.id,
           leaveBalance: Number(employee.leaveBalance ?? 0),
@@ -80,7 +65,7 @@ export async function GET(req: Request) {
           companyEntryDate: employee.companyEntryDate ?? null,
           createdAt: employee.createdAt,
         },
-        currentYear
+        now
       )
     : {
         entitlement: 0,
@@ -88,25 +73,55 @@ export async function GET(req: Request) {
         bonusDays: 0,
         monthsWorkedThisYear: 0,
         seniorityYears: 0,
+        leaveCycleStart: new Date(Date.UTC(currentYear, 0, 1)),
+        leaveCycleEndExclusive: new Date(Date.UTC(currentYear + 1, 0, 1)),
+        leaveCycleEndInclusive: new Date(Date.UTC(currentYear, 11, 31)),
+        paidLeaveEligibilityDate: null,
+        isPaidLeaveEligible: false,
       };
-  const firstYearUsedDaysCurrentYear =
-    employee && employee.firstYearLeaveUsedYear === currentYear
-      ? Math.max(0, Number(employee.firstYearLeaveUsedDays ?? 0))
-      : 0;
-  const consumedCurrentYear = consumedLeaveDaysForYearFromLeaves(
+  const [oneOff, recurring] = await Promise.all([
+    prisma.holiday
+      .findMany({
+        where: {
+          isRecurring: { not: true },
+          date: { gte: currentCycleCalc.leaveCycleStart, lt: currentCycleCalc.leaveCycleEndExclusive },
+        },
+        select: { date: true },
+      })
+      .catch(() => []),
+    prisma.holiday.findMany({ where: { isRecurring: true }, select: { date: true } }).catch(() => []),
+  ]);
+  const holidayDates = [
+    ...oneOff.map((h) => normalizeUtcDateOnly(h.date)),
+    ...expandRecurringAnchorsBetweenInclusive(
+      recurring.map((h) => h.date),
+      currentCycleCalc.leaveCycleStart,
+      currentCycleCalc.leaveCycleEndInclusive
+    ),
+  ];
+  const firstYearUsedDaysCurrentCycle = employee
+    ? firstYearLeaveUsedDaysForCycle(
+        employee,
+        currentCycleCalc.leaveCycleStart,
+        currentCycleCalc.leaveCycleEndExclusive
+      )
+    : 0;
+  const consumedCurrentYear = consumedLeaveDaysForRangeFromLeaves(
     leaves.map((leave) => ({
       startDate: leave.startDate,
       endDate: leave.endDate,
       status: leave.status,
       type: leave.type,
     })),
-    currentYear,
+    currentCycleCalc.leaveCycleStart,
+    currentCycleCalc.leaveCycleEndExclusive,
     holidayDates,
-    firstYearUsedDaysCurrentYear
+    firstYearUsedDaysCurrentCycle
   );
   const remainingCurrentYear = annualLeaveBalance - consumedCurrentYear;
-  const nextYearLeaveBalance = employee
-    ? calculateEntitledLeaveDaysForYear(
+  const nextYearLeaveBalance =
+    employee && currentCycleCalc.isPaidLeaveEligible
+      ? calculateEntitledLeaveDaysForCycle(
         {
           id: employee.id,
           leaveBalance: Number(employee.leaveBalance ?? 0),
@@ -117,11 +132,13 @@ export async function GET(req: Request) {
           companyEntryDate: employee.companyEntryDate ?? null,
           createdAt: employee.createdAt,
         },
-        currentYear + 1
+        currentCycleCalc.leaveCycleEndExclusive
       ).entitlement
-    : 0;
+      : 0;
   const alreadyBorrowed = Math.max(0, -remainingCurrentYear);
-  const availableWithAdvance = Math.max(0, remainingCurrentYear + nextYearLeaveBalance);
+  const availableWithAdvance = currentCycleCalc.isPaidLeaveEligible
+    ? Math.max(0, remainingCurrentYear + nextYearLeaveBalance)
+    : 0;
 
   return NextResponse.json({
     leaves,
@@ -131,10 +148,14 @@ export async function GET(req: Request) {
     nextYearLeaveBalance,
     alreadyBorrowed,
     availableWithAdvance,
-    firstYearLeaveUsedDays: firstYearUsedDaysCurrentYear,
+    firstYearLeaveUsedDays: firstYearUsedDaysCurrentCycle,
     firstYearLeaveUsedYear: employee?.firstYearLeaveUsedYear ?? null,
-    seniorityYears: currentYearCalc.seniorityYears,
-    seniorityBonusDays: currentYearCalc.bonusDays,
-    monthlyAccruedDays: currentYearCalc.monthlyAccrued,
+    seniorityYears: currentCycleCalc.seniorityYears,
+    seniorityBonusDays: currentCycleCalc.bonusDays,
+    monthlyAccruedDays: currentCycleCalc.monthlyAccrued,
+    paidLeaveEligible: currentCycleCalc.isPaidLeaveEligible,
+    paidLeaveEligibilityDate: currentCycleCalc.paidLeaveEligibilityDate,
+    leaveCycleStart: currentCycleCalc.leaveCycleStart,
+    leaveCycleEnd: currentCycleCalc.leaveCycleEndInclusive,
   });
 }
