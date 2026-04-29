@@ -804,7 +804,7 @@ export default function ContractDocumentsSection({
                                   disabled={editingDocId === doc.id}
                                   className="px-3 py-1 rounded-md border border-vdm-gold-300 text-xs text-vdm-gold-800 hover:bg-vdm-gold-50"
                                 >
-                                  Modifier
+                                  Changer le fichier
                                 </button>
                                 <button
                                   type="button"
