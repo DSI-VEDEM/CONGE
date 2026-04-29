@@ -74,6 +74,8 @@ export async function GET(req: Request) {
         startDate: true,
         endDate: true,
         status: true,
+        justificationFileName: true,
+        justificationMimeType: true,
         createdAt: true,
         decisions: {
           where: { type: { in: ["APPROVE", "REJECT", "CANCEL"] } },
@@ -108,6 +110,8 @@ export async function GET(req: Request) {
             type: true,
             startDate: true,
             endDate: true,
+            justificationFileName: true,
+            justificationMimeType: true,
             employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true } },
           },
         },
@@ -158,6 +162,8 @@ export async function GET(req: Request) {
         startDate: true,
         endDate: true,
         status: true,
+        justificationFileName: true,
+        justificationMimeType: true,
         createdAt: true,
         employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true, role: true } },
         decisions: {

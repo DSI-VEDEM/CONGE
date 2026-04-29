@@ -12,6 +12,11 @@ import {
   type LeaveTypeValue,
 } from "@/lib/leave-types";
 import { countLeaveDaysInclusive, countLeaveDaysOverlapInYear } from "@/lib/leave-days";
+import {
+  LEAVE_JUSTIFICATION_ACCEPT,
+  readFileAsDataUrl,
+  validateLeaveJustificationFile,
+} from "@/app/dashboard/leave/justification-client";
 
 type LeaveItem = {
   type: string;
@@ -108,6 +113,9 @@ export default function OperationsLeaveNew() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [justificationFileName, setJustificationFileName] = useState("");
+  const [justificationFileDataUrl, setJustificationFileDataUrl] = useState("");
+  const [isReadingJustification, setIsReadingJustification] = useState(false);
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [baseAllowance, setBaseAllowance] = useState<number>(BASE_ALLOWANCE);
   const [balance, setBalance] = useState<number>(BASE_ALLOWANCE);
@@ -279,6 +287,35 @@ export default function OperationsLeaveNew() {
     [blackouts]
   );
 
+  const clearJustification = useCallback(() => {
+    setJustificationFileName("");
+    setJustificationFileDataUrl("");
+  }, []);
+
+  const handleJustificationChange = useCallback(async (file: File | null) => {
+    if (!file) {
+      clearJustification();
+      return;
+    }
+    const validationError = validateLeaveJustificationFile(file);
+    if (validationError) {
+      toast.error(validationError);
+      clearJustification();
+      return;
+    }
+    setIsReadingJustification(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setJustificationFileName(file.name);
+      setJustificationFileDataUrl(dataUrl);
+    } catch {
+      toast.error("Impossible de lire le justificatif.");
+      clearJustification();
+    } finally {
+      setIsReadingJustification(false);
+    }
+  }, [clearJustification]);
+
   const isPastDay = useCallback(
     (day: number | null) => {
       if (!day || todayUtc == null) return false;
@@ -318,6 +355,10 @@ export default function OperationsLeaveNew() {
   const submit = async () => {
     if (!startDate || !endDate) {
       toast.error("Veuillez renseigner la date de début et la date de fin.");
+      return;
+    }
+    if (isReadingJustification) {
+      toast.error("Le justificatif est encore en cours de lecture.");
       return;
     }
     const daysRequested = countLeaveDaysInclusive({
@@ -364,6 +405,8 @@ export default function OperationsLeaveNew() {
           startDate,
           endDate,
           reason,
+          justificationFileName: justificationFileDataUrl ? justificationFileName : null,
+          justificationFileDataUrl: justificationFileDataUrl || null,
         }),
       });
       if (res.ok) {
@@ -371,6 +414,7 @@ export default function OperationsLeaveNew() {
         setStartDate("");
         setEndDate("");
         setReason("");
+        clearJustification();
         setType(DEFAULT_LEAVE_TYPE);
         refreshBalance();
         window.dispatchEvent(new Event("leave-requests-updated"));
@@ -497,6 +541,31 @@ export default function OperationsLeaveNew() {
             className="w-full border border-vdm-gold-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
             placeholder="Ex : repos, raison familiale..."
           />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-vdm-gold-800 mb-1">Justificatif (optionnel)</label>
+          <input
+            type="file"
+            accept={LEAVE_JUSTIFICATION_ACCEPT}
+            onChange={(e) => {
+              void handleJustificationChange(e.target.files?.[0] ?? null);
+            }}
+            className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+            disabled={isReadingJustification}
+          />
+          <div className="mt-1 flex items-center justify-between gap-2 text-xs text-vdm-gold-700">
+            <span>{justificationFileName || "PDF ou image, maximum 8 Mo."}</span>
+            {justificationFileName ? (
+              <button
+                type="button"
+                onClick={clearJustification}
+                className="rounded-md border border-vdm-gold-300 px-2 py-1 text-vdm-gold-800 hover:bg-vdm-gold-50"
+              >
+                Retirer
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div className="md:col-span-2">

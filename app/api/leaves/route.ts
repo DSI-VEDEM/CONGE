@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyJwt, jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
+import { parseLeaveJustificationInput } from "@/lib/leave-justification";
 import { isAnticipatedPaidLeaveType, isLeaveType, isMenstrualLeaveType, isPaidLeaveType } from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
 import {
@@ -51,6 +52,8 @@ export async function GET(req: Request) {
       startDate: true,
       endDate: true,
       reason: true,
+      justificationFileName: true,
+      justificationMimeType: true,
       status: true,
       currentAssigneeId: true,
       currentAssignee: { select: { id: true, firstName: true, lastName: true, role: true } },
@@ -75,9 +78,17 @@ export async function POST(req: Request) {
   const type = norm(body?.type);
   const reason = norm(body?.reason) || null;
   const remainingTasks = norm(body?.remainingTasks) || null;
+  const justification = parseLeaveJustificationInput({
+    fileName: body?.justificationFileName,
+    fileDataUrl: body?.justificationFileDataUrl,
+  });
   const startDate = parseDate(body?.startDate);
   const endDate = parseDate(body?.endDate);
   const leaveType = isLeaveType(type) ? type : null;
+
+  if (!justification.ok) {
+    return jsonError(justification.error, 400);
+  }
 
   if (!leaveType || !startDate || !endDate) {
     return jsonError("Champs requis: type, startDate, endDate", 400);
@@ -178,6 +189,9 @@ export async function POST(req: Request) {
       startDate,
       endDate,
       reason,
+      justificationFileName: justification.value?.fileName ?? null,
+      justificationMimeType: justification.value?.mimeType ?? null,
+      justificationFileDataUrl: justification.value?.fileDataUrl ?? null,
       status,
       currentAssigneeId: accountant?.id ?? null,
     },
@@ -187,6 +201,8 @@ export async function POST(req: Request) {
       startDate: true,
       endDate: true,
       status: true,
+      justificationFileName: true,
+      justificationMimeType: true,
       currentAssigneeId: true,
       createdAt: true,
     },

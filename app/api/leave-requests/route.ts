@@ -17,6 +17,7 @@ import {
   notifyCeoOfDirectorLeaveRequest,
 } from "@/lib/leave-requests";
 import { norm } from "@/lib/validators";
+import { parseLeaveJustificationInput } from "@/lib/leave-justification";
 import {
   calculateEntitledLeaveDaysForCycle,
   consumedLeaveDaysForRange,
@@ -74,9 +75,17 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const type = norm(body?.type);
   const reason = norm(body?.reason) || null;
+  const justification = parseLeaveJustificationInput({
+    fileName: body?.justificationFileName,
+    fileDataUrl: body?.justificationFileDataUrl,
+  });
   const startDate = parseDate(body?.startDate);
   const endDate = parseDate(body?.endDate);
   const leaveType = isLeaveType(type) ? type : null;
+
+  if (!justification.ok) {
+    return jsonError(justification.error, 400);
+  }
 
   // On exige type/start/end.
   if (!leaveType || !startDate || !endDate) {
@@ -246,6 +255,9 @@ export async function POST(req: Request) {
       startDate,
       endDate,
       reason,
+      justificationFileName: justification.value?.fileName ?? null,
+      justificationMimeType: justification.value?.mimeType ?? null,
+      justificationFileDataUrl: justification.value?.fileDataUrl ?? null,
       status: "PENDING",
       currentAssigneeId: assignee.id,
       deptHeadAssignedAt: assignee.role === "DEPT_HEAD" || assignee.role === "SERVICE_HEAD" ? new Date() : null,
@@ -257,6 +269,8 @@ export async function POST(req: Request) {
       startDate: true,
       endDate: true,
       status: true,
+      justificationFileName: true,
+      justificationMimeType: true,
       currentAssigneeId: true,
       createdAt: true,
     },

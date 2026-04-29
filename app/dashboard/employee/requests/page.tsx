@@ -1,7 +1,7 @@
 "use client";
 import { formatDateDMY } from "@/lib/date-format";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import { getToken } from "@/lib/auth-client";
@@ -15,6 +15,8 @@ type LeaveItem = {
   endDate: string;
   status: "SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   currentAssignee?: string;
+  justificationFileName?: string | null;
+  justificationMimeType?: string | null;
 };
 
 type HistoryItem = {
@@ -26,6 +28,8 @@ type HistoryItem = {
   status: "APPROVED" | "REJECTED" | "CANCELLED";
   decidedAt: string;
   days: number;
+  justificationFileName?: string | null;
+  justificationMimeType?: string | null;
 };
 
 function statusLabel(status: LeaveItem["status"] | HistoryItem["status"]) {
@@ -75,6 +79,8 @@ export default function EmployeeRequests() {
               currentAssignee: x.currentAssignee
                 ? `${x.currentAssignee.firstName} ${x.currentAssignee.lastName}`
                 : "-",
+              justificationFileName: x.justificationFileName ?? null,
+              justificationMimeType: x.justificationMimeType ?? null,
             }))
           );
         }
@@ -112,6 +118,8 @@ export default function EmployeeRequests() {
                   startRaw && endRaw
                     ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
                     : 0,
+                justificationFileName: x.justificationFileName ?? null,
+                justificationMimeType: x.justificationMimeType ?? null,
               };
             });
           setHistoryItems(mapped);
@@ -167,6 +175,29 @@ export default function EmployeeRequests() {
     }
   };
 
+  const openJustification = useCallback(async (id: string, fileName?: string | null) => {
+    const token = getToken();
+    if (!token) return;
+    const t = toast.loading("Ouverture du justificatif...");
+    try {
+      const res = await fetch(`/api/leave-requests/${id}/justification`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Impossible d'ouvrir le justificatif"), { id: t });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      toast.success(fileName ? `Justificatif : ${fileName}` : "Justificatif ouvert", { id: t });
+    } catch {
+      toast.error("Erreur réseau lors de l'ouverture du justificatif", { id: t });
+    }
+  }, []);
+
   const columns = useMemo<ColumnDef<LeaveItem>[]>(
     () => [
       { header: "Type", accessorKey: "type" },
@@ -195,6 +226,22 @@ export default function EmployeeRequests() {
         cell: ({ row }) => row.original.currentAssignee ?? "-",
       },
       {
+        header: "Justificatif",
+        accessorKey: "justificationFileName",
+        cell: ({ row }) =>
+          row.original.justificationFileName ? (
+            <button
+              type="button"
+              onClick={() => openJustification(row.original.id, row.original.justificationFileName)}
+              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+            >
+              Voir
+            </button>
+          ) : (
+            "—"
+          ),
+      },
+      {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {
@@ -210,7 +257,7 @@ export default function EmployeeRequests() {
         },
       },
     ],
-    []
+    [openJustification]
   );
 
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
@@ -228,6 +275,22 @@ export default function EmployeeRequests() {
       },
       { header: "Jours", accessorKey: "days" },
       {
+        header: "Justificatif",
+        accessorKey: "justificationFileName",
+        cell: ({ row }) =>
+          row.original.justificationFileName ? (
+            <button
+              type="button"
+              onClick={() => openJustification(row.original.id, row.original.justificationFileName)}
+              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+            >
+              Voir
+            </button>
+          ) : (
+            "—"
+          ),
+      },
+      {
         header: "Statut",
         accessorKey: "status",
         cell: ({ row }) => (
@@ -238,7 +301,7 @@ export default function EmployeeRequests() {
       },
       { header: "Décision", accessorKey: "decidedAt" },
     ],
-    []
+    [openJustification]
   );
 
   return (

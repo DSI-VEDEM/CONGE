@@ -40,6 +40,8 @@ export async function GET(req: Request) {
         startDate: true,
         endDate: true,
         reason: true,
+        justificationFileName: true,
+        justificationMimeType: true,
         status: true,
         currentAssigneeId: true,
         currentAssignee: { select: { firstName: true, lastName: true } },

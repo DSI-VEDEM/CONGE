@@ -17,6 +17,8 @@ type Req = {
   period: string;
   origin: "DEPT_HEAD" | "SERVICE_HEAD" | "ACCOUNTANT";
   note?: string;
+  justificationFileName?: string | null;
+  justificationMimeType?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
 };
 
@@ -73,6 +75,8 @@ export default function CeoInbox() {
                     ? "SERVICE_HEAD"
                     : "ACCOUNTANT",
               note: x.reason ?? "",
+              justificationFileName: x.justificationFileName ?? null,
+              justificationMimeType: x.justificationMimeType ?? null,
               status: x.status,
             }));
           const entry = { rows: mapped, hasNext: mapped.length === PENDING_PAGE_SIZE };
@@ -153,6 +157,29 @@ export default function CeoInbox() {
     }
   }, []);
 
+  const openJustification = useCallback(async (id: string, fileName?: string | null) => {
+    const token = getToken();
+    if (!token) return;
+    const t = toast.loading("Ouverture du justificatif...");
+    try {
+      const res = await fetch(`/api/leave-requests/${id}/justification`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Impossible d'ouvrir le justificatif"), { id: t });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      toast.success(fileName ? `Justificatif : ${fileName}` : "Justificatif ouvert", { id: t });
+    } catch {
+      toast.error("Erreur réseau lors de l'ouverture du justificatif", { id: t });
+    }
+  }, []);
+
   const columns = useMemo<ColumnDef<Req>[]>(
     () => [
       {
@@ -173,6 +200,22 @@ export default function CeoInbox() {
         ),
       },
       { header: "Période", accessorKey: "period" },
+      {
+        header: "Justificatif",
+        accessorKey: "justificationFileName",
+        cell: ({ row }) =>
+          row.original.justificationFileName ? (
+            <button
+              type="button"
+              onClick={() => openJustification(row.original.id, row.original.justificationFileName)}
+              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+            >
+              Voir
+            </button>
+          ) : (
+            "—"
+          ),
+      },
       {
         header: "Origine",
         accessorKey: "origin",
@@ -212,7 +255,7 @@ export default function CeoInbox() {
         ),
       },
     ],
-    [approve, reject]
+    [approve, reject, openJustification]
   );
 
   return (

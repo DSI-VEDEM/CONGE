@@ -21,6 +21,8 @@ type Req = {
   period: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   note?: string;
+  justificationFileName?: string | null;
+  justificationMimeType?: string | null;
   origin: "EMPLOYEE" | "DEPT_HEAD" | "SERVICE_HEAD" | "OTHER";
 };
 
@@ -110,6 +112,8 @@ export default function AccountantInbox() {
               period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
               status: x.status,
               note: x.reason ?? "",
+              justificationFileName: x.justificationFileName ?? null,
+              justificationMimeType: x.justificationMimeType ?? null,
               origin:
                 x.employee?.role === "DEPT_HEAD"
                   ? "DEPT_HEAD"
@@ -326,6 +330,29 @@ export default function AccountantInbox() {
   }
 }, []);
 
+  const openJustification = useCallback(async (id: string, fileName?: string | null) => {
+    const token = getToken();
+    if (!token) return;
+    const t = toast.loading("Ouverture du justificatif...");
+    try {
+      const res = await fetch(`/api/leave-requests/${id}/justification`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(String(data?.error ?? "Impossible d'ouvrir le justificatif"), { id: t });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      toast.success(fileName ? `Justificatif : ${fileName}` : "Justificatif ouvert", { id: t });
+    } catch {
+      toast.error("Erreur réseau lors de l'ouverture du justificatif", { id: t });
+    }
+  }, []);
+
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
       {
@@ -381,6 +408,22 @@ export default function AccountantInbox() {
       },
       { header: "Département", accessorKey: "department", enableSorting: true },
       { header: "Période", accessorKey: "period" },
+      {
+        header: "Justificatif",
+        accessorKey: "justificationFileName",
+        cell: ({ row }) =>
+          row.original.justificationFileName ? (
+            <button
+              type="button"
+              onClick={() => openJustification(row.original.id, row.original.justificationFileName)}
+              className="px-2 py-1 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+            >
+              Voir
+            </button>
+          ) : (
+            "—"
+          ),
+      },
       {
         header: "Statut",
         accessorKey: "status",
@@ -443,7 +486,7 @@ export default function AccountantInbox() {
         },
       },
     ],
-    [approve, reject, forwardToDeptHead, forwardToCeo]
+    [approve, reject, forwardToDeptHead, forwardToCeo, openJustification]
   );
 
   return (
