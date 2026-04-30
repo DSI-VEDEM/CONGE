@@ -81,7 +81,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     jobTitle: "Président Directeur Général",
     role: EmployeeRoleEnum.CEO,
     departmentType: DepartmentTypeEnum.OTHERS,
-    matricule: "VDM-001",
+    matricule: "001A",
   },
   {
     email: "comptabilite@veilleurdesmedias.com",
@@ -90,7 +90,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     jobTitle: "Comptable",
     role: EmployeeRoleEnum.ACCOUNTANT,
     departmentType: DepartmentTypeEnum.DAF,
-    matricule: "VDM-002",
+    matricule: "013",
   },
   {
     email: "franck@veilleurdesmedias.com",
@@ -99,7 +99,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     jobTitle: "Directeur du Service Informatique",
     role: EmployeeRoleEnum.DEPT_HEAD,
     departmentType: DepartmentTypeEnum.DSI,
-    matricule: "VDM-003",
+    matricule: "001",
   },
   {
     email: "dramane@veilleurdesmedias.com",
@@ -108,7 +108,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     jobTitle: "Directeur des Opérations",
     role: EmployeeRoleEnum.DEPT_HEAD,
     departmentType: DepartmentTypeEnum.OPERATIONS,
-    matricule: "VDM-004",
+    matricule: "007",
   },
   {
     email: "stephen@veilleurdesmedias.com",
@@ -118,7 +118,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     role: EmployeeRoleEnum.SERVICE_HEAD,
     departmentType: DepartmentTypeEnum.OPERATIONS,
     serviceType: ServiceTypeEnum.INFORMATION,
-    matricule: "VDM-005",
+    matricule: "014",
   },
   {
     email: "edmon@veilleurdesmedias.com",
@@ -128,7 +128,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     role: EmployeeRoleEnum.SERVICE_HEAD,
     departmentType: DepartmentTypeEnum.OPERATIONS,
     serviceType: ServiceTypeEnum.REPUTATION,
-    matricule: "VDM-006",
+    matricule: "019",
   },
   {
     email: "appolon@veilleurdesmedias.com",
@@ -138,7 +138,7 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     role: EmployeeRoleEnum.SERVICE_HEAD,
     departmentType: DepartmentTypeEnum.OPERATIONS,
     serviceType: ServiceTypeEnum.QUALITE,
-    matricule: "VDM-007",
+    matricule: "017",
   },
 ];
 
