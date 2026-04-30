@@ -43,7 +43,7 @@ function buildMatriculeLookup(rows: { id: string; matricule: string }[]) {
   return byKey;
 }
 
-function extractMatriculeCandidate(value: string) {
+function extractMatriculeCandidate(value: string, lookup: Map<string, { employeeId: string; matricule: string }>) {
   const up = value.toUpperCase();
   const candidates = new Set<string>();
 
@@ -60,6 +60,18 @@ function extractMatriculeCandidate(value: string) {
     const key = normalizeMatriculeKey(String(match[0] ?? ""));
     if (key) candidates.add(key);
   }
+
+  const re3 = /\b\d{1,6}\b/g; // ex: 001, 013
+  for (const match of up.matchAll(re3)) {
+    const key = normalizeMatriculeKey(String(match[0] ?? ""));
+    if (key) candidates.add(key);
+  }
+
+  const matching = Array.from(candidates).find((candidate) => {
+    const normalized = normalizeMatriculeKey(candidate);
+    return lookup.has(normalized) || lookup.has(normalized.replace(/-/g, ""));
+  });
+  if (matching) return matching;
 
   let best: string | null = null;
   let bestLen = 0;
@@ -166,7 +178,7 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const matCandidate = extractMatriculeCandidate(fileName);
+    const matCandidate = extractMatriculeCandidate(fileName, lookup);
     const ym = parseYearMonthFromFileName(fileName);
 
     if (!matCandidate) {

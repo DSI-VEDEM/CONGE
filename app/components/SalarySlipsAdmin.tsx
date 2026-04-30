@@ -487,7 +487,7 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
           <p className="text-sm text-vdm-gold-700">
             Sélectionne plusieurs PDFs d&apos;un coup. Le système lit uniquement le <span className="font-medium">nom du fichier</span>{" "}
             pour trouver <span className="font-medium">matricule</span> et <span className="font-medium">date</span>, puis importe.
-            Exemple: <span className="font-medium">VDM-002-2026-03.pdf</span> ou <span className="font-medium">03-2026_VDM-002.pdf</span>.
+            Exemple: <span className="font-medium">001A-2026-03.pdf</span>, <span className="font-medium">03-2026_013.pdf</span> ou <span className="font-medium">bulletin_001_2026-03.pdf</span>.
           </p>
         </div>
 
