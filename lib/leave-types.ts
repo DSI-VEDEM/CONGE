@@ -54,6 +54,14 @@ export function isLeaveType(value: unknown): value is LeaveTypeValue {
   return typeof value === "string" && LEAVE_TYPE_SET.has(value as LeaveTypeValue);
 }
 
+export function leaveTypeLabel(value?: string | null) {
+  if (!value) return "—";
+  if (value === "ANNUAL") return "Congé payé";
+  if (value === "SICK") return "Congé maladie";
+  if (value === "CONGE_M") return "Congé menstruel";
+  return LEAVE_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
 export const ANTICIPATED_PAID_LEAVE_VALUE: LeaveType = "ANTICIPATED_PAID";
 export const PAID_LEAVE_VALUES: LeaveType[] = ["ANNUAL_PAID", "ANTICIPATED_PAID", "ANNUAL"];
 const PAID_LEAVE_SET = new Set<LeaveTypeValue>(PAID_LEAVE_VALUES);

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { leaveTypeLabel } from "@/lib/leave-types";
 
 type LeaveItem = {
   id: string;
@@ -306,7 +307,12 @@ export default function LeaveHistoryTables({
 
   const columns = useMemo<ColumnDef<LeaveItem>[]>(
     () => [
-      { header: "Type", accessorKey: "type" },
+      {
+        id: "type",
+        header: "Type",
+        accessorFn: (row) => leaveTypeLabel(row.type),
+        cell: ({ row }) => leaveTypeLabel(row.original.type),
+      },
       {
         id: "period",
         header: "Période",
@@ -369,7 +375,12 @@ export default function LeaveHistoryTables({
 
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
-      { header: "Type", accessorKey: "type" },
+      {
+        id: "type",
+        header: "Type",
+        accessorFn: (row) => leaveTypeLabel(row.type),
+        cell: ({ row }) => leaveTypeLabel(row.original.type),
+      },
       {
         id: "period",
         header: "Période",

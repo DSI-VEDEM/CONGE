@@ -7,6 +7,7 @@ import EmployeeAvatar from "@/app/components/EmployeeAvatar";
 import { getToken } from "@/lib/auth-client";
 import { formatDateDMY } from "@/lib/date-format";
 import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { leaveTypeLabel } from "@/lib/leave-types";
 
 type HistoryItem = {
   id: string;
@@ -143,7 +144,12 @@ export default function OperationsDeptEmployeesHistory() {
         ),
       },
       { header: "Solde restant", accessorKey: "leaveBalance" },
-      { header: "Type", accessorKey: "type" },
+      {
+        id: "type",
+        header: "Type",
+        accessorFn: (row) => leaveTypeLabel(row.type),
+        cell: ({ row }) => leaveTypeLabel(row.original.type),
+      },
       {
         id: "period",
         header: "Période",

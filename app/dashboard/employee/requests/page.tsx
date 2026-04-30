@@ -7,6 +7,7 @@ import DataTable from "@/app/components/DataTable";
 import { getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
 import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { leaveTypeLabel } from "@/lib/leave-types";
 
 type LeaveItem = {
   id: string;
@@ -200,7 +201,12 @@ export default function EmployeeRequests() {
 
   const columns = useMemo<ColumnDef<LeaveItem>[]>(
     () => [
-      { header: "Type", accessorKey: "type" },
+      {
+        id: "type",
+        header: "Type",
+        accessorFn: (row) => leaveTypeLabel(row.type),
+        cell: ({ row }) => leaveTypeLabel(row.original.type),
+      },
       {
         id: "period",
         header: "Période",
@@ -262,7 +268,12 @@ export default function EmployeeRequests() {
 
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
-      { header: "Type", accessorKey: "type" },
+      {
+        id: "type",
+        header: "Type",
+        accessorFn: (row) => leaveTypeLabel(row.type),
+        cell: ({ row }) => leaveTypeLabel(row.original.type),
+      },
       {
         id: "period",
         header: "Période",
