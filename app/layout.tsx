@@ -22,8 +22,8 @@ export default function RootLayout({
       <body className="relative min-h-screen bg-white">
         <NotificationBellProvider>
           {children}
-          <div className="pointer-events-none absolute inset-0 flex justify-end p-4">
-            <div className="pointer-events-auto">
+          <div className="pointer-events-none fixed inset-x-0 top-[72px] z-40 flex justify-end px-4 py-2 lg:absolute lg:inset-0 lg:top-0 lg:p-4">
+            <div className="pointer-events-auto p-4">
               <GlobalNotificationBell />
             </div>
           </div>

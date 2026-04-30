@@ -29,7 +29,17 @@ JWT_SECRET=
 DEPT_HEAD_VALIDATION_DAYS=5
 CEO_DIRECTOR_VALIDATION_DAYS=2
 LEAVE_AUTO_APPROVE_SECRET=
+APP_URL=https://votre-domaine.example
+EMAIL_NOTIFICATIONS_ENABLED=true
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=notifications@example.com
+SMTP_PASS=
+SMTP_FROM="CONGES <notifications@example.com>"
 ```
+
+Les emails de notification sont envoyés uniquement si `SMTP_HOST` et `SMTP_FROM` sont configurés. Sans configuration SMTP, les notifications in-app continuent de fonctionner normalement.
 
 ## Prisma
 Appliquer le schema et regenerer le client :

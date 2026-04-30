@@ -28,7 +28,7 @@ type EmployeeBalanceSource = {
   createdAt: Date;
 };
 
-type PrismaLike = PrismaClient | Prisma.TransactionClient;
+type PrismaLike = Pick<PrismaClient, "employee" | "holiday" | "leaveRequest"> | Prisma.TransactionClient;
 
 function roundToOneDecimal(value: number) {
   return Math.round(value * 10) / 10;
