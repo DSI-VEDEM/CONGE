@@ -6,7 +6,7 @@ Application de gestion des conges (Next.js + Prisma + MongoDB) avec roles (CEO, 
 - Authentification par email ou matricule
 - Workflow des demandes de conge (soumission, validation, refus, transmission)
 - Dashboards par role (Employe, Responsable, DSI, Comptable, CEO)
-- Solde annuel de conges (base par defaut 25 jours, ajustable par le CEO)
+- Solde annuel de conges (base par defaut 26 jours, ajustable par le CEO)
 - Historique des demandes et decisions
 
 ## Stack
@@ -85,7 +85,7 @@ docker run --rm -p 3000:3000 --env-file .env conge:latest
 - Pour vérifier en une seule commande qu’ils sont présents, exécute `./scripts/check-seed.sh` après avoir démarré les services Docker (ou `./scripts/check-seed.sh -c <compose-file>` si tu utilises un autre fichier Compose).
 
 ## Notes importantes
-- Le solde annuel par defaut est 25 jours.
+- Le solde annuel par defaut est 26 jours.
 - Le CEO peut augmenter ou reinitialiser le solde d'un employe.
 - Le solde visible par l'employe = base annuelle - jours consommes (soumis + en attente + approuves).
 - Les demandes sont assignees automatiquement selon le role de l'employe.

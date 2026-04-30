@@ -196,7 +196,7 @@ model Employee {
   /// Statut : pending jusqu’à validation par administrateur
   status                 EmployeeStatus @default(PENDING)
   /// Solde de congés principal
-  leaveBalance           Float          @default(25)
+  leaveBalance           Float          @default(26)
   /// Ajustements manuels apportés par le CEO/comptable
   leaveBalanceAdjustment Float          @default(0)
   /// Jours de congés déjà consommés avant déploiement (appliqués une seule année)

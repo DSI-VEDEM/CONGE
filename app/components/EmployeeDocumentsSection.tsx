@@ -6,6 +6,10 @@ import { getToken, type EmployeeSession } from "@/lib/auth-client";
 import toast from "react-hot-toast";
 import { documentRequiresValidityDate } from "@/lib/document-validity";
 import { DEFAULT_DOCUMENT_TYPES, DocumentType, DocumentTypeItem } from "@/lib/document-types";
+import {
+  calculateProfileDocumentsCompletion,
+  type ProfileDocumentCompletionSummary,
+} from "@/lib/profile-completion";
 
 type EmployeeOption = {
   id: string;
@@ -94,6 +98,7 @@ type Props = {
   scope?: "default" | "self" | "employees";
   documentTypes?: readonly DocumentTypeItem[];
   filtersInlineOnLarge?: boolean;
+  onCompletionChange?: (completion: ProfileDocumentCompletionSummary) => void;
 };
 
 export default function EmployeeDocumentsSection({
@@ -101,6 +106,7 @@ export default function EmployeeDocumentsSection({
   scope = "default",
   documentTypes: documentTypesProp,
   filtersInlineOnLarge = false,
+  onCompletionChange,
 }: Props) {
   const isSelfScope = scope === "self";
   const isEmployeesScope = scope === "employees";
@@ -116,6 +122,8 @@ export default function EmployeeDocumentsSection({
 
   const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
   const [uploadOwnerDocuments, setUploadOwnerDocuments] = useState<EmployeeDocument[]>([]);
+  const [hasLoadedUploadOwnerDocuments, setHasLoadedUploadOwnerDocuments] = useState(false);
+  const [isUploadOwnerDocumentsLoading, setIsUploadOwnerDocumentsLoading] = useState(false);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -256,14 +264,22 @@ export default function EmployeeDocumentsSection({
   const refreshUploadOwnerDocuments = useCallback(async () => {
     const token = getToken();
     if (!token) return;
-    // Récupère les documents du propriétaire via GET /api/employee-documents avec employeeId.
-    const res = await fetch(`/api/employee-documents?employeeId=${employee.id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) return;
-    const list = Array.isArray(data?.documents) ? (data.documents as EmployeeDocument[]) : [];
-    setUploadOwnerDocuments(list);
+    setIsUploadOwnerDocumentsLoading(true);
+    try {
+      // Récupère les documents du propriétaire via GET /api/employee-documents avec employeeId.
+      const res = await fetch(`/api/employee-documents?employeeId=${employee.id}&take=90`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      const list = Array.isArray(data?.documents) ? (data.documents as EmployeeDocument[]) : [];
+      setUploadOwnerDocuments(list);
+      setHasLoadedUploadOwnerDocuments(true);
+    } catch {
+      // La section principale gère déjà les erreurs visibles de chargement.
+    } finally {
+      setIsUploadOwnerDocumentsLoading(false);
+    }
   }, [employee.id]);
 
   useEffect(() => {
@@ -329,6 +345,22 @@ export default function EmployeeDocumentsSection({
     }
     return set;
   }, [uploadOwnerDocuments]);
+  const ownerDocumentCompletion = useMemo(
+    () => calculateProfileDocumentsCompletion(employee, uploadOwnerDocuments, documentTypes),
+    [documentTypes, employee, uploadOwnerDocuments]
+  );
+  useEffect(() => {
+    if (!onCompletionChange) return;
+    onCompletionChange({
+      ...ownerDocumentCompletion,
+      isLoaded: hasLoadedUploadOwnerDocuments && !isUploadOwnerDocumentsLoading,
+    });
+  }, [
+    hasLoadedUploadOwnerDocuments,
+    isUploadOwnerDocumentsLoading,
+    onCompletionChange,
+    ownerDocumentCompletion,
+  ]);
 
   const hasChildren = typeof employee.childrenCount === "number" && employee.childrenCount > 0;
   const isMarried = employee.maritalStatus === "MARRIED";

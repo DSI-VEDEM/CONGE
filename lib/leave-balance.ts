@@ -14,7 +14,7 @@ import {
   utcYearRange,
 } from "@/lib/holidays";
 
-const BASE_ANNUAL_DAYS = 25;
+const BASE_ANNUAL_DAYS = 26;
 const MS_PER_DAY = 86_400_000;
 
 type EmployeeBalanceSource = {

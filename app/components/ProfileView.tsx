@@ -12,6 +12,11 @@ import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection"
 import type { DocumentTypeItem } from "@/lib/document-types";
 import { formatDateDMY } from "@/lib/date-format";
 import {
+  calculatePersonalProfileCompletion,
+  completionPercent,
+  type ProfileDocumentCompletionSummary,
+} from "@/lib/profile-completion";
+import {
   MARITAL_STATUS_LABELS,
   MARITAL_STATUSES,
   isMaritalStatus,
@@ -112,6 +117,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [departmentNames, setDepartmentNames] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [documentCompletion, setDocumentCompletion] = useState<ProfileDocumentCompletionSummary | null>(null);
 
   const profileDocumentTypes = useMemo(() => {
     if (!documentTypes) return documentTypes;
@@ -128,6 +134,23 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     const userInputs = [draft?.email, draft?.firstName, draft?.lastName].filter(Boolean);
     return zxcvbn(password, userInputs as string[]);
   }, [password, draft?.email, draft?.firstName, draft?.lastName]);
+
+  const personalCompletion = useMemo(
+    () => (draft ? calculatePersonalProfileCompletion(draft) : { completed: 0, total: 0, missingLabels: [] }),
+    [draft]
+  );
+  const profileCompletion = useMemo(() => {
+    const documents = draft?.role === "CEO" ? { completed: 0, total: 0, missingLabels: [], isLoaded: true } : documentCompletion;
+    const completed = personalCompletion.completed + (documents?.completed ?? 0);
+    const total = personalCompletion.total + (documents?.total ?? 0);
+    return {
+      completed,
+      total,
+      missingLabels: [...personalCompletion.missingLabels, ...(documents?.missingLabels ?? [])],
+      isLoaded: draft?.role === "CEO" || Boolean(documents?.isLoaded),
+    };
+  }, [documentCompletion, draft?.role, personalCompletion]);
+  const profileCompletionPercentage = completionPercent(profileCompletion);
 
   useEffect(() => {
     const token = getToken();
@@ -368,9 +391,58 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   }
 
   const phone = parsePhone(draft.phone);
+  const missingPreview = profileCompletion.missingLabels.slice(0, 6);
+  const hiddenMissingCount = Math.max(0, profileCompletion.missingLabels.length - missingPreview.length);
 
   return (
     <div>
+      <div className="bg-white border border-vdm-gold-200 rounded-xl p-6 mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="text-lg font-semibold text-vdm-gold-800">Complétude du profil</div>
+            <div className="text-sm text-vdm-gold-700">
+              {profileCompletion.isLoaded
+                ? `${profileCompletion.completed}/${profileCompletion.total} éléments complétés`
+                : "Vérification des documents en cours..."}
+            </div>
+          </div>
+          <div className="text-2xl font-semibold text-vdm-gold-900">{profileCompletionPercentage}%</div>
+        </div>
+        <div
+          className="mt-4 h-3 w-full overflow-hidden rounded-full bg-vdm-gold-100"
+          role="progressbar"
+          aria-label="Complétude du profil"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={profileCompletionPercentage}
+        >
+          <div
+            className="h-full rounded-full bg-vdm-gold-700 transition-all"
+            style={{ width: `${profileCompletionPercentage}%` }}
+          />
+        </div>
+        {profileCompletion.isLoaded ? (
+          profileCompletion.missingLabels.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {missingPreview.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-md border border-vdm-gold-200 bg-vdm-gold-50 px-2 py-1 text-xs text-vdm-gold-800"
+                >
+                  {label}
+                </span>
+              ))}
+              {hiddenMissingCount > 0 ? (
+                <span className="rounded-md border border-vdm-gold-200 bg-vdm-gold-50 px-2 py-1 text-xs text-vdm-gold-800">
+                  +{hiddenMissingCount} autre{hiddenMissingCount > 1 ? "s" : ""}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-3 text-sm font-medium text-green-700">Profil complet.</div>
+          )
+        ) : null}
+      </div>
       <div className="bg-white border border-vdm-gold-200 rounded-xl p-6">
         <div className="flex items-center gap-4 mb-5 pb-4 border-b border-vdm-gold-100">
           {draft.profilePhotoUrl ? (
@@ -542,6 +614,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
             employee={draft}
             scope={employee.role === "ACCOUNTANT" ? "self" : "default"}
             documentTypes={profileDocumentTypes}
+            onCompletionChange={setDocumentCompletion}
           />
         ) : null}
         {isEditing ? (
