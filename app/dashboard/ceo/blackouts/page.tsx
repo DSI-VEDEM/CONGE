@@ -34,10 +34,34 @@ type BlackoutsResponse = { blackouts?: Blackout[] };
 type DepartmentsResponse = { departments?: Department[] };
 type EmployeesResponse = { employees?: EmployeeOption[] };
 
+const MONTH_NAMES = [
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
+];
+
 function toDateInputValue(year: number, month: number, day: number) {
   const mm = String(month + 1).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
   return `${year}-${mm}-${dd}`;
+}
+
+function dateInputValueToMonth(value: string) {
+  const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 0 || month > 11) return null;
+  return new Date(year, month, 1);
 }
 
 function buildMonth(date: Date) {
@@ -72,7 +96,6 @@ export default function CeoBlackouts() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const { year, month, cells } = useMemo(() => buildMonth(calendarMonth), [calendarMonth]);
-  const monthLabel = useMemo(() => formatDateDMY(new Date(year, month, 1)), [year, month]);
 
   const deptOptions = useMemo(
     () => [{ id: "ALL", type: "ALL", name: "Tous les départements" }, ...departments],
@@ -128,6 +151,10 @@ export default function CeoBlackouts() {
       toast.error("Veuillez renseigner la date de début et la date de fin.");
       return;
     }
+    if (startDate > endDate) {
+      toast.error("La date de début doit être avant la date de fin.");
+      return;
+    }
     if (targetScope === "DEPARTMENT" && departmentId === "ALL") {
       toast.error("Veuillez sélectionner un département.");
       return;
@@ -175,6 +202,24 @@ export default function CeoBlackouts() {
 
   const goPrevMonth = () => setCalendarMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
   const goNextMonth = () => setCalendarMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  const goCurrentMonth = () => setCalendarMonth(new Date());
+
+  const showDateOnCalendar = (value: string) => {
+    const nextMonth = dateInputValueToMonth(value);
+    if (nextMonth) setCalendarMonth(nextMonth);
+  };
+
+  const updateCalendarMonth = (value: string) => {
+    const nextMonth = Number(value);
+    if (!Number.isInteger(nextMonth) || nextMonth < 0 || nextMonth > 11) return;
+    setCalendarMonth(new Date(year, nextMonth, 1));
+  };
+
+  const updateCalendarYear = (value: string) => {
+    const nextYear = Number(value);
+    if (!Number.isInteger(nextYear) || nextYear < 1 || nextYear > 9999) return;
+    setCalendarMonth(new Date(nextYear, month, 1));
+  };
 
   const selectDay = (day: number | null) => {
     if (!day) return;
@@ -320,7 +365,10 @@ export default function CeoBlackouts() {
           <input
             type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              showDateOnCalendar(e.target.value);
+            }}
             className="w-full border border-vdm-gold-200 rounded-md p-2"
           />
         </div>
@@ -329,14 +377,17 @@ export default function CeoBlackouts() {
           <input
             type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              showDateOnCalendar(e.target.value);
+            }}
             className="w-full border border-vdm-gold-200 rounded-md p-2"
           />
         </div>
         <div className="md:col-span-2 border border-vdm-gold-200 rounded-xl p-3">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col gap-3 mb-3 md:flex-row md:items-center md:justify-between">
             <div className="text-sm font-semibold text-vdm-gold-800">Calendrier de sélection</div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={goPrevMonth}
@@ -344,13 +395,40 @@ export default function CeoBlackouts() {
               >
                 Prec
               </button>
-              <div className="text-xs text-vdm-gold-700 capitalize min-w-[120px] text-center">{monthLabel}</div>
+              <select
+                value={month}
+                onChange={(e) => updateCalendarMonth(e.target.value)}
+                className="min-w-[120px] rounded-md border border-vdm-gold-200 bg-white px-2 py-1 text-xs text-vdm-gold-800"
+                aria-label="Mois du calendrier"
+              >
+                {MONTH_NAMES.map((name, index) => (
+                  <option key={name} value={index}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min="1"
+                max="9999"
+                value={year}
+                onChange={(e) => updateCalendarYear(e.target.value)}
+                className="w-24 rounded-md border border-vdm-gold-200 px-2 py-1 text-xs text-vdm-gold-800"
+                aria-label="Année du calendrier"
+              />
               <button
                 type="button"
                 onClick={goNextMonth}
                 className="px-2 py-1 rounded-md border border-vdm-gold-200 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
               >
                 Suiv
+              </button>
+              <button
+                type="button"
+                onClick={goCurrentMonth}
+                className="px-2 py-1 rounded-md border border-vdm-gold-200 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+              >
+                Aujourd'hui
               </button>
             </div>
           </div>
