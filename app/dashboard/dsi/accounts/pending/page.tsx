@@ -70,13 +70,11 @@ export default function DsiAccountsPending() {
             }))
           );
           setDepartments(
-            (depData?.departments ?? [])
-              .filter((d: any) => d.type !== "OTHERS")
-              .map((d: any) => ({
-                id: d.id,
-                label: d.name ?? d.type ?? d.id,
-                type: d.type,
-              }))
+            (depData?.departments ?? []).map((d: any) => ({
+              id: d.id,
+              label: d.type === "OTHERS" ? "Autres" : d.name ?? d.type ?? d.id,
+              type: d.type,
+            }))
           );
           setServices(
             (svcData?.services ?? []).map((s: any) => ({
@@ -95,7 +93,11 @@ export default function DsiAccountsPending() {
   }, []);
 
   const setDeptFor = useCallback((id: string, value: string) => {
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, department: value } : row)));
+    setRows((prev) =>
+      prev.map((row) =>
+        row.id === id ? { ...row, department: value, service: "" } : row
+      )
+    );
   }, []);
 
   const setServiceFor = useCallback((id: string, value: string) => {
