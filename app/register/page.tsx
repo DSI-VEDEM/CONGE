@@ -255,7 +255,7 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
                   <input
                     id="matricule"
                     type="text"
-                    placeholder="Ex : EMP001"
+                    placeholder="Ex : 001"
                     value={matricule}
                     onChange={(e) => setMatricule(e.target.value)}
                     onKeyDown={handleKeyPress}

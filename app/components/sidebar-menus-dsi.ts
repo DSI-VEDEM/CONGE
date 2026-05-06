@@ -24,6 +24,7 @@ export const dsiMenu: SidebarSection[] = [
     title: "Administration",
     links: [
       { label: "Validation des comptes", icon: "shield", to: "/dashboard/dsi/accounts/pending" },
+      { label: "Emails et matricules", icon: "users", to: "/dashboard/dsi/accounts/identity" },
       { label: "Réinitialisation des mots de passe", icon: "shield", to: "/dashboard/dsi/password-reset" },
       { label: "Jours fériés", icon: "calendar", to: "/dashboard/dsi/holidays" },
     ],
