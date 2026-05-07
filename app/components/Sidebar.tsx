@@ -59,6 +59,7 @@ export function Sidebar({
   }, []);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleLogout = useCallback(() => {
+    setIsOpen(false);
     setShowLogoutModal(true);
   }, []);
   const confirmLogout = useCallback(() => {
@@ -260,37 +261,41 @@ export function Sidebar({
             <span className="text-sm">Déconnexion</span>
           </button>
         </div>
-        {showLogoutModal && (
+      </aside>
+
+      {showLogoutModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={cancelLogout}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirmation de déconnexion"
+        >
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-            onClick={cancelLogout}
+            className="w-full max-w-sm rounded-[28px] bg-gradient-to-b from-vdm-gold-600/90 to-vdm-gold-500/90 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.35)] backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div
-              className="w-full max-w-sm rounded-[28px] bg-gradient-to-b from-vdm-gold-600/90 to-vdm-gold-500/90 p-6 shadow-[0_30px_60px_rgba(0,0,0,0.35)] backdrop-blur"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <p className="text-lg font-semibold text-white">Confirmation de déconnexion</p>
-              <p className="mt-2 text-sm text-white/80">
-                Vous allez être déconnecté. Souhaitez-vous vraiment quitter l’application ?
-              </p>
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={confirmLogout}
-                  className="flex-1 rounded-2xl bg-white/90 py-2 text-sm font-semibold text-vdm-gold-700 transition hover:bg-white"
-                >
-                  Me déconnecter
-                </button>
-                <button
-                  onClick={cancelLogout}
-                  className="flex-1 rounded-2xl border border-white/60 py-2 text-sm font-semibold text-white transition hover:border-white"
-                >
-                  Annuler
-                </button>
-              </div>
+            <p className="text-lg font-semibold text-white">Confirmation de déconnexion</p>
+            <p className="mt-2 text-sm text-white/80">
+              Vous allez être déconnecté. Souhaitez-vous vraiment quitter l’application ?
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={confirmLogout}
+                className="flex-1 rounded-2xl bg-white/90 py-2 text-sm font-semibold text-vdm-gold-700 transition hover:bg-white"
+              >
+                Me déconnecter
+              </button>
+              <button
+                onClick={cancelLogout}
+                className="flex-1 rounded-2xl border border-white/60 py-2 text-sm font-semibold text-white transition hover:border-white"
+              >
+                Annuler
+              </button>
             </div>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
     </>
   );
 }

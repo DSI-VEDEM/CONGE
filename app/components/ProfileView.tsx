@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { getEmployee, getToken } from "@/lib/auth-client";
 import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
@@ -35,6 +36,9 @@ type EditableEmployee = ReturnType<typeof getEmployee> & {
 };
 type DepartmentListResponse = {
   departments?: Array<{ id: string; name?: string; type?: string }>;
+};
+type ServiceListResponse = {
+  services?: Array<{ id: string; name?: string; type?: string }>;
 };
 const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
 
@@ -113,9 +117,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const [draft, setDraft] = useState<EditableEmployee | null>(employee);
   const [isPhotoPreviewOpen, setIsPhotoPreviewOpen] = useState(false);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [departmentNames, setDepartmentNames] = useState<Record<string, string>>({});
+  const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [documentCompletion, setDocumentCompletion] = useState<ProfileDocumentCompletionSummary | null>(null);
 
@@ -172,20 +178,35 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   useEffect(() => {
     const token = getToken();
     if (!token) return;
-    const loadDepartments = async () => {
-      const res = await fetch("/api/departments", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = (await res.json().catch(() => ({}))) as DepartmentListResponse;
-      if (res.ok) {
+    const loadOrganizationNames = async () => {
+      const [departmentsRes, servicesRes] = await Promise.all([
+        fetch("/api/departments", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch("/api/services", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const departmentsData = (await departmentsRes.json().catch(() => ({}))) as DepartmentListResponse;
+      if (departmentsRes.ok) {
         const map: Record<string, string> = {};
-        (data?.departments ?? []).forEach((d) => {
-          map[d.id] = d.name ?? d.type ?? d.id;
+        (departmentsData?.departments ?? []).forEach((department) => {
+          map[department.id] = department.name ?? department.type ?? department.id;
         });
         setDepartmentNames(map);
       }
+
+      const servicesData = (await servicesRes.json().catch(() => ({}))) as ServiceListResponse;
+      if (servicesRes.ok) {
+        const map: Record<string, string> = {};
+        (servicesData?.services ?? []).forEach((service) => {
+          map[service.id] = service.name ?? service.type ?? service.id;
+        });
+        setServiceNames(map);
+      }
     };
-    loadDepartments();
+    loadOrganizationNames();
   }, []);
 
   useEffect(() => {
@@ -223,6 +244,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
 
   const openEditModal = () => {
     console.info("Opening profile edit modal", { employeeId: employee?.id ?? "unknown" });
+    setShowPassword(false);
     setIsEditing(true);
   };
 
@@ -230,6 +252,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     console.info("Profile edit modal cancelled", { employeeId: employee?.id ?? "unknown" });
     setDraft(employee);
     setPassword("");
+    setShowPassword(false);
     setPasswordError(null);
     setPhotoError(null);
     setIsEditing(false);
@@ -373,6 +396,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       const updated = data?.employee ? { ...draft, ...data.employee } : { ...draft };
       localStorage.setItem("employee", JSON.stringify(updated));
       setPassword("");
+      setShowPassword(false);
       setIsEditing(false);
     } catch (saveError) {
       console.error("Échec mise à jour profil", saveError);
@@ -583,7 +607,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600">Service</div>
-            <div className="text-sm text-vdm-gold-900 font-medium">{draft.serviceId ?? "—"}</div>
+            <div className="text-sm text-vdm-gold-900 font-medium">
+              {draft.serviceId ? serviceNames[draft.serviceId] ?? draft.serviceId : "—"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600">Date d&apos;entrée dans l&apos;entreprise</div>
@@ -798,13 +824,25 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                 </div>
                 <div>
                   <div className="text-xs text-vdm-gold-600">Mot de passe</div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nouveau mot de passe"
-                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Nouveau mot de passe"
+                      autoComplete="new-password"
+                      className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                      aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <div className="mt-2">
                     <div className="h-2 w-full rounded-full bg-vdm-gold-200 overflow-hidden">
                       <div
