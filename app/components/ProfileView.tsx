@@ -469,9 +469,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           <div className="flex-1">
             <div className="text-sm font-semibold text-vdm-gold-900">Photo de profil</div>
             <div className="text-xs text-vdm-gold-700">
-              {draft.profilePhotoUrl && draft.fullAddress && draft.phone
+              {draft.fullAddress && draft.phone
                 ? "Profil complet."
-                : "Photo, adresse précise et numéro de téléphone obligatoires."}
+                : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
             </div>
             {photoError ? <div className="text-xs text-red-600 mt-1">{photoError}</div> : null}
           </div>
@@ -664,9 +664,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                   <div className="flex-1 space-y-2">
                     <div className="text-sm font-semibold text-vdm-gold-900">Photo de profil</div>
                     <div className="text-xs text-vdm-gold-700">
-                      {draft.profilePhotoUrl && draft.fullAddress && draft.phone
+                      {draft.fullAddress && draft.phone
                         ? "Profil complet."
-                        : "Photo, adresse précise et numéro de téléphone obligatoires."}
+                        : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
                     </div>
                     <div className="space-y-2">
                       <input
@@ -675,15 +675,8 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                         onChange={(e) => onProfilePhotoChange(e.target.files?.[0] ?? null)}
                         className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white file:bg-vdm-gold-50 file:text-vdm-gold-800 file:border file:border-vdm-gold-200 file:rounded-md file:px-3 file:py-1 file:mr-3"
                       />
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDraft({ ...draft, profilePhotoUrl: null })}
-                          className="px-3 py-2 rounded-md border border-red-300 text-red-600 text-xs hover:bg-red-50"
-                        >
-                          Supprimer la photo
-                        </button>
-                        {draft.profilePhotoUrl ? (
+                      {draft.profilePhotoUrl ? (
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             onClick={downloadPassportPhoto}
@@ -691,8 +684,8 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                           >
                             Télécharger la photo
                           </button>
-                        ) : null}
-                      </div>
+                        </div>
+                      ) : null}
                       {photoError ? <div className="text-xs text-red-600">{photoError}</div> : null}
                     </div>
                   </div>

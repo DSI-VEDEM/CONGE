@@ -125,6 +125,15 @@ export default function OnboardingPage() {
         } as EditableEmployee;
         localStorage.setItem("employee", JSON.stringify(merged));
         setDraft(merged);
+        if (hasRequiredProfileData(merged)) {
+          router.replace(
+            routeForRole(
+              merged.role,
+              merged.isDsiAdmin,
+              merged.departmentType ?? null
+            )
+          );
+        }
       }
     };
     void load();
@@ -160,10 +169,6 @@ export default function OnboardingPage() {
   const saveOnboarding = async () => {
     if (!draft) return;
 
-    if (!draft.profilePhotoUrl) {
-      toast.error("Photo de profil obligatoire.");
-      return;
-    }
     if (!draft.phone || !String(draft.phone).trim()) {
       toast.error("Numéro de téléphone obligatoire.");
       return;
@@ -178,7 +183,7 @@ export default function OnboardingPage() {
       toast.error("Adresse précise obligatoire.");
       return;
     }
-    const hireDate = currentHireDateValue(draft);
+    const hireDate = toDateInputValue(currentHireDateValue(draft));
     if (!hireDate || !String(hireDate).trim()) {
       toast.error("Date d'entrée dans l'entreprise obligatoire.");
       return;
@@ -260,7 +265,7 @@ export default function OnboardingPage() {
 
   if (!draft) return null;
   const phone = parsePhone(draft.phone);
-  const hireDateValue = String(currentHireDateValue(draft) ?? "").trim();
+  const hireDateValue = toDateInputValue(currentHireDateValue(draft));
   const childrenCountValid =
     typeof draft.childrenCount === "number" &&
     Number.isInteger(draft.childrenCount) &&
@@ -270,7 +275,6 @@ export default function OnboardingPage() {
     Boolean(String(draft.lastName ?? "").trim()) &&
     Boolean(draft.gender) &&
     Boolean(draft.maritalStatus) &&
-    Boolean(String(draft.profilePhotoUrl ?? "").trim()) &&
     !photoError &&
     Boolean(String(draft.phone ?? "").trim()) &&
     isCompletePhone(String(draft.phone ?? "")) &&
@@ -470,7 +474,7 @@ export default function OnboardingPage() {
           </div>
           <div className="md:col-span-2">
             <div className="text-xs text-vdm-gold-600 mb-1">
-              Photo de profil (obligatoire)
+              Photo de profil (facultative)
             </div>
             <input
               type="file"

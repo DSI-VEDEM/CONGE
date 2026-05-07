@@ -19,7 +19,6 @@ type ProfileEmployee = Partial<
     | "lastName"
     | "jobTitle"
     | "phone"
-    | "profilePhotoUrl"
     | "fullAddress"
     | "hireDate"
     | "companyEntryDate"
@@ -51,7 +50,6 @@ function summarizeRequirements(requirements: Array<{ label: string; completed: b
 
 export function calculatePersonalProfileCompletion(employee: ProfileEmployee): ProfileCompletionSummary {
   return summarizeRequirements([
-    { label: "Photo de profil", completed: hasText(employee.profilePhotoUrl) },
     { label: "Prénom", completed: hasText(employee.firstName) },
     { label: "Nom", completed: hasText(employee.lastName) },
     { label: "Poste", completed: hasText(employee.jobTitle) },

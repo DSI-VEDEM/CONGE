@@ -127,7 +127,6 @@ export function hasChildrenCount(employee?: EmployeeSession | null) {
 
 export function hasRequiredProfileData(employee?: EmployeeSession | null) {
   return (
-    hasProfilePhoto(employee) &&
     hasPreciseAddress(employee) &&
     hasPhoneNumber(employee) &&
     hasCompanyEntryDate(employee) &&
