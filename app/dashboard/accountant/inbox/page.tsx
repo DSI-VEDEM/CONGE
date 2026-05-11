@@ -32,10 +32,12 @@ type HistoryItem = {
   lastName: string;
   employeeName: string;
   profilePhotoUrl?: string | null;
+  department?: string;
   period: string;
-  decision: "APPROVED" | "REJECTED" | "ESCALATED" | "CANCELLED";
+  decision: "APPROVED" | "REJECTED" | "CANCELLED";
+  decidedBy: string;
   decidedAt: string;
-  target?: string;
+  isAutoApproved: boolean;
   days: number;
 };
 
@@ -54,15 +56,13 @@ function statusClass(status: Req["status"]) {
 function decisionLabel(decision: HistoryItem["decision"]) {
   if (decision === "APPROVED") return "Validée";
   if (decision === "REJECTED") return "Refusée";
-  if (decision === "CANCELLED") return "Annulée";
-  return "Transmise";
+  return "Annulée";
 }
 
 function decisionClass(decision: HistoryItem["decision"]) {
   if (decision === "APPROVED") return "text-emerald-700";
   if (decision === "REJECTED") return "text-red-600";
-  if (decision === "CANCELLED") return "text-gray-500";
-  return "text-amber-700";
+  return "text-gray-500";
 }
 
 function originLabel(origin: Req["origin"]) {
@@ -107,7 +107,7 @@ export default function AccountantInbox() {
               employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
               profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
               department: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
-              departmentId: x.employee?.department?.id ?? null,
+              departmentId: x.employee?.departmentId ?? null,
               departmentName: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
               period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
               status: x.status,
@@ -163,36 +163,38 @@ export default function AccountantInbox() {
     const fetchHistoryPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
       if (options.showLoader && !cancelled) setIsHistoryLoading(true);
       try {
-        const res = await fetch(`/api/leave-requests/history?scope=actor&page=${targetPage}&take=${HISTORY_PAGE_SIZE}`, {
+        const res = await fetch(`/api/leave-requests/history?scope=all&page=${targetPage}&take=${HISTORY_PAGE_SIZE}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          const mapped = (data?.decisions ?? []).map((d: any) => {
-              const startRaw = d.leaveRequest?.startDate ?? "";
-              const endRaw = d.leaveRequest?.endDate ?? "";
+          const mapped = (data?.leaves ?? []).map((leave: any) => {
+              const startRaw = leave.startDate ?? "";
+              const endRaw = leave.endDate ?? "";
               const start = formatDateDMY(startRaw);
               const end = formatDateDMY(endRaw);
+              const decision = leave.decisions?.[0];
+              const decisionComment = decision?.comment ?? "";
+              const isAutoApproved =
+                leave.status === "APPROVED" && decisionComment.toLowerCase().includes("auto-approval");
+              const actor = decision?.actor;
               return {
-                id: d.id,
-                firstName: d.leaveRequest?.employee?.firstName ?? "",
-                lastName: d.leaveRequest?.employee?.lastName ?? "",
-                employeeName: `${d.leaveRequest?.employee?.firstName ?? ""} ${d.leaveRequest?.employee?.lastName ?? ""}`.trim(),
-                profilePhotoUrl: d.leaveRequest?.employee?.profilePhotoUrl ?? null,
+                id: leave.id,
+                firstName: leave.employee?.firstName ?? "",
+                lastName: leave.employee?.lastName ?? "",
+                employeeName: `${leave.employee?.firstName ?? ""} ${leave.employee?.lastName ?? ""}`.trim(),
+                profilePhotoUrl: leave.employee?.profilePhotoUrl ?? null,
+                department: leave.employee?.department?.name ?? leave.employee?.department?.type ?? "—",
                 period: `${start} - ${end}`,
-                decision:
-                  d.type === "APPROVE"
-                    ? "APPROVED"
-                    : d.type === "REJECT"
-                    ? "REJECTED"
-                    : d.type === "ESCALATE"
-                    ? "ESCALATED"
-                    : "CANCELLED",
-                decidedAt: formatDateDMY(d.createdAt),
-                target: d.toEmployee?.role ?? "-",
+                decision: leave.status,
+                decidedBy: isAutoApproved
+                  ? "Auto-validation"
+                  : `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
+                decidedAt: decision?.createdAt ? formatDateDMY(decision.createdAt) : "-",
+                isAutoApproved,
                 days:
                   startRaw && endRaw
-                    ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: d.leaveRequest?.type })
+                    ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: leave.type })
                     : 0,
               };
             });
@@ -366,10 +368,14 @@ export default function AccountantInbox() {
               lastName={row.original.lastName}
               profilePhotoUrl={row.original.profilePhotoUrl}
             />
-            <div className="font-semibold">{row.original.employeeName}</div>
+            <div>
+              <div className="font-semibold">{row.original.employeeName}</div>
+              <div className="text-xs text-vdm-gold-700">{row.original.department ?? "—"}</div>
+            </div>
           </div>
         ),
       },
+      { header: "Département", accessorKey: "department" },
       { header: "Période", accessorKey: "period" },
       { header: "Jours", accessorKey: "days" },
       {
@@ -381,7 +387,15 @@ export default function AccountantInbox() {
           </span>
         ),
       },
-      { header: "Cible", accessorKey: "target", cell: ({ row }) => row.original.target ?? "-" },
+      {
+        header: "Validation",
+        accessorKey: "decidedBy",
+        cell: ({ row }) => (
+          <span className={row.original.isAutoApproved ? "text-xs font-semibold text-emerald-700" : ""}>
+            {row.original.decidedBy}
+          </span>
+        ),
+      },
       { header: "Date", accessorKey: "decidedAt" },
     ],
     []
@@ -490,11 +504,8 @@ export default function AccountantInbox() {
   );
 
   return (
-    <div className="p-6">
+    <div className="p-6 pt-12">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Boîte de réception des demandes</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">
-        La comptable peut transmettre les demandes des collaborateurs au directeur de département ou au PDG. Les demandes émises par un directeur sont transmises automatiquement au PDG, la comptable ne peut ni les valider ni les refuser et les retrouve dans son historique.
-      </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-vdm-gold-700">Filtrer par département</div>
@@ -542,12 +553,14 @@ export default function AccountantInbox() {
       {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div> : null}
 
       <div className="mt-8">
-        <div className="text-lg font-semibold mb-1 text-vdm-gold-800">Historique des décisions</div>
-        <div className="text-sm text-vdm-gold-700 mb-4">Traçabilité des validations et transmissions.</div>
+        <div className="text-lg font-semibold mb-1 text-vdm-gold-800">Toutes les demandes traitées</div>
+        <div className="text-sm text-vdm-gold-700 mb-4">
+          Demandes clôturées de tous les employés, directeurs inclus.
+        </div>
         <DataTable
           data={historyRows}
           columns={historyColumns}
-          searchPlaceholder="Rechercher une décision..."
+          searchPlaceholder="Rechercher une demande..."
           onRefresh={() => window.location.reload()}
         />
         <div className="mt-3 flex items-center justify-between">

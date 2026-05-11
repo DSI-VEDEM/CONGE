@@ -24,6 +24,7 @@ type CalendarBlackout = { startDate: string; endDate: string };
 type CeoMetrics = {
   escalatedPending: number;
   decisionsThisMonth: number;
+  autoApprovedThisMonth: number;
   avgDecisionDelayDays: number | null;
 };
 
@@ -124,6 +125,7 @@ export default function CeoHome() {
         setMetrics({
           escalatedPending: Number(data?.escalatedPending ?? 0),
           decisionsThisMonth: Number(data?.decisionsThisMonth ?? 0),
+          autoApprovedThisMonth: Number(data?.autoApprovedThisMonth ?? 0),
           avgDecisionDelayDays:
             typeof data?.avgDecisionDelayDays === "number" ? data.avgDecisionDelayDays : null,
         });
@@ -201,6 +203,7 @@ export default function CeoHome() {
     () => [
       { name: "Demandes Reçues", value: metrics?.escalatedPending ?? 0 },
       { name: "Décisions du mois", value: metrics?.decisionsThisMonth ?? 0 },
+      { name: "Auto-validées", value: metrics?.autoApprovedThisMonth ?? 0 },
       {
         name: "Délai moyen",
         value:
@@ -250,7 +253,7 @@ export default function CeoHome() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="text-sm text-vdm-gold-700">Demandes Reçues</div>
           <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
@@ -265,6 +268,14 @@ export default function CeoHome() {
             {metrics?.decisionsThisMonth ?? "—"}
           </div>
           <div className="text-xs text-gray-500 mt-2">Total des validations et refus.</div>
+        </div>
+
+        <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="text-sm text-vdm-gold-700">Auto-validées</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
+            {metrics?.autoApprovedThisMonth ?? "—"}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">Validées automatiquement ce mois-ci.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">

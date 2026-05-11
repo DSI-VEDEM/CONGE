@@ -36,12 +36,10 @@
 
   button:not(:disabled) {
     cursor: pointer;
-    transition: transform 150ms ease, filter 150ms ease;
   }
 
   button:not(:disabled):hover {
-    transform: scale(1.06);
-    filter: brightness(1.03);
+    filter: brightness(0.96);
   }
 
   button:disabled {

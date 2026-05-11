@@ -20,6 +20,13 @@ type PendingLeave = {
   createdAt: string;
 };
 
+type DecisionItem = {
+  id: string;
+  type: "APPROVE" | "REJECT" | "ESCALATE" | "CANCEL";
+  createdAt: string;
+  comment?: string | null;
+};
+
 const BASE_ALLOWANCE = 25;
 const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
 
@@ -43,6 +50,7 @@ export default function OperationsDashboard() {
   const employee = useMemo(() => getEmployee(), []);
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
+  const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [baseAllowance, setBaseAllowance] = useState<number>(BASE_ALLOWANCE);
   const [remainingBalance, setRemainingBalance] = useState<number>(BASE_ALLOWANCE);
 
@@ -50,9 +58,10 @@ export default function OperationsDashboard() {
     const token = getToken();
     if (!token) return;
 
-    const [myRes, pendingRes] = await Promise.all([
+    const [myRes, pendingRes, historyRes] = await Promise.all([
       fetch("/api/leave-requests/my", { headers: { Authorization: `Bearer ${token}` } }),
       fetch("/api/leave-requests/pending", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("/api/leave-requests/history?scope=actor", { headers: { Authorization: `Bearer ${token}` } }),
     ]);
 
     const myData = await myRes.json().catch(() => ({}));
@@ -70,6 +79,18 @@ export default function OperationsDashboard() {
 
     const pendingData = await pendingRes.json().catch(() => ({}));
     if (pendingRes.ok) setPendingLeaves(pendingData?.leaves ?? []);
+
+    const historyData = await historyRes.json().catch(() => ({}));
+    if (historyRes.ok) {
+      setDecisions(
+        (historyData?.decisions ?? []).map((decision: any) => ({
+          id: decision.id,
+          type: decision.type,
+          createdAt: decision.createdAt,
+          comment: decision.comment ?? null,
+        }))
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -100,6 +121,7 @@ export default function OperationsDashboard() {
     let pendingCount = 0;
     let approvedCount = 0;
     let rejectedCount = 0;
+    let autoApprovedCount = 0;
 
     const monthlyCounts = Array.from({ length: 12 }, () => 0);
 
@@ -116,10 +138,18 @@ export default function OperationsDashboard() {
       }
     }
 
+    for (const decision of decisions) {
+      const comment = (decision.comment ?? "").toLowerCase();
+      if (decision.type === "APPROVE" && comment.includes("auto-approval")) {
+        autoApprovedCount += 1;
+      }
+    }
+
     const balance = remainingBalance;
 
     return {
       balance,
+      autoApprovedCount,
       lineData: MONTHS.map((name, idx) => ({ name, value: monthlyCounts[idx] })),
       pieData: [
         { name: "En attente", value: pendingCount },
@@ -128,10 +158,11 @@ export default function OperationsDashboard() {
       ],
       barData: [
         { name: "Boîte de réception", value: pendingLeaves.length },
+        { name: "Auto-validées", value: autoApprovedCount },
         { name: "Solde", value: balance },
       ],
     };
-  }, [leaves, pendingLeaves.length, remainingBalance]);
+  }, [decisions, leaves, pendingLeaves.length, remainingBalance]);
 
   return (
     <div className="p-6 space-y-4">
@@ -146,7 +177,7 @@ export default function OperationsDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="text-sm text-vdm-gold-700">Solde de congé</div>
@@ -170,6 +201,12 @@ export default function OperationsDashboard() {
               ? "Demandes transmises par le directeur des opérations."
               : "Demandes transmises par la comptable."}
           </div>
+        </div>
+
+        <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="text-sm text-vdm-gold-700">Auto-validées</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{stats.autoApprovedCount}</div>
+          <div className="text-xs text-gray-500 mt-2">Demandes validées automatiquement.</div>
         </div>
       </div>
 

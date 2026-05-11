@@ -113,7 +113,7 @@ export default function DataTable<TData>({
                   return (
                     <th
                       key={header.id}
-                      className="px-4 py-3 text-left text-xs font-semibold text-vdm-gold-800"
+                      className={`px-4 py-3 text-left text-xs font-semibold text-vdm-gold-800${(header.column.columnDef.meta as { className?: string } | undefined)?.className ? ` ${(header.column.columnDef.meta as { className?: string }).className}` : ""}`}
                     >
                       {header.isPlaceholder ? null : (
                         <button
@@ -142,7 +142,7 @@ export default function DataTable<TData>({
               rows.map((row) => (
                 <tr key={row.id} className="border-b border-vdm-gold-100 last:border-b-0">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 text-vdm-gold-900">
+                    <td key={cell.id} className={`px-4 py-3 text-vdm-gold-900${(cell.column.columnDef.meta as { className?: string } | undefined)?.className ? ` ${(cell.column.columnDef.meta as { className?: string }).className}` : ""}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

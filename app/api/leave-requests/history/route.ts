@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isDsiAdmin } from "@/lib/dsiAdmin";
-import { requireAuth } from "@/lib/leave-requests";
+import { requireAuth, autoApproveOverdueForActor } from "@/lib/leave-requests";
 
 function parseYearParam(value: string | null) {
   if (!value) return null;
@@ -31,7 +31,6 @@ export async function GET(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  const actorIsDsiAdmin = await isDsiAdmin(actorId);
 
   const url = new URL(req.url);
   const mine = url.searchParams.get("mine") === "1";
@@ -56,6 +55,45 @@ export async function GET(req: Request) {
 
   if (url.searchParams.get("year") && year == null) {
     return NextResponse.json({ error: "Année invalide" }, { status: 400 });
+  }
+
+  // CEO et ACCOUNTANT ont allowAllScope=true inconditionnellement — inutile d'interroger isDsiAdmin
+  const [actorIsDsiAdmin] = await Promise.all([
+    role === "CEO" || role === "ACCOUNTANT" ? Promise.resolve(false) : isDsiAdmin(actorId),
+    autoApproveOverdueForActor(actorId, role),
+  ]);
+
+  if (isActorScope && !mine) {
+    const decisions = await prisma.leaveDecision.findMany({
+      where: {
+        actorId,
+        type: { in: ["APPROVE", "REJECT", "ESCALATE", "CANCEL"] },
+      },
+      skip,
+      take,
+      select: {
+        id: true,
+        type: true,
+        comment: true,
+        createdAt: true,
+        toEmployeeId: true,
+        toEmployee: { select: { id: true, firstName: true, lastName: true, role: true } },
+        leaveRequest: {
+          select: {
+            id: true,
+            type: true,
+            startDate: true,
+            endDate: true,
+            justificationFileName: true,
+            justificationMimeType: true,
+            employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ decisions, page, take });
   }
 
   if (mine || forceMineOnly) {
@@ -90,38 +128,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ leaves, page, take });
   }
 
-  if (scope === "actor") {
-    const decisions = await prisma.leaveDecision.findMany({
-      where: {
-        actorId,
-        type: { in: ["APPROVE", "REJECT", "ESCALATE", "CANCEL"] },
-      },
-      skip,
-      take,
-      select: {
-        id: true,
-        type: true,
-        createdAt: true,
-        toEmployeeId: true,
-        toEmployee: { select: { id: true, firstName: true, lastName: true, role: true } },
-        leaveRequest: {
-          select: {
-            id: true,
-            type: true,
-            startDate: true,
-            endDate: true,
-            justificationFileName: true,
-            justificationMimeType: true,
-            employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ decisions, page, take });
-  }
-
   if (scope === "all-decisions") {
     if (role !== "CEO") return NextResponse.json({ decisions: [] });
 
@@ -134,6 +140,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         type: true,
+        comment: true,
         createdAt: true,
         actor: { select: { id: true, firstName: true, lastName: true, role: true } },
       },
@@ -143,7 +150,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ decisions, page, take });
   }
 
-  const allowAllScope = role === "CEO" || actorIsDsiAdmin;
+  const allowAllScope = role === "CEO" || role === "ACCOUNTANT" || actorIsDsiAdmin;
 
   if (scope === "all") {
     if (!allowAllScope) return NextResponse.json({ leaves: [] });
@@ -165,7 +172,17 @@ export async function GET(req: Request) {
         justificationFileName: true,
         justificationMimeType: true,
         createdAt: true,
-        employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true, role: true } },
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            role: true,
+            departmentId: true,
+            department: { select: { type: true, name: true } },
+          },
+        },
         decisions: {
           where: { type: { in: ["APPROVE", "REJECT", "CANCEL"] } },
           orderBy: { createdAt: "desc" },
@@ -173,6 +190,7 @@ export async function GET(req: Request) {
           select: {
             createdAt: true,
             type: true,
+            comment: true,
             actorId: true,
             actor: { select: { id: true, firstName: true, lastName: true, role: true } },
           },

@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
-import { requireAuth } from "@/lib/leave-requests";
+import { requireAuth, autoApproveOverdueForActor } from "@/lib/leave-requests";
 
 function startOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -17,8 +17,10 @@ export async function GET(req: Request) {
   const authRes = requireAuth(req);
   if (!authRes.ok) return authRes.error;
 
-  const { role } = authRes.auth;
+  const { id: actorId, role } = authRes.auth;
   if (role !== "CEO") return jsonError("Accès refusé", 403);
+
+  await autoApproveOverdueForActor(actorId, role);
 
   const now = new Date();
   const from = startOfMonth(now);
@@ -31,13 +33,6 @@ export async function GET(req: Request) {
     },
   });
 
-  const decisionsThisMonth = await prisma.leaveDecision.count({
-    where: {
-      type: { in: ["APPROVE", "REJECT"] },
-      createdAt: { gte: from, lt: to },
-    },
-  });
-
   const decisions = await prisma.leaveDecision.findMany({
     where: {
       type: { in: ["APPROVE", "REJECT"] },
@@ -45,9 +40,17 @@ export async function GET(req: Request) {
     },
     select: {
       createdAt: true,
+      comment: true,
       leaveRequest: { select: { reachedCeoAt: true } },
     },
   });
+
+  const decisionsThisMonth = decisions.length;
+  const autoApprovedThisMonth = decisions.filter(
+    (decision) =>
+      decision.comment?.toLowerCase().includes("auto-approval") &&
+      decision.comment?.toLowerCase().includes("ceo")
+  ).length;
 
   let totalMs = 0;
   let count = 0;
@@ -65,6 +68,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     escalatedPending,
     decisionsThisMonth,
+    autoApprovedThisMonth,
     avgDecisionDelayDays,
   });
 }

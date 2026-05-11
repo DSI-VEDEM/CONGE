@@ -57,28 +57,40 @@ export async function autoApproveOverdueForDeptHead(deptHeadId: string, days: nu
 
   if (overdue.length === 0) return 0;
 
-  const ops = overdue.flatMap((leave) => [
-    prisma.leaveRequest.update({
-      where: { id: leave.id },
-      data: {
-        status: "APPROVED",
-        currentAssigneeId: null,
-        deptHeadAssignedAt: null,
-      },
-    }),
-    prisma.leaveDecision.create({
-      data: {
-        leaveRequestId: leave.id,
-        actorId: deptHeadId,
-        type: "APPROVE",
-        comment: "Auto-approval after DEPT_HEAD/SERVICE_HEAD validation delay",
-      },
-    }),
-  ]);
+  const approvedCount = await prisma.$transaction(async (tx) => {
+    let count = 0;
 
-  await prisma.$transaction(ops);
+    for (const leave of overdue) {
+      const updated = await tx.leaveRequest.updateMany({
+        where: {
+          id: leave.id,
+          currentAssigneeId: deptHeadId,
+          status: { in: ["SUBMITTED", "PENDING"] },
+        },
+        data: {
+          status: "APPROVED",
+          currentAssigneeId: null,
+          deptHeadAssignedAt: null,
+        },
+      });
 
-  return overdue.length;
+      if (updated.count === 0) continue;
+
+      await tx.leaveDecision.create({
+        data: {
+          leaveRequestId: leave.id,
+          actorId: deptHeadId,
+          type: "APPROVE",
+          comment: "Auto-approval after DEPT_HEAD/SERVICE_HEAD validation delay",
+        },
+      });
+      count += 1;
+    }
+
+    return count;
+  });
+
+  return approvedCount;
 }
 
 export async function autoApproveOverdueDirectorLeavesForCeo(ceoId: string, days: number) {
@@ -102,30 +114,41 @@ export async function autoApproveOverdueDirectorLeavesForCeo(ceoId: string, days
 
   if (overdue.length === 0) return 0;
 
-  const ops = overdue.flatMap((leave) => [
-    prisma.leaveRequest.update({
-      where: { id: leave.id },
-      data: {
-        status: "APPROVED",
-        currentAssigneeId: null,
-        deptHeadAssignedAt: null,
-      },
-    }),
-    prisma.leaveDecision.create({
-      data: {
-        leaveRequestId: leave.id,
-        actorId: ceoId,
-        type: "APPROVE",
-        comment: "Auto-approval after CEO validation delay (director leave request).",
-      },
-    }),
-  ]);
+  const approved = await prisma.$transaction(async (tx) => {
+    const items: typeof overdue = [];
 
-  await prisma.$transaction(ops);
+    for (const leave of overdue) {
+      const updated = await tx.leaveRequest.updateMany({
+        where: {
+          id: leave.id,
+          status: { in: ["SUBMITTED", "PENDING"] },
+        },
+        data: {
+          status: "APPROVED",
+          currentAssigneeId: null,
+          deptHeadAssignedAt: null,
+        },
+      });
+
+      if (updated.count === 0) continue;
+
+      await tx.leaveDecision.create({
+        data: {
+          leaveRequestId: leave.id,
+          actorId: ceoId,
+          type: "APPROVE",
+          comment: "Auto-approval after CEO validation delay (director leave request).",
+        },
+      });
+      items.push(leave);
+    }
+
+    return items;
+  });
 
   const actorLabel = describeActorRole("CEO");
   await Promise.all(
-    overdue.map((leave) => {
+    approved.map((leave) => {
       const employeeName =
         [leave.employee?.firstName, leave.employee?.lastName].filter(Boolean).join(" ") || "cet employé";
       return notifyEmployeeOfLeaveDecision({
@@ -138,7 +161,44 @@ export async function autoApproveOverdueDirectorLeavesForCeo(ceoId: string, days
     })
   );
 
-  return overdue.length;
+  return approved.length;
+}
+
+function getDeptHeadValidationDelayDays() {
+  const raw = process.env.DEPT_HEAD_VALIDATION_DAYS;
+  const parsed = raw ? Number(raw) : 5;
+  return Number.isFinite(parsed) ? parsed : 5;
+}
+
+function getCeoDirectorValidationDelayDays() {
+  const raw = process.env.CEO_DIRECTOR_VALIDATION_DAYS;
+  const parsed = raw ? Number(raw) : 2;
+  return Number.isFinite(parsed) ? parsed : 2;
+}
+
+export async function autoApproveOverdueForActor(actorId: string, role: string) {
+  let deptHeadApprovedCount = 0;
+  let ceoDirectorApprovedCount = 0;
+
+  if (role === "DEPT_HEAD" || role === "SERVICE_HEAD") {
+    deptHeadApprovedCount = await autoApproveOverdueForDeptHead(
+      actorId,
+      getDeptHeadValidationDelayDays()
+    );
+  }
+
+  if (role === "CEO") {
+    ceoDirectorApprovedCount = await autoApproveOverdueDirectorLeavesForCeo(
+      actorId,
+      getCeoDirectorValidationDelayDays()
+    );
+  }
+
+  return {
+    deptHeadApprovedCount,
+    ceoDirectorApprovedCount,
+    totalApprovedCount: deptHeadApprovedCount + ceoDirectorApprovedCount,
+  };
 }
 
 export function parseDate(value: string | null) {

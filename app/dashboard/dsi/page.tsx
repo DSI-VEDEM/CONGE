@@ -22,6 +22,13 @@ type PendingLeave = {
   createdAt: string;
 };
 
+type DecisionItem = {
+  id: string;
+  type: "APPROVE" | "REJECT" | "ESCALATE" | "CANCEL";
+  createdAt: string;
+  comment?: string | null;
+};
+
 const BASE_ALLOWANCE = 25;
 
 const MONTHS = [
@@ -64,6 +71,7 @@ export default function DsiDashboard() {
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
   const [pendingEmployees, setPendingEmployees] = useState<PendingEmployee[]>([]);
+  const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [annualBalance, setAnnualBalance] = useState<number>(BASE_ALLOWANCE);
   const [remainingBalance, setRemainingBalance] = useState<number>(BASE_ALLOWANCE);
 
@@ -71,7 +79,7 @@ export default function DsiDashboard() {
     const token = getToken();
     if (!token) return;
 
-    const [myRes, pendingRes, employeesRes] = await Promise.all([
+    const [myRes, pendingRes, employeesRes, historyRes] = await Promise.all([
       fetch("/api/leave-requests/my", {
         headers: { Authorization: `Bearer ${token}` },
       }),
@@ -79,6 +87,9 @@ export default function DsiDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       }),
       fetch("/api/admin/employees/pending", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("/api/leave-requests/history?scope=actor", {
         headers: { Authorization: `Bearer ${token}` },
       }),
     ]);
@@ -105,6 +116,18 @@ export default function DsiDashboard() {
 
     const employeesData = await employeesRes.json().catch(() => ({}));
     if (employeesRes.ok) setPendingEmployees(employeesData?.employees ?? []);
+
+    const historyData = await historyRes.json().catch(() => ({}));
+    if (historyRes.ok) {
+      setDecisions(
+        (historyData?.decisions ?? []).map((decision: any) => ({
+          id: decision.id,
+          type: decision.type,
+          createdAt: decision.createdAt,
+          comment: decision.comment ?? null,
+        }))
+      );
+    }
   }, []);
 
   useEffect(() => {
@@ -141,6 +164,7 @@ export default function DsiDashboard() {
     let pendingCount = 0;
     let approvedCount = 0;
     let rejectedCount = 0;
+    let autoApprovedCount = 0;
 
     const monthlyCounts = Array.from({ length: 12 }, () => 0);
 
@@ -160,10 +184,18 @@ export default function DsiDashboard() {
       }
     }
 
+    for (const decision of decisions) {
+      const comment = (decision.comment ?? "").toLowerCase();
+      if (decision.type === "APPROVE" && comment.includes("auto-approval")) {
+        autoApprovedCount += 1;
+      }
+    }
+
     const balance = remainingBalance;
 
     return {
       balance,
+      autoApprovedCount,
       lineData: MONTHS.map((name, idx) => ({
         name,
         value: monthlyCounts[idx],
@@ -175,11 +207,12 @@ export default function DsiDashboard() {
       ],
       barData: [
         { name: "Boîte de réception", value: pendingLeaves.length },
+        { name: "Auto-validées", value: autoApprovedCount },
         { name: "Comptes", value: pendingEmployees.length },
         { name: "Solde", value: balance },
       ],
     };
-  }, [leaves, pendingLeaves.length, pendingEmployees.length, remainingBalance]);
+  }, [decisions, leaves, pendingLeaves.length, pendingEmployees.length, remainingBalance]);
 
   return (
     <div className="p-6 space-y-4">
@@ -192,7 +225,7 @@ export default function DsiDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="text-sm text-vdm-gold-700">
@@ -221,6 +254,16 @@ export default function DsiDashboard() {
           </div>
           <div className="text-xs text-gray-500 mt-2">
             Demandes transmises par la comptable.
+          </div>
+        </div>
+
+        <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="text-sm text-vdm-gold-700">Auto-validées</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
+            {stats.autoApprovedCount}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            Demandes validées automatiquement.
           </div>
         </div>
 

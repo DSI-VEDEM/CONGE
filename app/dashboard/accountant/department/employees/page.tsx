@@ -334,11 +334,12 @@ export default function AccountantDepartmentEmployees({
       {
         id: "actions",
         header: "Actions",
+        meta: { className: "sticky right-0 bg-white z-10 border-l border-vdm-gold-100 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]" },
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => openFirstYearModal(row.original)}
-              className="px-2 py-1 rounded-md border border-amber-300 text-amber-800 text-xs hover:bg-amber-50"
+              className="px-2 py-1 rounded-md border border-amber-300 text-amber-800 text-xs hover:bg-amber-100 hover:border-amber-400 hover:text-amber-900 cursor-pointer"
             >
               Ajuster
             </button>

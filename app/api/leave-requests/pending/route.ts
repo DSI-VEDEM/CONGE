@@ -2,19 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, autoApproveOverdueForDeptHead, autoApproveOverdueDirectorLeavesForCeo } from "@/lib/leave-requests";
-
-function getDeptHeadDelayDays() {
-  const raw = process.env.DEPT_HEAD_VALIDATION_DAYS;
-  const parsed = raw ? Number(raw) : 5;
-  return Number.isFinite(parsed) ? parsed : 5;
-}
-
-function getCeoDirectorDelayDays() {
-  const raw = process.env.CEO_DIRECTOR_VALIDATION_DAYS;
-  const parsed = raw ? Number(raw) : 2;
-  return Number.isFinite(parsed) ? parsed : 2;
-}
+import { requireAuth, autoApproveOverdueForActor } from "@/lib/leave-requests";
 
 function parseTakeParam(value: string | null) {
   const parsed = Number(value);
@@ -38,12 +26,7 @@ export async function GET(req: Request) {
   const page = parsePageParam(url.searchParams.get("page"));
   const skip = (page - 1) * take;
 
-  if (role === "DEPT_HEAD" || role === "SERVICE_HEAD") {
-    await autoApproveOverdueForDeptHead(actorId, getDeptHeadDelayDays());
-  }
-  if (role === "CEO") {
-    await autoApproveOverdueDirectorLeavesForCeo(actorId, getCeoDirectorDelayDays());
-  }
+  await autoApproveOverdueForActor(actorId, role);
 
   const where =
     role === "CEO"
