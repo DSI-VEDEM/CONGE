@@ -20,7 +20,52 @@ type EmployeeRow = {
   status: "PENDING" | "ACTIVE" | "REJECTED";
   createdAt: string;
   profilePhotoUrl?: string | null;
+  departmentName: string;
 };
+
+type EmployeeApiItem = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role?: EmployeeRow["role"];
+  email: string;
+  matricule?: string | null;
+  jobTitle?: string | null;
+  status?: EmployeeRow["status"];
+  createdAt?: string;
+  profilePhotoUrl?: string | null;
+  department?: { name?: string | null; type?: string | null } | null;
+};
+
+const roleLabel: Record<EmployeeRow["role"], string> = {
+  CEO: "PDG",
+  ACCOUNTANT: "Comptable",
+  DEPT_HEAD: "Directeur département",
+  SERVICE_HEAD: "Directeur adjoint",
+  EMPLOYEE: "Employé",
+};
+
+const statusLabel: Record<EmployeeRow["status"], string> = {
+  ACTIVE: "Actif",
+  PENDING: "En attente",
+  REJECTED: "Rejeté",
+};
+
+function mapEmployee(employee: EmployeeApiItem): EmployeeRow {
+  return {
+    id: employee.id,
+    firstName: employee.firstName,
+    lastName: employee.lastName,
+    email: employee.email,
+    matricule: employee.matricule ?? null,
+    jobTitle: employee.jobTitle ?? null,
+    role: employee.role ?? "EMPLOYEE",
+    status: employee.status ?? "ACTIVE",
+    createdAt: employee.createdAt ?? "",
+    profilePhotoUrl: employee.profilePhotoUrl ?? null,
+    departmentName: employee.department?.name ?? employee.department?.type ?? "—",
+  };
+}
 
 export default function DsiPasswordResetPage() {
   const [rows, setRows] = useState<EmployeeRow[]>([]);
@@ -33,32 +78,20 @@ export default function DsiPasswordResetPage() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const res = await fetch("/api/departments/dsi/employees", {
+      const res = await fetch("/api/admin/employees/password-reset-requests", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Impossible de charger les employés DSI.");
+        toast.error(data.error ?? "Impossible de charger les demandes de réinitialisation.");
         setRows([]);
         return;
       }
       const list = Array.isArray(data.employees) ? data.employees : [];
-      const mapped = list.map((employee: any) => ({
-        id: employee.id,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        matricule: employee.matricule ?? null,
-        jobTitle: employee.jobTitle ?? null,
-        role: employee.role ?? "EMPLOYEE",
-        status: employee.status ?? "ACTIVE",
-        createdAt: employee.createdAt ?? "",
-        profilePhotoUrl: employee.profilePhotoUrl ?? null,
-      }));
-      setRows(mapped);
+      setRows(list.map((employee: EmployeeApiItem) => mapEmployee(employee)));
       setLastUpdatedAt(new Date().toISOString());
     } catch {
-      toast.error("Erreur réseau lors du chargement des employés.");
+      toast.error("Erreur réseau lors du chargement des demandes.");
     } finally {
       setIsLoading(false);
     }
@@ -122,6 +155,15 @@ export default function DsiPasswordResetPage() {
         ),
       },
       {
+        header: "Département",
+        accessorKey: "departmentName",
+      },
+      {
+        header: "Rôle",
+        accessorKey: "role",
+        cell: ({ row }) => roleLabel[row.original.role] ?? row.original.role,
+      },
+      {
         header: "E-mail",
         accessorKey: "email",
       },
@@ -133,7 +175,11 @@ export default function DsiPasswordResetPage() {
       {
         header: "Statut",
         accessorKey: "status",
-        cell: ({ row }) => <span className="text-xs uppercase tracking-[0.3em]">{row.original.status}</span>,
+        cell: ({ row }) => (
+          <span className="text-xs uppercase tracking-[0.3em]">
+            {statusLabel[row.original.status] ?? row.original.status}
+          </span>
+        ),
       },
       {
         id: "actions",
@@ -160,12 +206,13 @@ export default function DsiPasswordResetPage() {
       <div>
         <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Réinitialisation des mots de passe</div>
         <div className="text-sm text-vdm-gold-700">
-          Réinitialisez les comptes DSI en cas de perte de mot de passe. Le mot de passe par défaut défini dans l’environnement sera appliqué.
+          Réinitialisez les comptes de tous les employés ayant fait une demande, sans restriction de rôle ou de
+          département. Le mot de passe par défaut défini dans l’environnement sera appliqué.
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-dashed border-vdm-gold-300 bg-white/40 p-4 text-center shadow-sm">
-          <div className="text-xs uppercase tracking-[0.3em] text-gray-500">Équipiers</div>
+          <div className="text-xs uppercase tracking-[0.3em] text-gray-500">Demandes</div>
           <div className="text-3xl font-semibold text-vdm-gold-800">{rows.length}</div>
           <div className="text-xs text-gray-500">à jour pour réinitialisation</div>
         </div>
@@ -201,7 +248,7 @@ export default function DsiPasswordResetPage() {
           onRefresh={loadEmployees}
         />
       </div>
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des employés...</div> : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div> : null}
     </div>
   );
 }
