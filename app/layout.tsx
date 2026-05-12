@@ -8,7 +8,13 @@ export const metadata: Metadata = {
   title: "VDM - Congés et Notes de frais",
   description: "Gérez vos demandes de congés et notes de frais facilement avec VDM.",
   icons: {
-    icon: "/logo.jpeg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.jpeg", type: "image/jpeg", sizes: "225x225" },
+      { url: "/logo.jpeg", type: "image/jpeg", sizes: "225x225" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/logo.jpeg",
   },
 };
 
