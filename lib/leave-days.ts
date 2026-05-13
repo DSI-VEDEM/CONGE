@@ -106,6 +106,41 @@ export function countLeaveDaysOverlapInYear(options: {
   return Math.max(0, weekdays - holidayWeekdays);
 }
 
+const FR_DAYS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+const FR_MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+function formatUtcDateDMY(utcMs: number): string {
+  const d = new Date(utcMs);
+  return `${FR_DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${FR_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+export function computeReturnDate(
+  end: string | Date | null | undefined,
+  holidays?: Array<string | Date>
+): string | null {
+  if (!end) return null;
+  const endUtc = toUtcDayMs(end);
+  if (endUtc == null) return null;
+
+  const holidaySet = new Set<number>();
+  if (Array.isArray(holidays)) {
+    for (const h of holidays) {
+      const hMs = toUtcDayMs(h);
+      if (hMs != null) holidaySet.add(hMs);
+    }
+  }
+
+  let current = endUtc + MS_PER_DAY;
+  for (let i = 0; i < 14; i++) {
+    const dow = new Date(current).getUTCDay();
+    if (dow !== 0 && dow !== 6 && !holidaySet.has(current)) {
+      return formatUtcDateDMY(current);
+    }
+    current += MS_PER_DAY;
+  }
+  return null;
+}
+
 export function countLeaveDaysOverlapInRange(options: {
   start: string | Date;
   end: string | Date;

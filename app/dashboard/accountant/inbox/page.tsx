@@ -7,7 +7,7 @@ import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
 import { getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
-import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { computeReturnDate, countLeaveDaysInclusive } from "@/lib/leave-days";
 
 type Req = {
   id: string;
@@ -39,6 +39,8 @@ type HistoryItem = {
   decidedAt: string;
   isAutoApproved: boolean;
   days: number;
+  endDateRaw: string;
+  returnDate: string;
 };
 
 function statusLabel(status: Req["status"]) {
@@ -83,9 +85,19 @@ export default function AccountantInbox() {
   const [historyHasNext, setHistoryHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState("");
   const pendingPageCacheRef = useRef<Record<number, { rows: Req[]; hasNext: boolean }>>({});
   const historyPageCacheRef = useRef<Record<number, { rows: HistoryItem[]; hasNext: boolean }>>({});
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/holidays", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setHolidays((d?.holidays ?? []).map((h: { date: string }) => h.date)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const token = getToken();
@@ -196,6 +208,8 @@ export default function AccountantInbox() {
                   startRaw && endRaw
                     ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: leave.type })
                     : 0,
+                endDateRaw: endRaw,
+                returnDate: "-",
               };
             });
           const entry = { rows: mapped, hasNext: mapped.length === HISTORY_PAGE_SIZE };
@@ -355,6 +369,15 @@ export default function AccountantInbox() {
     }
   }, []);
 
+  const displayHistoryRows = useMemo(
+    () =>
+      historyRows.map((item) => ({
+        ...item,
+        returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
+      })),
+    [historyRows, holidays]
+  );
+
   const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
       {
@@ -375,9 +398,9 @@ export default function AccountantInbox() {
           </div>
         ),
       },
-      { header: "Département", accessorKey: "department" },
       { header: "Période", accessorKey: "period" },
-      { header: "Jours", accessorKey: "days" },
+      { header: "Nb jours pris", accessorKey: "days" },
+      { header: "Date de retour", accessorKey: "returnDate" },
       {
         header: "Décision",
         accessorKey: "decision",
@@ -396,7 +419,6 @@ export default function AccountantInbox() {
           </span>
         ),
       },
-      { header: "Date", accessorKey: "decidedAt" },
     ],
     []
   );
@@ -558,7 +580,7 @@ export default function AccountantInbox() {
           Demandes clôturées de tous les employés, directeurs inclus.
         </div>
         <DataTable
-          data={historyRows}
+          data={displayHistoryRows}
           columns={historyColumns}
           searchPlaceholder="Rechercher une demande..."
           onRefresh={() => window.location.reload()}

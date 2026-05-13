@@ -6,7 +6,7 @@ import DataTable from "@/app/components/DataTable";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { computeReturnDate, countLeaveDaysInclusive } from "@/lib/leave-days";
 import { leaveTypeLabel } from "@/lib/leave-types";
 
 type LeaveItem = {
@@ -25,6 +25,7 @@ type HistoryItem = {
   type: string;
   startDate: string;
   endDate: string;
+  endDateRaw?: string;
   year: number | null;
   status: "APPROVED" | "REJECTED" | "CANCELLED";
   decidedAt: string;
@@ -32,6 +33,8 @@ type HistoryItem = {
   justificationFileName?: string | null;
   justificationMimeType?: string | null;
 };
+
+type HistoryItemDisplay = HistoryItem & { returnDate: string };
 
 type ApiLeave = {
   id: string;
@@ -101,6 +104,7 @@ const defaultHistoryAdapter = (data: any): HistoryItem[] => {
       decidedAt: x.decisions?.[0]?.createdAt ? formatDateDMY(x.decisions?.[0]?.createdAt) : "-",
       days:
         startRaw && endRaw ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type }) : 0,
+      endDateRaw: endRaw,
     };
   });
 };
@@ -122,6 +126,7 @@ export default function LeaveHistoryTables({
 }: Props) {
   const [items, setItems] = useState<LeaveItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const [activeStatusFilter] = useState("ALL");
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -220,6 +225,15 @@ export default function LeaveHistoryTables({
   }, [addPagingParams, fetchFromRoutes, historyRoutes, historyMapper, resolvedHistoryErrorMessage, resolvedHistoryPageSize]);
 
   useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/holidays", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setHolidays((d?.holidays ?? []).map((h: { date: string }) => h.date)))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     void loadActive();
   }, [loadActive, activeRoutesKey]);
 
@@ -256,6 +270,15 @@ export default function LeaveHistoryTables({
     if (historyStatusFilter === "ALL") return itemsByYear;
     return itemsByYear.filter((item) => item.status === historyStatusFilter);
   }, [historyItems, historyStatusFilter, historyYearFilter]);
+
+  const filteredHistoryItemsWithReturnDate = useMemo<HistoryItemDisplay[]>(
+    () =>
+      filteredHistoryItems.map((item) => ({
+        ...item,
+        returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
+      })),
+    [filteredHistoryItems, holidays]
+  );
 
   const cancelRequest = useCallback(
     async (id: string) => {
@@ -373,7 +396,7 @@ export default function LeaveHistoryTables({
     [cancelRequest, resolvedAllowCancellation, openJustification]
   );
 
-  const historyColumns = useMemo<ColumnDef<HistoryItem>[]>(
+  const historyColumns = useMemo<ColumnDef<HistoryItemDisplay>[]>(
     () => [
       {
         id: "type",
@@ -391,7 +414,8 @@ export default function LeaveHistoryTables({
           </span>
         ),
       },
-      { header: "Jours", accessorKey: "days" },
+      { header: "Nb jours pris", accessorKey: "days" },
+      { header: "Date de retour", accessorKey: "returnDate" },
       {
         header: "Justificatif",
         accessorKey: "justificationFileName",
@@ -472,7 +496,7 @@ export default function LeaveHistoryTables({
         </div>
 
         <DataTable
-          data={filteredHistoryItems}
+          data={filteredHistoryItemsWithReturnDate}
           columns={historyColumns}
           searchPlaceholder={resolvedHistorySearchPlaceholder}
           onRefresh={() => window.location.reload()}

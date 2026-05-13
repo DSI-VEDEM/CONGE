@@ -6,7 +6,7 @@ import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
 import { getToken } from "@/lib/auth-client";
 import { formatDateDMY } from "@/lib/date-format";
-import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { computeReturnDate, countLeaveDaysInclusive } from "@/lib/leave-days";
 import { leaveTypeLabel } from "@/lib/leave-types";
 
 type HistoryItem = {
@@ -20,10 +20,12 @@ type HistoryItem = {
   type: string;
   startDate: string;
   endDate: string;
+  endDateRaw: string;
   status: "APPROVED" | "REJECTED" | "CANCELLED";
   decidedBy: string;
   decidedAt: string;
   days: number;
+  returnDate: string;
   year: number | null;
 };
 
@@ -55,8 +57,18 @@ function statusClass(status: HistoryItem["status"]) {
 export default function DsiDeptEmployeesHistory() {
   const [rows, setRows] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const [historyStatusFilter, setHistoryStatusFilter] = useState("ALL");
   const [historyYearFilter, setHistoryYearFilter] = useState("CURRENT");
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/holidays", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setHolidays((d?.holidays ?? []).map((h: { date: string }) => h.date)))
+      .catch(() => {});
+  }, []);
 
   const loadHistory = useCallback(async () => {
     const token = getToken();
@@ -109,6 +121,8 @@ export default function DsiDeptEmployeesHistory() {
               startRaw && endRaw
                 ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: item.type })
                 : 0,
+            endDateRaw: endRaw,
+            returnDate: "-",
             year: leaveYear,
           };
         });
@@ -140,18 +154,23 @@ export default function DsiDeptEmployeesHistory() {
 
   const filteredHistoryItems = useMemo(() => {
     const currentYear = new Date().getUTCFullYear();
-    return rows.filter((item) => {
-      const statusMatched =
-        historyStatusFilter === "ALL" ? true : item.status === historyStatusFilter;
-      if (!statusMatched) return false;
+    return rows
+      .map((item) => ({
+        ...item,
+        returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
+      }))
+      .filter((item) => {
+        const statusMatched =
+          historyStatusFilter === "ALL" ? true : item.status === historyStatusFilter;
+        if (!statusMatched) return false;
 
-      if (historyYearFilter === "ALL") return true;
-      if (historyYearFilter === "CURRENT") return item.year === currentYear;
-      const selectedYear = Number(historyYearFilter);
-      if (!Number.isInteger(selectedYear)) return true;
-      return item.year === selectedYear;
-    });
-  }, [rows, historyStatusFilter, historyYearFilter]);
+        if (historyYearFilter === "ALL") return true;
+        if (historyYearFilter === "CURRENT") return item.year === currentYear;
+        const selectedYear = Number(historyYearFilter);
+        if (!Number.isInteger(selectedYear)) return true;
+        return item.year === selectedYear;
+      });
+  }, [rows, historyStatusFilter, historyYearFilter, holidays]);
 
   const columns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
@@ -192,7 +211,8 @@ export default function DsiDeptEmployeesHistory() {
           </span>
         ),
       },
-      { header: "Jours", accessorKey: "days" },
+      { header: "Nb jours pris", accessorKey: "days" },
+      { header: "Date de retour", accessorKey: "returnDate" },
       {
         header: "Statut de la demande",
         accessorKey: "status",

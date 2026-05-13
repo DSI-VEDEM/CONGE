@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import { getToken } from "@/lib/auth-client";
 import toast from "react-hot-toast";
-import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { computeReturnDate, countLeaveDaysInclusive } from "@/lib/leave-days";
 import { leaveTypeLabel } from "@/lib/leave-types";
 
 type LeaveItem = {
@@ -25,10 +25,12 @@ type HistoryItem = {
   type: string;
   startDate: string;
   endDate: string;
+  endDateRaw: string;
   year: number | null;
   status: "APPROVED" | "REJECTED" | "CANCELLED";
   decidedAt: string;
   days: number;
+  returnDate: string;
   justificationFileName?: string | null;
   justificationMimeType?: string | null;
 };
@@ -52,12 +54,22 @@ export default function EmployeeRequests() {
   const HISTORY_PAGE_SIZE = 120;
   const [items, setItems] = useState<LeaveItem[]>([]);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const currentYear = new Date().getUTCFullYear();
   const [historyYearFilter, setHistoryYearFilter] = useState(String(currentYear));
   const [historyPage, setHistoryPage] = useState(1);
   const [historyHasNext, setHistoryHasNext] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/holidays", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setHolidays((d?.holidays ?? []).map((h: { date: string }) => h.date)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const token = getToken();
@@ -119,6 +131,8 @@ export default function EmployeeRequests() {
                   startRaw && endRaw
                     ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
                     : 0,
+                endDateRaw: endRaw,
+                returnDate: "-",
                 justificationFileName: x.justificationFileName ?? null,
                 justificationMimeType: x.justificationMimeType ?? null,
               };
@@ -149,11 +163,15 @@ export default function EmployeeRequests() {
   }, [historyItems, currentYear]);
 
   const filteredHistoryItems = useMemo(() => {
-    if (historyYearFilter === "ALL") return historyItems;
+    const base = historyItems.map((item) => ({
+      ...item,
+      returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
+    }));
+    if (historyYearFilter === "ALL") return base;
     const selectedYear = Number(historyYearFilter);
-    if (!Number.isInteger(selectedYear)) return historyItems;
-    return historyItems.filter((item) => item.year === selectedYear);
-  }, [historyItems, historyYearFilter]);
+    if (!Number.isInteger(selectedYear)) return base;
+    return base.filter((item) => item.year === selectedYear);
+  }, [historyItems, historyYearFilter, holidays]);
 
   const cancelRequest = async (id: string) => {
     const token = getToken();
@@ -284,7 +302,8 @@ export default function EmployeeRequests() {
           </span>
         ),
       },
-      { header: "Jours", accessorKey: "days" },
+      { header: "Nb jours pris", accessorKey: "days" },
+      { header: "Date de retour", accessorKey: "returnDate" },
       {
         header: "Justificatif",
         accessorKey: "justificationFileName",

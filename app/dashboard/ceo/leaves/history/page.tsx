@@ -6,7 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
 import { getToken } from "@/lib/auth-client";
-import { countLeaveDaysInclusive } from "@/lib/leave-days";
+import { computeReturnDate, countLeaveDaysInclusive } from "@/lib/leave-days";
 import { leaveTypeLabel } from "@/lib/leave-types";
 
 type HistoryItem = {
@@ -20,10 +20,12 @@ type HistoryItem = {
   type: string;
   startDate: string;
   endDate: string;
+  endDateRaw: string;
   year: number | null;
   status: string;
   decidedAt: string;
   days: number;
+  returnDate: string;
 };
 
 function statusLabel(status: string) {
@@ -47,9 +49,19 @@ export default function CeoLeavesHistory() {
   const currentYear = new Date().getUTCFullYear();
   const [rows, setRows] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [holidays, setHolidays] = useState<string[]>([]);
   const [historyYearFilter, setHistoryYearFilter] = useState(String(currentYear));
   const [historyPage, setHistoryPage] = useState(1);
   const [historyHasNext, setHistoryHasNext] = useState(false);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/holidays", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => setHolidays((d?.holidays ?? []).map((h: { date: string }) => h.date)))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const token = getToken();
@@ -112,6 +124,8 @@ export default function CeoLeavesHistory() {
                   startRaw && endRaw
                     ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
                     : 0,
+                endDateRaw: endRaw,
+                returnDate: "-",
               };
             });
           setRows(mapped);
@@ -131,11 +145,15 @@ export default function CeoLeavesHistory() {
   );
 
   const filteredRows = useMemo(() => {
-    if (historyYearFilter === "ALL") return rows;
+    const base = rows.map((item) => ({
+      ...item,
+      returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
+    }));
+    if (historyYearFilter === "ALL") return base;
     const selectedYear = Number(historyYearFilter);
-    if (!Number.isInteger(selectedYear)) return rows;
-    return rows.filter((item) => item.year === selectedYear);
-  }, [rows, historyYearFilter]);
+    if (!Number.isInteger(selectedYear)) return base;
+    return base.filter((item) => item.year === selectedYear);
+  }, [rows, historyYearFilter, holidays]);
 
   const columns = useMemo<ColumnDef<HistoryItem>[]>(
     () => [
@@ -172,7 +190,8 @@ export default function CeoLeavesHistory() {
           </span>
         ),
       },
-      { header: "Jours", accessorKey: "days" },
+      { header: "Nb jours pris", accessorKey: "days" },
+      { header: "Date de retour", accessorKey: "returnDate" },
       {
         header: "Statut",
         accessorKey: "status",
