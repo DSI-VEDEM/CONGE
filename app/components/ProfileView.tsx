@@ -8,7 +8,6 @@ import { getEmployee, getToken } from "@/lib/auth-client";
 import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
 import { adjacencyGraphs, dictionary as commonDictionary } from "@zxcvbn-ts/language-common";
 import { dictionary as frDictionary } from "@zxcvbn-ts/language-fr";
-import { isCompletePhone } from "@/lib/phone";
 import EmployeeDocumentsSection from "@/app/components/EmployeeDocumentsSection";
 import type { DocumentTypeItem } from "@/lib/document-types";
 import { formatDateDMY } from "@/lib/date-format";
@@ -28,6 +27,13 @@ import {
   profilePhotoFileError,
   profilePhotoSaveErrorMessage,
 } from "@/lib/profile-photo";
+import {
+  firstProfileValidationError,
+  isProfileField,
+  validateProfileUpdateInput,
+  type ProfileField,
+  type ProfileValidationErrors,
+} from "@/lib/profile-validation";
 
 zxcvbnOptions.setOptions({
   graphs: adjacencyGraphs,
@@ -124,6 +130,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ProfileValidationErrors>({});
   const [departmentNames, setDepartmentNames] = useState<Record<string, string>>({});
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -241,6 +248,18 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   }, [employee, draft]);
   const isSaveDisabled = isSaving || (!hasChanges && !password);
 
+  const setFieldError = (field: ProfileField, message: string | null) => {
+    setFieldErrors((current) => {
+      if (!message && !current[field]) return current;
+      const next = { ...current };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  };
+
+  const clearFieldError = (field: ProfileField) => setFieldError(field, null);
+
   useEffect(() => {
     if (!isEditing) return;
     console.info("Profile edit modal visible", { employeeId: employee?.id ?? "unknown" });
@@ -259,6 +278,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     setShowPassword(false);
     setPasswordError(null);
     setPhotoError(null);
+    setFieldErrors({});
     setIsEditing(false);
   };
 
@@ -267,6 +287,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     const fileError = profilePhotoFileError(file);
     if (fileError) {
       setPhotoError(fileError);
+      setFieldError("profilePhotoUrl", fileError);
       toast.error(fileError);
       return;
     }
@@ -274,15 +295,19 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result.startsWith("data:image/")) {
-        setPhotoError("Format d'image invalide.");
+        const message = "Format d'image invalide.";
+        setPhotoError(message);
+        setFieldError("profilePhotoUrl", message);
         return;
       }
       if (isProfilePhotoDataUrlTooLarge(result)) {
         setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+        setFieldError("profilePhotoUrl", PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         return;
       }
       setPhotoError(null);
+      clearFieldError("profilePhotoUrl");
       setDraft((prev) => (prev ? { ...prev, profilePhotoUrl: result } : prev));
     };
     reader.onerror = () => setPhotoError("Erreur lors du chargement de l'image.");
@@ -338,31 +363,25 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   };
 
   const saveEdit = async () => {
-    if (password) {
-      if (password.length < 6) {
-        setPasswordError("Le mot de passe doit contenir au moins 6 caractères.");
-        return;
-      }
-      if (pw.score < 2) {
-        setPasswordError("Mot de passe trop faible. Renforcez-le avant de continuer.");
-        return;
-      }
-    }
     if (!draft) {
       toast.error("Profil indisponible.");
       return;
     }
-    if (draft.phone && !isCompletePhone(draft.phone)) {
-      setPasswordError("Numéro invalide. Format attendu : +225 00 00 00 00 00 (indicatif modifiable)");
-      return;
+    const errors = validateProfileUpdateInput({ ...draft, password });
+    if (password && !errors.password && pw.score < 2) {
+      errors.password = "Mot de passe trop faible. Renforcez-le avant de continuer.";
     }
-    if (isProfilePhotoDataUrlTooLarge(draft.profilePhotoUrl)) {
-      setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
-      toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+    const firstError = firstProfileValidationError(errors);
+    if (firstError) {
+      setFieldErrors(errors);
+      setPasswordError(errors.password ?? null);
+      if (errors.profilePhotoUrl) setPhotoError(errors.profilePhotoUrl);
+      toast.error(firstError);
       return;
     }
     setPasswordError(null);
     setPhotoError(null);
+    setFieldErrors({});
     if (!hasChanges && !password) {
       toast("Aucune modification détectée.", { icon: "ℹ️" });
       return;
@@ -404,9 +423,12 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           "Impossible de mettre à jour le profil."
         );
         toast.error(errorMessage, { id: toastId });
-        if (errorMessage.toLowerCase().includes("photo")) {
+        if (isProfileField(data?.field)) {
+          setFieldError(data.field, errorMessage);
+        }
+        if (data?.field === "profilePhotoUrl" || errorMessage.toLowerCase().includes("photo")) {
           setPhotoError(errorMessage);
-        } else {
+        } else if (data?.field === "password" || !isProfileField(data?.field)) {
           setPasswordError(errorMessage);
         }
         return;
@@ -423,7 +445,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       const message = draft.profilePhotoUrl
         ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."
         : "Erreur réseau lors de l'envoi.";
-      if (draft.profilePhotoUrl) setPhotoError(message);
+      if (draft.profilePhotoUrl) {
+        setPhotoError(message);
+        setFieldError("profilePhotoUrl", message);
+      }
       toast.error(message, { id: toastId });
     } finally {
       setIsSaving(false);
@@ -521,7 +546,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                 ? "Profil complet."
                 : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
             </div>
-            {photoError ? <div className="text-xs text-red-600 mt-1">{photoError}</div> : null}
+            {fieldErrors.profilePhotoUrl || photoError ? (
+              <div className="text-xs text-red-600 mt-1">
+                {fieldErrors.profilePhotoUrl ?? photoError}
+              </div>
+            ) : null}
           </div>
           {draft.profilePhotoUrl ? (
             <div>
@@ -736,7 +765,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                           </button>
                         </div>
                       ) : null}
-                      {photoError ? <div className="text-xs text-red-600">{photoError}</div> : null}
+                      {fieldErrors.profilePhotoUrl || photoError ? (
+                        <div className="text-xs text-red-600">
+                          {fieldErrors.profilePhotoUrl ?? photoError}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -744,116 +777,171 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <div className="text-xs text-vdm-gold-600">Prénom</div>
-                    <input
-                      value={draft.firstName}
-                      onChange={(e) => setDraft({ ...draft, firstName: e.target.value })}
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                    />
-                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Nom</div>
-                    <input
-                      value={draft.lastName}
-                      onChange={(e) => setDraft({ ...draft, lastName: e.target.value })}
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="text-xs text-vdm-gold-600">Adresse précise</div>
-                    <input
-                      value={draft.fullAddress ?? ""}
-                      onChange={(e) => setDraft({ ...draft, fullAddress: e.target.value })}
-                      placeholder="Rue, ville, code postal, pays"
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                    />
-                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Poste</div>
-                    <input
-                      value={draft.jobTitle ?? ""}
-                      onChange={(e) => setDraft({ ...draft, jobTitle: e.target.value })}
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                    />
-                  </div>
+	                    <input
+	                      value={draft.firstName}
+	                      onChange={(e) => {
+	                        clearFieldError("firstName");
+	                        setDraft({ ...draft, firstName: e.target.value });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.firstName)}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                    />
+	                    {fieldErrors.firstName ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</div>
+	                    ) : null}
+	                  </div>
+	                  <div>
+	                    <div className="text-xs text-vdm-gold-600">Nom</div>
+	                    <input
+	                      value={draft.lastName}
+	                      onChange={(e) => {
+	                        clearFieldError("lastName");
+	                        setDraft({ ...draft, lastName: e.target.value });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.lastName)}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                    />
+	                    {fieldErrors.lastName ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</div>
+	                    ) : null}
+	                  </div>
+	                  <div className="md:col-span-2">
+	                    <div className="text-xs text-vdm-gold-600">Adresse précise</div>
+	                    <input
+	                      value={draft.fullAddress ?? ""}
+	                      onChange={(e) => {
+	                        clearFieldError("fullAddress");
+	                        setDraft({ ...draft, fullAddress: e.target.value });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.fullAddress)}
+	                      placeholder="Rue, ville, code postal, pays"
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                    />
+	                    {fieldErrors.fullAddress ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.fullAddress}</div>
+	                    ) : null}
+	                  </div>
+	                  <div>
+	                    <div className="text-xs text-vdm-gold-600">Poste</div>
+	                    <input
+	                      value={draft.jobTitle ?? ""}
+	                      onChange={(e) => {
+	                        clearFieldError("jobTitle");
+	                        setDraft({ ...draft, jobTitle: e.target.value });
+	                      }}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                    />
+	                  </div>
                   <div>
                     <div className="text-xs text-vdm-gold-600">Téléphone</div>
                     <div className="flex gap-2">
                       <div className="w-24">
                         <input
-                          value={phone.country ? `+${phone.country}` : "+"}
-                          onChange={(e) => {
-                            const nextCountry = e.target.value.replace(/\D/g, "").slice(0, 3);
-                            setDraft({ ...draft, phone: composePhone(nextCountry, phone.local) });
-                          }}
-                          placeholder="+225"
-                          className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                        />
+	                          value={phone.country ? `+${phone.country}` : "+"}
+	                          onChange={(e) => {
+	                            const nextCountry = e.target.value.replace(/\D/g, "").slice(0, 3);
+	                            clearFieldError("phone");
+	                            setDraft({ ...draft, phone: composePhone(nextCountry, phone.local) });
+	                          }}
+	                          aria-invalid={Boolean(fieldErrors.phone)}
+	                          placeholder="+225"
+	                          className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                        />
                       </div>
-                      <input
-                        value={formatLocalPhone(phone.local)}
-                        onChange={(e) => setDraft({ ...draft, phone: composePhone(phone.country, e.target.value) })}
-                        placeholder="00 00 00 00 00"
-                        inputMode="numeric"
-                        className="flex-1 border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Numéro CNPS</div>
-                    <input
-                      value={draft.cnpsNumber ?? ""}
-                      onChange={(e) => setDraft({ ...draft, cnpsNumber: e.target.value })}
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                      placeholder="Ex : CNPS-123456"
-                    />
-                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Situation matrimoniale</div>
-                    <select
-                      value={draft.maritalStatus ?? ""}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          maritalStatus: isMaritalStatus(e.target.value) ? e.target.value : null,
-                        })
-                      }
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
-                    >
+	                      <input
+	                        value={formatLocalPhone(phone.local)}
+	                        onChange={(e) => {
+	                          clearFieldError("phone");
+	                          setDraft({ ...draft, phone: composePhone(phone.country, e.target.value) });
+	                        }}
+	                        aria-invalid={Boolean(fieldErrors.phone)}
+	                        placeholder="00 00 00 00 00"
+	                        inputMode="numeric"
+	                        className="flex-1 border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                      />
+	                    </div>
+	                    {fieldErrors.phone ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.phone}</div>
+	                    ) : null}
+	                  </div>
+	                  <div>
+	                    <div className="text-xs text-vdm-gold-600">Numéro CNPS</div>
+	                    <input
+	                      value={draft.cnpsNumber ?? ""}
+	                      onChange={(e) => {
+	                        clearFieldError("cnpsNumber");
+	                        setDraft({ ...draft, cnpsNumber: e.target.value });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.cnpsNumber)}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                      placeholder="Ex : CNPS-123456"
+	                    />
+	                    {fieldErrors.cnpsNumber ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.cnpsNumber}</div>
+	                    ) : null}
+	                  </div>
+	                  <div>
+	                    <div className="text-xs text-vdm-gold-600">Situation matrimoniale</div>
+	                    <select
+	                      value={draft.maritalStatus ?? ""}
+	                      onChange={(e) => {
+	                        clearFieldError("maritalStatus");
+	                        setDraft({
+	                          ...draft,
+	                          maritalStatus: isMaritalStatus(e.target.value) ? e.target.value : null,
+	                        });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.maritalStatus)}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
+	                    >
                       <option value="">Sélectionner</option>
                       {MARITAL_STATUSES.map((status) => (
                         <option key={status} value={status}>
                           {MARITAL_STATUS_LABELS[status]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Nombre d'enfants</div>
+	                        </option>
+	                      ))}
+	                    </select>
+	                    {fieldErrors.maritalStatus ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.maritalStatus}</div>
+	                    ) : null}
+	                  </div>
+	                  <div>
+	                    <div className="text-xs text-vdm-gold-600">Nombre d'enfants</div>
                     <input
                       type="number"
                       min={0}
                       step={1}
                       value={typeof draft.childrenCount === "number" ? String(draft.childrenCount) : ""}
-                      onChange={(e) => {
-                        const normalized = e.target.value.replace(/\D/g, "");
-                        setDraft({
-                          ...draft,
-                          childrenCount: normalized === "" ? null : Number(normalized),
-                        });
-                      }}
-                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
+	                      onChange={(e) => {
+	                        const normalized = e.target.value.replace(/\D/g, "");
+	                        clearFieldError("childrenCount");
+	                        setDraft({
+	                          ...draft,
+	                          childrenCount: normalized === "" ? null : Number(normalized),
+	                        });
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.childrenCount)}
+	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+	                      placeholder="0"
+	                    />
+	                    {fieldErrors.childrenCount ? (
+	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</div>
+	                    ) : null}
+	                  </div>
+	                </div>
                 <div>
                   <div className="text-xs text-vdm-gold-600">Mot de passe</div>
                   <div className="relative">
                     <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Nouveau mot de passe"
+	                      type={showPassword ? "text" : "password"}
+	                      value={password}
+	                      onChange={(e) => {
+	                        clearFieldError("password");
+	                        setPasswordError(null);
+	                        setPassword(e.target.value);
+	                      }}
+	                      aria-invalid={Boolean(fieldErrors.password || passwordError)}
+	                      placeholder="Nouveau mot de passe"
                       autoComplete="new-password"
                       className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
                     />
@@ -880,7 +968,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                       {["très faible", "faible", "moyenne", "bonne", "très bonne"][pw.score] ?? "—"}
                     </span>
                   </div>
-                  {passwordError ? <div className="mt-2 text-xs text-red-600">{passwordError}</div> : null}
+	                  {fieldErrors.password || passwordError ? (
+	                    <div className="mt-2 text-xs text-red-600">
+	                      {fieldErrors.password ?? passwordError}
+	                    </div>
+	                  ) : null}
                 </div>
               </div>
               <div className="flex justify-end gap-2 border-t border-vdm-gold-100 px-6 py-4">

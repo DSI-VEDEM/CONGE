@@ -11,7 +11,6 @@ import {
   routeForRole,
   type EmployeeSession,
 } from "@/lib/auth-client";
-import { isCompletePhone } from "@/lib/phone";
 import {
   EmployeeGender,
   EMPLOYEE_GENDER_LABELS,
@@ -29,6 +28,13 @@ import {
   profilePhotoFileError,
   profilePhotoSaveErrorMessage,
 } from "@/lib/profile-photo";
+import {
+  firstProfileValidationError,
+  isProfileField,
+  validateOnboardingProfileInput,
+  type ProfileField,
+  type ProfileValidationErrors,
+} from "@/lib/profile-validation";
 
 type EditableEmployee = EmployeeSession & {
   jobTitle?: string | null;
@@ -94,6 +100,19 @@ export default function OnboardingPage() {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ProfileValidationErrors>({});
+
+  const setFieldError = (field: ProfileField, message: string | null) => {
+    setFieldErrors((current) => {
+      if (!message && !current[field]) return current;
+      const next = { ...current };
+      if (message) next[field] = message;
+      else delete next[field];
+      return next;
+    });
+  };
+
+  const clearFieldError = (field: ProfileField) => setFieldError(field, null);
 
   useEffect(() => {
     const token = getToken();
@@ -148,6 +167,7 @@ export default function OnboardingPage() {
     const fileError = profilePhotoFileError(file);
     if (fileError) {
       setPhotoError(fileError);
+      setFieldError("profilePhotoUrl", fileError);
       toast.error(fileError);
       return;
     }
@@ -155,15 +175,19 @@ export default function OnboardingPage() {
     reader.onload = () => {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result.startsWith("data:image/")) {
-        setPhotoError("Format d'image invalide.");
+        const message = "Format d'image invalide.";
+        setPhotoError(message);
+        setFieldError("profilePhotoUrl", message);
         return;
       }
       if (isProfilePhotoDataUrlTooLarge(result)) {
         setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+        setFieldError("profilePhotoUrl", PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         return;
       }
       setPhotoError(null);
+      clearFieldError("profilePhotoUrl");
       setDraft((prev) =>
         prev ? { ...prev, profilePhotoUrl: result } : prev
       );
@@ -176,52 +200,20 @@ export default function OnboardingPage() {
   const saveOnboarding = async () => {
     if (!draft) return;
 
-    if (!draft.phone || !String(draft.phone).trim()) {
-      toast.error("Numéro de téléphone obligatoire.");
-      return;
-    }
-    if (!isCompletePhone(draft.phone)) {
-      toast.error(
-        "Numéro invalide. Format attendu : +225 00 00 00 00 00 (indicatif modifiable)"
-      );
-      return;
-    }
-    if (!draft.fullAddress || !String(draft.fullAddress).trim()) {
-      toast.error("Adresse précise obligatoire.");
-      return;
-    }
     const hireDate = toDateInputValue(currentHireDateValue(draft));
-    if (!hireDate || !String(hireDate).trim()) {
-      toast.error("Date d'entrée dans l'entreprise obligatoire.");
+    const errors = validateOnboardingProfileInput({
+      ...draft,
+      hireDate,
+      companyEntryDate: hireDate,
+    });
+    if (photoError) errors.profilePhotoUrl = photoError;
+    const firstError = firstProfileValidationError(errors);
+    if (firstError) {
+      setFieldErrors(errors);
+      toast.error(firstError);
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(hireDate))) {
-      toast.error(
-        "Date d'entrée invalide. Utilisez le format YYYY-MM-DD."
-      );
-      return;
-    }
-    if (!draft.cnpsNumber || !String(draft.cnpsNumber).trim()) {
-      toast.error("Numéro CNPS obligatoire.");
-      return;
-    }
-    if (!draft.maritalStatus) {
-      toast.error("Statut matrimonial obligatoire.");
-      return;
-    }
-    if (
-      draft.childrenCount === null ||
-      draft.childrenCount === undefined ||
-      !Number.isInteger(draft.childrenCount) ||
-      draft.childrenCount < 0
-    ) {
-      toast.error("Nombre d'enfants invalide ou manquant.");
-      return;
-    }
-    if (isProfilePhotoDataUrlTooLarge(draft.profilePhotoUrl)) {
-      toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
-      return;
-    }
+    setFieldErrors({});
 
     const token = getToken();
     if (!token) return;
@@ -236,6 +228,7 @@ export default function OnboardingPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          onboarding: true,
           firstName: draft.firstName,
           lastName: draft.lastName,
           jobTitle: draft.jobTitle ?? null,
@@ -257,7 +250,10 @@ export default function OnboardingPage() {
           data?.error,
           "Impossible de finaliser l'onboarding."
         );
-        if (errorMessage.toLowerCase().includes("photo")) {
+        if (isProfileField(data?.field)) {
+          setFieldError(data.field, errorMessage);
+        }
+        if (data?.field === "profilePhotoUrl" || errorMessage.toLowerCase().includes("photo")) {
           setPhotoError(errorMessage);
         }
         toast.error(errorMessage, { id: t });
@@ -278,7 +274,10 @@ export default function OnboardingPage() {
       const message = draft.profilePhotoUrl
         ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."
         : "Erreur réseau lors de l'envoi du profil.";
-      if (draft.profilePhotoUrl) setPhotoError(message);
+      if (draft.profilePhotoUrl) {
+        setPhotoError(message);
+        setFieldError("profilePhotoUrl", message);
+      }
       toast.error(message, { id: t });
     } finally {
       setIsSaving(false);
@@ -287,23 +286,6 @@ export default function OnboardingPage() {
 
   if (!draft) return null;
   const phone = parsePhone(draft.phone);
-  const hireDateValue = toDateInputValue(currentHireDateValue(draft));
-  const childrenCountValid =
-    typeof draft.childrenCount === "number" &&
-    Number.isInteger(draft.childrenCount) &&
-    draft.childrenCount >= 0;
-  const canFinalize =
-    Boolean(String(draft.firstName ?? "").trim()) &&
-    Boolean(String(draft.lastName ?? "").trim()) &&
-    Boolean(draft.gender) &&
-    Boolean(draft.maritalStatus) &&
-    !photoError &&
-    Boolean(String(draft.phone ?? "").trim()) &&
-    isCompletePhone(String(draft.phone ?? "")) &&
-    Boolean(String(draft.fullAddress ?? "").trim()) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(hireDateValue) &&
-    Boolean(String(draft.cnpsNumber ?? "").trim()) &&
-    childrenCountValid;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -322,21 +304,35 @@ export default function OnboardingPage() {
             <div className="text-xs text-vdm-gold-600 mb-1">Prénom</div>
             <input
               value={draft.firstName ?? ""}
-              onChange={(e) =>
-                setDraft({ ...draft, firstName: e.target.value })
-              }
+              onChange={(e) => {
+                clearFieldError("firstName");
+                setDraft({ ...draft, firstName: e.target.value });
+              }}
+              aria-invalid={Boolean(fieldErrors.firstName)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
             />
+            {fieldErrors.firstName ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.firstName}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">Nom</div>
             <input
               value={draft.lastName ?? ""}
-              onChange={(e) =>
-                setDraft({ ...draft, lastName: e.target.value })
-              }
+              onChange={(e) => {
+                clearFieldError("lastName");
+                setDraft({ ...draft, lastName: e.target.value });
+              }}
+              aria-invalid={Boolean(fieldErrors.lastName)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
             />
+            {fieldErrors.lastName ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.lastName}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -346,11 +342,13 @@ export default function OnboardingPage() {
               value={draft.gender ?? ""}
               onChange={(e) => {
                 const next = e.target.value;
+                clearFieldError("gender");
                 setDraft({
                   ...draft,
                   gender: isEmployeeGender(next) ? (next as EmployeeGender) : null,
                 });
               }}
+              aria-invalid={Boolean(fieldErrors.gender)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm bg-white"
             >
               <option value="">Sélectionner</option>
@@ -360,14 +358,20 @@ export default function OnboardingPage() {
                 </option>
               ))}
             </select>
+            {fieldErrors.gender ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.gender}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">Poste</div>
             <input
               value={draft.jobTitle ?? ""}
-              onChange={(e) =>
-                setDraft({ ...draft, jobTitle: e.target.value })
-              }
+              onChange={(e) => {
+                clearFieldError("jobTitle");
+                setDraft({ ...draft, jobTitle: e.target.value });
+              }}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
               placeholder="Intitulé du poste"
             />
@@ -380,11 +384,13 @@ export default function OnboardingPage() {
               value={draft.maritalStatus ?? ""}
               onChange={(e) => {
                 const next = e.target.value;
+                clearFieldError("maritalStatus");
                 setDraft({
                   ...draft,
                   maritalStatus: isMaritalStatus(next) ? next : null,
                 });
               }}
+              aria-invalid={Boolean(fieldErrors.maritalStatus)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm bg-white"
             >
               <option value="">Sélectionner</option>
@@ -394,6 +400,11 @@ export default function OnboardingPage() {
                 </option>
               ))}
             </select>
+            {fieldErrors.maritalStatus ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.maritalStatus}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -405,6 +416,7 @@ export default function OnboardingPage() {
               value={draft.childrenCount ?? ""}
               onChange={(e) => {
                 const raw = e.target.value;
+                clearFieldError("childrenCount");
                 setDraft({
                   ...draft,
                   childrenCount:
@@ -412,9 +424,15 @@ export default function OnboardingPage() {
                 });
               }}
               inputMode="numeric"
+              aria-invalid={Boolean(fieldErrors.childrenCount)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
               placeholder="0"
             />
+            {fieldErrors.childrenCount ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.childrenCount}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -428,28 +446,37 @@ export default function OnboardingPage() {
                     const nextCountry = e.target.value
                       .replace(/\D/g, "")
                       .slice(0, 3);
+                    clearFieldError("phone");
                     setDraft({
                       ...draft,
                       phone: composePhone(nextCountry, phone.local),
                     });
                   }}
+                  aria-invalid={Boolean(fieldErrors.phone)}
                   className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
                   placeholder="+225"
                 />
               </div>
               <input
                 value={formatLocalPhone(phone.local)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  clearFieldError("phone");
                   setDraft({
                     ...draft,
                     phone: composePhone(phone.country, e.target.value),
-                  })
-                }
+                  });
+                }}
+                aria-invalid={Boolean(fieldErrors.phone)}
                 className="flex-1 border border-vdm-gold-200 rounded-md p-2 text-sm"
                 placeholder="00 00 00 00 00"
                 inputMode="numeric"
               />
             </div>
+            {fieldErrors.phone ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.phone}
+              </div>
+            ) : null}
           </div>
           <div className="">
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -457,12 +484,19 @@ export default function OnboardingPage() {
             </div>
             <input
               value={draft.fullAddress ?? ""}
-              onChange={(e) =>
-                setDraft({ ...draft, fullAddress: e.target.value })
-              }
+              onChange={(e) => {
+                clearFieldError("fullAddress");
+                setDraft({ ...draft, fullAddress: e.target.value });
+              }}
+              aria-invalid={Boolean(fieldErrors.fullAddress)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
               placeholder="Rue, ville, code postal, pays"
             />
+            {fieldErrors.fullAddress ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.fullAddress}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -471,15 +505,23 @@ export default function OnboardingPage() {
             <input
               type="date"
               value={toDateInputValue(currentHireDateValue(draft))}
-              onChange={(e) =>
+              onChange={(e) => {
+                clearFieldError("companyEntryDate");
+                clearFieldError("hireDate");
                 setDraft({
                   ...draft,
                   hireDate: e.target.value,
                   companyEntryDate: e.target.value,
-                })
-              }
+                });
+              }}
+              aria-invalid={Boolean(fieldErrors.companyEntryDate || fieldErrors.hireDate)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
             />
+            {fieldErrors.companyEntryDate || fieldErrors.hireDate ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.companyEntryDate ?? fieldErrors.hireDate}
+              </div>
+            ) : null}
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -487,12 +529,19 @@ export default function OnboardingPage() {
             </div>
             <input
               value={draft.cnpsNumber ?? ""}
-              onChange={(e) =>
-                setDraft({ ...draft, cnpsNumber: e.target.value })
-              }
+              onChange={(e) => {
+                clearFieldError("cnpsNumber");
+                setDraft({ ...draft, cnpsNumber: e.target.value });
+              }}
+              aria-invalid={Boolean(fieldErrors.cnpsNumber)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
               placeholder="Ex : CNPS-123456"
             />
+            {fieldErrors.cnpsNumber ? (
+              <div className="mt-1 text-xs text-red-600">
+                {fieldErrors.cnpsNumber}
+              </div>
+            ) : null}
           </div>
           <div className="md:col-span-2">
             <div className="text-xs text-vdm-gold-600 mb-1">
@@ -506,9 +555,9 @@ export default function OnboardingPage() {
               }
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm bg-white file:bg-vdm-gold-50 file:text-vdm-gold-800 file:border file:border-vdm-gold-200 file:rounded-md file:px-3 file:py-1 file:mr-3"
             />
-            {photoError ? (
+            {fieldErrors.profilePhotoUrl || photoError ? (
               <div className="mt-1 text-xs text-red-600">
-                {photoError}
+                {fieldErrors.profilePhotoUrl ?? photoError}
               </div>
             ) : null}
             {draft.profilePhotoUrl ? (
@@ -529,7 +578,7 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={saveOnboarding}
-            disabled={isSaving || !canFinalize}
+            disabled={isSaving}
             className="px-4 py-2 rounded-md bg-vdm-gold-700 text-white text-sm hover:bg-vdm-gold-800 disabled:opacity-60"
           >
             {isSaving ? "Enregistrement..." : "Finaliser Votre Espace"}
