@@ -8,6 +8,12 @@ import { norm } from "@/lib/validators";
 import { isEmployeeGender } from "@/lib/employee-gender";
 import { isMaritalStatus } from "@/lib/marital-status";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import {
+  PROFILE_PHOTO_INVALID_MESSAGE,
+  PROFILE_PHOTO_TOO_LARGE_MESSAGE,
+  isProfilePhotoDataUrl,
+  isProfilePhotoDataUrlTooLarge,
+} from "@/lib/profile-photo";
 
 /// Valide si la chaîne est une URL http(s) (utilisée pour les avatars externes).
 function isValidHttpUrl(value: string) {
@@ -17,11 +23,6 @@ function isValidHttpUrl(value: string) {
   } catch {
     return false;
   }
-}
-
-/// Permet d'acccepter les data-URI d'image pour les uploads inline.
-function isValidImageDataUrl(value: string) {
-  return /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/.test(value);
 }
 
 /// Convertit une date ISO YYYY-MM-DD en Date UTC ou null.
@@ -84,7 +85,19 @@ export async function PUT(req: Request) {
   const id = String(v.payload?.sub ?? "");
   if (!id) return jsonError("Token invalide", 401);
 
-  const body = await req.json().catch(() => ({}));
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await req.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return jsonError("Données du formulaire invalides", 400);
+    }
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return jsonError(
+      "Données du formulaire illisibles. Si une photo est jointe, elle est peut-être trop volumineuse.",
+      400
+    );
+  }
 
   const data: Record<string, unknown> = {};
 
@@ -123,8 +136,10 @@ export async function PUT(req: Request) {
     const value = norm(body?.profilePhotoUrl);
     if (!value) {
       data.profilePhotoUrl = null;
-    } else if (!isValidHttpUrl(value) && !isValidImageDataUrl(value)) {
-      return jsonError("Photo invalide (upload image requis)", 400);
+    } else if (isProfilePhotoDataUrlTooLarge(value)) {
+      return jsonError(PROFILE_PHOTO_TOO_LARGE_MESSAGE, 413);
+    } else if (!isValidHttpUrl(value) && !isProfilePhotoDataUrl(value)) {
+      return jsonError(PROFILE_PHOTO_INVALID_MESSAGE, 400);
     } else {
       data.profilePhotoUrl = value;
     }
@@ -187,36 +202,45 @@ export async function PUT(req: Request) {
     return jsonError("Aucun champ a modifier", 400);
   }
 
-  await prisma.employee.update({
-    where: { id },
-    data,
-  });
-  await syncEmployeeLeaveBalance(prisma, id);
-  const updated = await prisma.employee.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      email: true,
-      matricule: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      profilePhotoUrl: true,
-      fullAddress: true,
-      gender: true,
-      hireDate: true,
-      companyEntryDate: true,
-      cnpsNumber: true,
-      jobTitle: true,
-      role: true,
-      status: true,
-      leaveBalance: true,
-      departmentId: true,
-      serviceId: true,
-      maritalStatus: true,
-      childrenCount: true,
-    },
-  });
+  let updated;
+  try {
+    await prisma.employee.update({
+      where: { id },
+      data,
+    });
+    await syncEmployeeLeaveBalance(prisma, id);
+    updated = await prisma.employee.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        matricule: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        profilePhotoUrl: true,
+        fullAddress: true,
+        gender: true,
+        hireDate: true,
+        companyEntryDate: true,
+        cnpsNumber: true,
+        jobTitle: true,
+        role: true,
+        status: true,
+        leaveBalance: true,
+        departmentId: true,
+        serviceId: true,
+        maritalStatus: true,
+        childrenCount: true,
+      },
+    });
+  } catch (error) {
+    console.error("Erreur mise à jour profil", error);
+    return jsonError(
+      "Impossible d'enregistrer le profil. Vérifiez les informations puis réessayez.",
+      500
+    );
+  }
 
   if (!updated) return jsonError("Employé introuvable", 404);
   return NextResponse.json({ employee: updated });

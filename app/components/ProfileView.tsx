@@ -22,6 +22,12 @@ import {
   MARITAL_STATUSES,
   isMaritalStatus,
 } from "@/lib/marital-status";
+import {
+  PROFILE_PHOTO_TOO_LARGE_MESSAGE,
+  isProfilePhotoDataUrlTooLarge,
+  profilePhotoFileError,
+  profilePhotoSaveErrorMessage,
+} from "@/lib/profile-photo";
 
 zxcvbnOptions.setOptions({
   graphs: adjacencyGraphs,
@@ -40,8 +46,6 @@ type DepartmentListResponse = {
 type ServiceListResponse = {
   services?: Array<{ id: string; name?: string; type?: string }>;
 };
-const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
-
 function parsePhone(value: string | null | undefined) {
   const raw = String(value ?? "").trim();
   if (raw.startsWith("+ ")) {
@@ -260,12 +264,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
 
   const onProfilePhotoChange = (file: File | null) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setPhotoError("Le fichier doit être une image.");
-      return;
-    }
-    if (file.size > MAX_PROFILE_PHOTO_SIZE_BYTES) {
-      setPhotoError("Image trop lourde (max 2 Mo).");
+    const fileError = profilePhotoFileError(file);
+    if (fileError) {
+      setPhotoError(fileError);
+      toast.error(fileError);
       return;
     }
     const reader = new FileReader();
@@ -273,6 +275,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result.startsWith("data:image/")) {
         setPhotoError("Format d'image invalide.");
+        return;
+      }
+      if (isProfilePhotoDataUrlTooLarge(result)) {
+        setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+        toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         return;
       }
       setPhotoError(null);
@@ -349,6 +356,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       setPasswordError("Numéro invalide. Format attendu : +225 00 00 00 00 00 (indicatif modifiable)");
       return;
     }
+    if (isProfilePhotoDataUrlTooLarge(draft.profilePhotoUrl)) {
+      setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+      toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+      return;
+    }
     setPasswordError(null);
     setPhotoError(null);
     if (!hasChanges && !password) {
@@ -386,9 +398,17 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errorMessage = data?.error || "Impossible de mettre à jour le profil.";
+        const errorMessage = profilePhotoSaveErrorMessage(
+          res.status,
+          data?.error,
+          "Impossible de mettre à jour le profil."
+        );
         toast.error(errorMessage, { id: toastId });
-        setPasswordError(errorMessage);
+        if (errorMessage.toLowerCase().includes("photo")) {
+          setPhotoError(errorMessage);
+        } else {
+          setPasswordError(errorMessage);
+        }
         return;
       }
 
@@ -400,7 +420,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       setIsEditing(false);
     } catch (saveError) {
       console.error("Échec mise à jour profil", saveError);
-      toast.error("Erreur réseau lors de l'envoi.", { id: toastId });
+      const message = draft.profilePhotoUrl
+        ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."
+        : "Erreur réseau lors de l'envoi.";
+      if (draft.profilePhotoUrl) setPhotoError(message);
+      toast.error(message, { id: toastId });
     } finally {
       setIsSaving(false);
     }

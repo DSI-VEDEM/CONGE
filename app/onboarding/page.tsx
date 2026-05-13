@@ -23,12 +23,16 @@ import {
   MARITAL_STATUSES,
   isMaritalStatus,
 } from "@/lib/marital-status";
+import {
+  PROFILE_PHOTO_TOO_LARGE_MESSAGE,
+  isProfilePhotoDataUrlTooLarge,
+  profilePhotoFileError,
+  profilePhotoSaveErrorMessage,
+} from "@/lib/profile-photo";
 
 type EditableEmployee = EmployeeSession & {
   jobTitle?: string | null;
 };
-
-const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
 
 function parsePhone(value: string | null | undefined) {
   const raw = String(value ?? "").trim();
@@ -141,12 +145,10 @@ export default function OnboardingPage() {
 
   const onProfilePhotoChange = (file: File | null) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setPhotoError("Le fichier doit être une image.");
-      return;
-    }
-    if (file.size > MAX_PROFILE_PHOTO_SIZE_BYTES) {
-      setPhotoError("Image trop lourde (max 2 Mo).");
+    const fileError = profilePhotoFileError(file);
+    if (fileError) {
+      setPhotoError(fileError);
+      toast.error(fileError);
       return;
     }
     const reader = new FileReader();
@@ -154,6 +156,11 @@ export default function OnboardingPage() {
       const result = typeof reader.result === "string" ? reader.result : "";
       if (!result.startsWith("data:image/")) {
         setPhotoError("Format d'image invalide.");
+        return;
+      }
+      if (isProfilePhotoDataUrlTooLarge(result)) {
+        setPhotoError(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+        toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
         return;
       }
       setPhotoError(null);
@@ -211,6 +218,10 @@ export default function OnboardingPage() {
       toast.error("Nombre d'enfants invalide ou manquant.");
       return;
     }
+    if (isProfilePhotoDataUrlTooLarge(draft.profilePhotoUrl)) {
+      toast.error(PROFILE_PHOTO_TOO_LARGE_MESSAGE);
+      return;
+    }
 
     const token = getToken();
     if (!token) return;
@@ -241,10 +252,15 @@ export default function OnboardingPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(
-          data?.error || "Impossible de finaliser l'onboarding.",
-          { id: t }
+        const errorMessage = profilePhotoSaveErrorMessage(
+          res.status,
+          data?.error,
+          "Impossible de finaliser l'onboarding."
         );
+        if (errorMessage.toLowerCase().includes("photo")) {
+          setPhotoError(errorMessage);
+        }
+        toast.error(errorMessage, { id: t });
         return;
       }
 
@@ -258,6 +274,12 @@ export default function OnboardingPage() {
           updated.departmentType ?? null
         )
       );
+    } catch {
+      const message = draft.profilePhotoUrl
+        ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."
+        : "Erreur réseau lors de l'envoi du profil.";
+      if (draft.profilePhotoUrl) setPhotoError(message);
+      toast.error(message, { id: t });
     } finally {
       setIsSaving(false);
     }
