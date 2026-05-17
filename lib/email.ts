@@ -28,7 +28,7 @@ function getFromAddress() {
   return env("SMTP_FROM") ?? env("MAIL_FROM");
 }
 
-function isEmailEnabled() {
+export function isEmailEnabled() {
   const explicit = parseBoolean(env("EMAIL_NOTIFICATIONS_ENABLED"));
   if (explicit === false) return false;
   return Boolean(env("SMTP_HOST") && getFromAddress());

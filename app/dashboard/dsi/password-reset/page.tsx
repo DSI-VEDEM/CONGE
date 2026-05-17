@@ -120,7 +120,7 @@ export default function DsiPasswordResetPage() {
           toast.error(data.error ?? "Impossible de réinitialiser le mot de passe.");
           return;
         }
-        toast.success("Mot de passe réinitialisé (mot de passe par défaut appliqué).");
+        toast.success("Mot de passe sécurisé généré et envoyé par email à l'employé.");
         setRows((prev) => prev.filter((row) => row.id !== employeeId));
         await loadEmployees();
       } catch {
@@ -199,29 +199,20 @@ export default function DsiPasswordResetPage() {
     [resetPassword, isResettingId]
   );
 
-  const defaultPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
-
   return (
     <div className="p-6 space-y-6">
       <div>
         <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Réinitialisation des mots de passe</div>
         <div className="text-sm text-vdm-gold-700">
-          Réinitialisez les comptes de tous les employés ayant fait une demande, sans restriction de rôle ou de
-          département. Le mot de passe par défaut défini dans l’environnement sera appliqué.
+          Un mot de passe unique et sécurisé est généré pour chaque employé et envoyé directement à son adresse email.
+          Aucun administrateur n’a accès à ce mot de passe.
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-dashed border-vdm-gold-300 bg-white/40 p-4 text-center shadow-sm">
           <div className="text-xs uppercase tracking-[0.3em] text-gray-500">Demandes</div>
           <div className="text-3xl font-semibold text-vdm-gold-800">{rows.length}</div>
-          <div className="text-xs text-gray-500">à jour pour réinitialisation</div>
-        </div>
-        <div className="rounded-2xl border border-vdm-gold-200 bg-white p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-gray-400">Mot de passe par défaut</p>
-          <p className="text-sm font-semibold text-gray-800 mt-1">
-            <span className="font-mono text-xs text-vdm-gold-700">{defaultPassword}</span>
-          </p>
-          <p className="text-xs text-gray-500 mt-2">Appliquez-le puis invitez l'employé à changer son mot de passe.</p>
+          <div className="text-xs text-gray-500">en attente de réinitialisation</div>
         </div>
         <div className="rounded-2xl border border-vdm-gold-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-gray-400">

@@ -8,10 +8,9 @@ import { jsonError, jsonServerError } from "@/lib/auth";
 import { requireAuth } from "@/lib/leave-requests";
 import { isDsiAdmin } from "@/lib/dsiAdmin";
 import { norm } from "@/lib/validators";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, isEmailEnabled } from "@/lib/email";
 import type { NotificationCategory } from "@/generated/prisma/client";
 
-/// Génère un mot de passe temporaire à 16 caractères, alphanumérique + symboles sûrs.
 function generateTemporaryPassword(length = 16): string {
   // Alphabet sans caractères ambigus (0/O, 1/l/I)
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*?";
@@ -24,8 +23,6 @@ function generateTemporaryPassword(length = 16): string {
 }
 
 export async function POST(req: Request) {
-  /// Réinitialise le mot de passe d'un employé : génère un mot de passe aléatoire,
-  /// l'envoie par email, et force le changement à la prochaine connexion.
   try {
     const authRes = requireAuth(req);
     if (!authRes.ok) return authRes.error;
@@ -34,6 +31,14 @@ export async function POST(req: Request) {
     const actorIsAdmin = await isDsiAdmin(actorId);
     if (!actorIsAdmin) {
       return jsonError("Accès refusé (admin DSI requis)", 403);
+    }
+
+    // SMTP obligatoire : le mot de passe ne doit jamais être visible par l'admin.
+    if (!isEmailEnabled()) {
+      return jsonError(
+        "La configuration SMTP est requise. Le mot de passe est généré aléatoirement et envoyé uniquement par email — aucun administrateur ne peut y accéder.",
+        503
+      );
     }
 
     const body = await req.json().catch(() => ({}));
@@ -50,13 +55,33 @@ export async function POST(req: Request) {
       return jsonError("Employé introuvable", 404);
     }
 
-    // Génère un mot de passe aléatoire fort, le hache et stocke
     const temporaryPassword = generateTemporaryPassword(16);
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    // Le champ `mustChangePassword` a été ajouté au schéma Prisma.
-    // Lance `npx prisma generate` après pull pour mettre à jour les types,
-    // puis supprime le cast ci-dessous.
+    const fullName = [target.firstName, target.lastName].filter(Boolean).join(" ").trim() || target.email;
+
+    // Envoi d'abord — si l'email échoue, la DB n'est pas modifiée.
+    await sendEmail({
+      to: target.email,
+      subject: "Réinitialisation de votre mot de passe — VDM Congés",
+      text: `Bonjour ${fullName},
+
+Votre mot de passe a été réinitialisé par un administrateur DSI.
+Mot de passe temporaire : ${temporaryPassword}
+
+Pour des raisons de sécurité, vous devrez le changer immédiatement à votre prochaine connexion.
+Ce mot de passe n'est connu que de vous — aucun administrateur n'y a accès.
+
+Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement votre administrateur.`,
+      html: `<p>Bonjour <strong>${fullName}</strong>,</p>
+<p>Votre mot de passe a été réinitialisé par un administrateur DSI.</p>
+<p>Mot de passe temporaire&nbsp;: <strong style="font-family:monospace;font-size:1.1em">${temporaryPassword}</strong></p>
+<p>Pour des raisons de sécurité, vous devrez le changer immédiatement à votre prochaine connexion.<br>
+Ce mot de passe n'est connu que de vous — aucun administrateur n'y a accès.</p>
+<p style="color:#888">Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement votre administrateur.</p>`,
+    });
+
+    // Email confirmé envoyé : mise à jour de la DB.
     const resetData: Record<string, unknown> = {
       password: hashedPassword,
       passwordResetRequested: false,
@@ -67,41 +92,15 @@ export async function POST(req: Request) {
       data: resetData as Parameters<typeof prisma.employee.update>[0]["data"],
     });
 
-    // Envoi du mot de passe temporaire à l'employé par email (canal hors application).
-    // Si SMTP n'est pas configuré, sendEmail ne fait rien — un admin devra communiquer le mot de passe.
-    const fullName = [target.firstName, target.lastName].filter(Boolean).join(" ").trim() || target.email;
-    const emailText = `Bonjour ${fullName},
-
-Votre mot de passe a été réinitialisé par un administrateur DSI.
-Mot de passe temporaire : ${temporaryPassword}
-
-Pour des raisons de sécurité, vous devrez le changer immédiatement à votre prochaine connexion.
-
-Si vous n'êtes pas à l'origine de cette demande, contactez immédiatement votre administrateur.`;
-
-    try {
-      await sendEmail({
-        to: target.email,
-        subject: "Réinitialisation de votre mot de passe",
-        text: emailText,
-      });
-    } catch (mailErr) {
-      // L'envoi d'email peut échouer (SMTP down) : on log et on continue.
-      // L'admin saura que le mot de passe doit être communiqué autrement.
-      console.error("[auth/reset-password] envoi email échoué", mailErr);
-    }
-
     await prisma.notification.create({
       data: {
         title: "Mot de passe réinitialisé",
-        body: "Votre mot de passe a été réinitialisé par un administrateur DSI. Consultez votre email pour récupérer le mot de passe temporaire, puis changez-le immédiatement après connexion.",
+        body: "Votre mot de passe a été réinitialisé. Consultez votre email pour récupérer votre mot de passe temporaire et changez-le immédiatement après connexion.",
         category: "INFO" as NotificationCategory,
         employeeId,
         targetRole: "EMPLOYEE",
         global: false,
-        metadata: {
-          adminId: actorId,
-        },
+        metadata: { adminId: actorId },
       },
     });
 
