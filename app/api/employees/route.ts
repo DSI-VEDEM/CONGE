@@ -8,6 +8,7 @@ import { norm } from "@/lib/validators";
 import { syncAllActiveEmployeesLeaveBalance } from "@/lib/leave-balance";
 import * as employeesService from "@/lib/services/employees.service";
 import { serviceErrorToResponse } from "@/lib/services/service-error";
+import { logError } from "@/lib/logger";
 
 export async function GET(req: Request) {
   const v = verifyJwt(req);
@@ -21,49 +22,61 @@ export async function GET(req: Request) {
     await syncAllActiveEmployeesLeaveBalance();
   }
 
-  // Note : GET conservé hors service pour éviter de toucher au chemin existant ;
-  // la migration progressive vers `employeesService.listEmployees()` est triviale
-  // une fois la couche `repositories/` étendue avec les sync de soldes.
-  const employees = await prisma.employee.findMany({
-    where: q
-      ? {
-          OR: [
-            { email: { contains: q, mode: "insensitive" } },
-            { firstName: { contains: q, mode: "insensitive" } },
-            { lastName: { contains: q, mode: "insensitive" } },
-            { matricule: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
-    select: {
-      id: true,
-      email: true,
-      matricule: true,
-      firstName: true,
-      lastName: true,
-      profilePhotoUrl: true,
-      jobTitle: true,
-      role: true,
-      status: true,
-      leaveBalance: true,
-      leaveBalanceAdjustment: true,
-      firstYearLeaveUsedDays: true,
-      firstYearLeaveUsedYear: true,
-      hireDate: true,
-      companyEntryDate: true,
-      departmentId: true,
-      serviceId: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Pagination : ?take=100 (max 300), ?skip=0
+  const DEFAULT_TAKE = 100;
+  const MAX_TAKE = 300;
+  const takeRaw = Number(url.searchParams.get("take") ?? DEFAULT_TAKE);
+  const skipRaw = Number(url.searchParams.get("skip") ?? 0);
+  const take = Math.min(MAX_TAKE, Math.max(1, Number.isFinite(takeRaw) ? takeRaw : DEFAULT_TAKE));
+  const skip = Math.max(0, Number.isFinite(skipRaw) ? skipRaw : 0);
+
+  const where = q
+    ? {
+        OR: [
+          { email: { contains: q, mode: "insensitive" as const } },
+          { firstName: { contains: q, mode: "insensitive" as const } },
+          { lastName: { contains: q, mode: "insensitive" as const } },
+          { matricule: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        matricule: true,
+        firstName: true,
+        lastName: true,
+        profilePhotoUrl: true,
+        jobTitle: true,
+        role: true,
+        status: true,
+        leaveBalance: true,
+        leaveBalanceAdjustment: true,
+        firstYearLeaveUsedDays: true,
+        firstYearLeaveUsedYear: true,
+        hireDate: true,
+        companyEntryDate: true,
+        departmentId: true,
+        serviceId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.employee.count({ where }),
+  ]);
 
   const employeesWithAnnualBalance = employees.map((employee) => ({
     ...employee,
     annualLeaveBalance: Number(employee.leaveBalance ?? 0),
   }));
 
-  return NextResponse.json({ employees: employeesWithAnnualBalance });
+  return NextResponse.json({ employees: employeesWithAnnualBalance, total, take, skip });
 }
 
 export async function POST(req: Request) {
@@ -98,7 +111,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ employee }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[employees] POST erreur", e);
+    logError("employees:POST", e, "création employé : erreur serveur");
     return serviceErrorToResponse(e);
   }
 }

@@ -18,12 +18,7 @@ const DOCUMENT_TYPES = new Set([
   "GEOGRAPHIC_LOCATION",
   "CONTRACT",
 ]);
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
+const ALLOWED_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 const DATA_URL_RE = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_URL_LENGTH = 12 * 1024 * 1024;
 const SPOUSE_TYPE = "SPOUSE_BIRTH_CERTIFICATE";
@@ -32,7 +27,8 @@ const CHILD_TYPE = "CHILD_BIRTH_CERTIFICATE";
 type Ctx = { params: Promise<{ id: string }> };
 
 function parsePositiveIntResult(value: unknown) {
-  if (value == null || String(value).trim() === "") return { provided: false as const, value: null as number | null };
+  if (value == null || String(value).trim() === "")
+    return { provided: false as const, value: null as number | null };
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) return { provided: true as const, value: null as number | null };
   return { provided: true as const, value: n };
@@ -99,10 +95,12 @@ export async function PUT(req: Request, ctx: Ctx) {
   const body = await req.json().catch(() => ({}));
   const nextType = norm(body?.type) || existing.type;
   const hasContractDocumentTypeParam = Object.prototype.hasOwnProperty.call(body, "contractDocumentTypeId");
-  const providedContractDocumentTypeId = hasContractDocumentTypeParam ? norm(body?.contractDocumentTypeId) || null : null;
+  const providedContractDocumentTypeId = hasContractDocumentTypeParam
+    ? norm(body?.contractDocumentTypeId) || null
+    : null;
   let nextContractDocumentTypeId = hasContractDocumentTypeParam
     ? providedContractDocumentTypeId
-    : existing.contractDocumentTypeId ?? null;
+    : (existing.contractDocumentTypeId ?? null);
   if (!DOCUMENT_TYPES.has(nextType)) return jsonError("Type de document invalide", 400);
   const nextIsContractType = nextType === "CONTRACT";
   if (actorRole === "CEO" && !nextIsContractType) {
@@ -115,7 +113,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   const needsRelated = nextType === SPOUSE_TYPE || nextType === CHILD_TYPE;
   const nextRelatedNameRaw = Object.prototype.hasOwnProperty.call(body, "relatedPersonName")
     ? norm(body?.relatedPersonName) || null
-    : existing.relatedPersonName ?? null;
+    : (existing.relatedPersonName ?? null);
 
   const nextNeedsValidityDate = documentRequiresValidityDate(nextType as DocumentType);
   const hasValidUntilParam = Object.prototype.hasOwnProperty.call(body, "validUntil");
@@ -201,45 +199,45 @@ export async function PUT(req: Request, ctx: Ctx) {
     nextFileDataUrl = incomingFileDataUrl;
   }
 
-    const updated = await prisma.employeeDocument.update({
-      where: { id },
-      data: {
-        type: nextType as
-          | "ID_CARD"
-          | "DRIVING_LICENSE"
-          | "BIRTH_CERTIFICATE"
-          | "SPOUSE_BIRTH_CERTIFICATE"
-          | "CHILD_BIRTH_CERTIFICATE"
-          | "CURRICULUM_VITAE"
-          | "COVER_LETTER"
-          | "GEOGRAPHIC_LOCATION"
-          | "CONTRACT",
-        relatedPersonName: needsRelated ? nextRelatedNameRaw : null,
-        childOrder: nextChildOrder,
-        fileName: nextFileName,
-        ...(nextMimeType && nextFileDataUrl ? { mimeType: nextMimeType, fileDataUrl: nextFileDataUrl } : {}),
-        contractDocumentTypeId: nextContractDocumentTypeId,
-        validUntil: nextValidUntil,
-      },
-      select: {
-        id: true,
-        employeeId: true,
-        type: true,
-        relatedPersonName: true,
-        childOrder: true,
-        validUntil: true,
-        contractDocumentTypeId: true,
-        contractDocumentType: {
-          select: {
-            id: true,
-            name: true,
-          },
+  const updated = await prisma.employeeDocument.update({
+    where: { id },
+    data: {
+      type: nextType as
+        | "ID_CARD"
+        | "DRIVING_LICENSE"
+        | "BIRTH_CERTIFICATE"
+        | "SPOUSE_BIRTH_CERTIFICATE"
+        | "CHILD_BIRTH_CERTIFICATE"
+        | "CURRICULUM_VITAE"
+        | "COVER_LETTER"
+        | "GEOGRAPHIC_LOCATION"
+        | "CONTRACT",
+      relatedPersonName: needsRelated ? nextRelatedNameRaw : null,
+      childOrder: nextChildOrder,
+      fileName: nextFileName,
+      ...(nextMimeType && nextFileDataUrl ? { mimeType: nextMimeType, fileDataUrl: nextFileDataUrl } : {}),
+      contractDocumentTypeId: nextContractDocumentTypeId,
+      validUntil: nextValidUntil,
+    },
+    select: {
+      id: true,
+      employeeId: true,
+      type: true,
+      relatedPersonName: true,
+      childOrder: true,
+      validUntil: true,
+      contractDocumentTypeId: true,
+      contractDocumentType: {
+        select: {
+          id: true,
+          name: true,
         },
-        fileName: true,
-        mimeType: true,
-        createdAt: true,
-        updatedAt: true,
       },
+      fileName: true,
+      mimeType: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   return NextResponse.json({ document: updated });

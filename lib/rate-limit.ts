@@ -19,10 +19,7 @@ function clientIp(req: Request): string {
  * Rate-limit en mémoire, par IP. Adapté à une instance unique (dev / petit déploiement).
  * Pour du multi-instance, remplacer par Upstash Redis ou équivalent.
  */
-export function rateLimit(
-  req: Request,
-  opts: { key: string; max: number; windowMs: number }
-) {
+export function rateLimit(req: Request, opts: { key: string; max: number; windowMs: number }) {
   const ip = clientIp(req);
   const bucketKey = `${opts.key}:${ip}`;
   const now = Date.now();

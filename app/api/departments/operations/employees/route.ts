@@ -46,10 +46,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const maxParam = Number(url.searchParams.get("maxEmployees") ?? url.searchParams.get("max"));
-  const take =
-    Number.isInteger(maxParam) && maxParam > 0
-      ? Math.min(maxParam, 120)
-      : 120;
+  const take = Number.isInteger(maxParam) && maxParam > 0 ? Math.min(maxParam, 120) : 120;
 
   const employees = await prisma.employee.findMany({
     where: {

@@ -201,10 +201,10 @@ export default function AccountantHolidaysPage() {
                         !day
                           ? "bg-transparent"
                           : isSelected
-                          ? "bg-vdm-gold-700 text-white"
-                          : isHoliday
-                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                          : "bg-white border border-vdm-gold-200 text-vdm-gold-800 hover:bg-vdm-gold-50"
+                            ? "bg-vdm-gold-700 text-white"
+                            : isHoliday
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-white border border-vdm-gold-200 text-vdm-gold-800 hover:bg-vdm-gold-50"
                       }`}
                       title={isHoliday ? "Jour férié" : "Sélectionner"}
                     >
@@ -227,33 +227,33 @@ export default function AccountantHolidaysPage() {
             </div>
 
             <div className="space-y-3">
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-vdm-gold-200 px-3 py-2 text-sm outline-none focus:border-vdm-gold-400"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 select-none">
-              <input
-                type="checkbox"
-                checked={recurring}
-                onChange={(e) => setRecurring(e.target.checked)}
-                className="h-4 w-4 accent-vdm-gold-700"
-              />
-              Chaque année (récurrent)
-            </label>
-            <div>
-              <label className="text-xs font-semibold text-gray-600">Libellé (optionnel)</label>
-              <input
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                placeholder="Ex: Fête du travail"
-                className="mt-1 w-full rounded-lg border border-vdm-gold-200 px-3 py-2 text-sm outline-none focus:border-vdm-gold-400"
-              />
-            </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Date</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-vdm-gold-200 px-3 py-2 text-sm outline-none focus:border-vdm-gold-400"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                  className="h-4 w-4 accent-vdm-gold-700"
+                />
+                Chaque année (récurrent)
+              </label>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Libellé (optionnel)</label>
+                <input
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="Ex: Fête du travail"
+                  className="mt-1 w-full rounded-lg border border-vdm-gold-200 px-3 py-2 text-sm outline-none focus:border-vdm-gold-400"
+                />
+              </div>
             </div>
           </div>
 

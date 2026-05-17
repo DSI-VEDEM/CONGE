@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 
 /// Headers de sécurité globaux appliqués à toutes les routes.
-/// CSP désactivée par défaut : l'activer après tests (Next.js a besoin
-/// d'inline scripts pour l'hydratation — préférer une CSP avec nonces).
+/// La CSP n'est PAS gérée ici : elle est dynamique (nonce par requête) et
+/// posée par `middleware.ts` à la racine.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -21,8 +21,6 @@ const securityHeaders = [
         },
       ]
     : []),
-  // TODO: activer une CSP stricte (avec nonces) une fois validée :
-  // { key: "Content-Security-Policy", value: "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-...'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" },
 ];
 
 const nextConfig: NextConfig = {

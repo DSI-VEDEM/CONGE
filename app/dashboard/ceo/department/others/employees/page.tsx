@@ -92,18 +92,18 @@ export default function CeoOthersEmployees() {
         if (departmentId) depMap[departmentId] = e.department?.name ?? e.department?.type ?? departmentId;
         if (serviceId) svcMap[serviceId] = e.service?.name ?? e.service?.type ?? serviceId;
         return {
-        id: e.id,
-        firstName: e.firstName,
-        lastName: e.lastName,
-        email: e.email,
-        profilePhotoUrl: e.profilePhotoUrl ?? null,
-        matricule: e.matricule,
-        jobTitle: e.jobTitle,
-        role: e.role ?? "EMPLOYEE",
-        status: e.status ?? "ACTIVE",
-        department: departmentId,
-        service: serviceId,
-      };
+          id: e.id,
+          firstName: e.firstName,
+          lastName: e.lastName,
+          email: e.email,
+          profilePhotoUrl: e.profilePhotoUrl ?? null,
+          matricule: e.matricule,
+          jobTitle: e.jobTitle,
+          role: e.role ?? "EMPLOYEE",
+          status: e.status ?? "ACTIVE",
+          department: departmentId,
+          service: serviceId,
+        };
       }) as EmployeeRow[];
 
       setDepartments({ ...depMap });

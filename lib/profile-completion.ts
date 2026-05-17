@@ -40,7 +40,9 @@ function hasCompanyEntryDate(employee: ProfileEmployee) {
   return hasText(employee.companyEntryDate) || hasText(employee.hireDate);
 }
 
-function summarizeRequirements(requirements: Array<{ label: string; completed: boolean }>): ProfileCompletionSummary {
+function summarizeRequirements(
+  requirements: Array<{ label: string; completed: boolean }>
+): ProfileCompletionSummary {
   return {
     completed: requirements.filter((item) => item.completed).length,
     total: requirements.length,
@@ -84,7 +86,9 @@ export function calculateProfileDocumentsCompletion(
   const missingLabels: string[] = [];
   const isMarried = employee.maritalStatus === "MARRIED";
   const childrenCount =
-    typeof employee.childrenCount === "number" && Number.isInteger(employee.childrenCount) && employee.childrenCount > 0
+    typeof employee.childrenCount === "number" &&
+    Number.isInteger(employee.childrenCount) &&
+    employee.childrenCount > 0
       ? employee.childrenCount
       : 0;
 

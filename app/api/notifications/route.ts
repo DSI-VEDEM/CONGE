@@ -4,12 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
-import type {
-  NotificationCategory,
-  EmployeeRole,
-  EmployeeStatus,
-  Prisma,
-} from "@/generated/prisma/client";
+import type { NotificationCategory, EmployeeRole, EmployeeStatus, Prisma } from "@/generated/prisma/client";
 
 const ALLOWED_CREATORS: EmployeeRole[] = ["CEO", "ACCOUNTANT"];
 
@@ -86,7 +81,7 @@ export async function POST(req: Request) {
 
   const created = await prisma.notification.createMany({
     data: recipients.map((recipient) => {
-        const base: Prisma.NotificationCreateManyInput = {
+      const base: Prisma.NotificationCreateManyInput = {
         title,
         body: message,
         category,

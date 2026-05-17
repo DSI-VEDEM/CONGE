@@ -87,7 +87,9 @@ export default function CeoOthersEmployeesHistory() {
         header: "Action",
         accessorKey: "action",
         cell: ({ row }) => (
-          <span className={`text-xs font-semibold ${row.original.action === "LEFT" ? "text-red-600" : "text-emerald-700"}`}>
+          <span
+            className={`text-xs font-semibold ${row.original.action === "LEFT" ? "text-red-600" : "text-emerald-700"}`}
+          >
             {row.original.action === "LEFT" ? "Sortie" : "Entrée"}
           </span>
         ),
@@ -100,9 +102,7 @@ export default function CeoOthersEmployeesHistory() {
 
   return (
     <div className="p-6">
-      <div className="text-xl font-semibold mb-1 text-vdm-gold-800">
-        Historique — Employés Autres
-      </div>
+      <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Historique — Employés Autres</div>
       <div className="text-sm text-vdm-gold-700 mb-4">Entrées / sorties du département.</div>
 
       <DataTable
@@ -111,7 +111,9 @@ export default function CeoOthersEmployeesHistory() {
         searchPlaceholder="Rechercher un employé..."
         onRefresh={loadHistory}
       />
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div> : null}
+      {isLoading ? (
+        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+      ) : null}
     </div>
   );
 }

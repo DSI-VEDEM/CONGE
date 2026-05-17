@@ -49,7 +49,10 @@ export default function DsiInbox() {
     if (!token) return;
     let cancelled = false;
 
-    const fetchPendingPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
+    const fetchPendingPage = async (
+      targetPage: number,
+      options: { applyResult: boolean; showLoader: boolean }
+    ) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
         const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
@@ -58,17 +61,17 @@ export default function DsiInbox() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({
-              id: x.id,
-              firstName: x.employee?.firstName ?? "",
-              lastName: x.employee?.lastName ?? "",
-              employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
-              profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
-              period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
-              status: x.status,
-              note: x.reason ?? "",
-              justificationFileName: x.justificationFileName ?? null,
-              justificationMimeType: x.justificationMimeType ?? null,
-            }));
+            id: x.id,
+            firstName: x.employee?.firstName ?? "",
+            lastName: x.employee?.lastName ?? "",
+            employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
+            profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
+            period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
+            status: x.status,
+            note: x.reason ?? "",
+            justificationFileName: x.justificationFileName ?? null,
+            justificationMimeType: x.justificationMimeType ?? null,
+          }));
           const entry = { rows: mapped, hasNext: mapped.length === PENDING_PAGE_SIZE };
           pendingPageCacheRef.current[targetPage] = entry;
           if (options.applyResult && !cancelled) {
@@ -240,9 +243,7 @@ export default function DsiInbox() {
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Demandes transmises</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">
-        Demandes provenant de la comptable pour décision.
-      </div>
+      <div className="text-sm text-vdm-gold-700 mb-4">Demandes provenant de la comptable pour décision.</div>
 
       <DataTable
         data={rows}

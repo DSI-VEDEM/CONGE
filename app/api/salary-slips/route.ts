@@ -97,7 +97,11 @@ export async function GET(req: Request) {
   }
 
   const signedOrder = [{ signedAt: "desc" as const }, { createdAt: "desc" as const }];
-  const defaultOrder = [{ year: "desc" as const }, { month: "desc" as const }, { createdAt: "desc" as const }];
+  const defaultOrder = [
+    { year: "desc" as const },
+    { month: "desc" as const },
+    { createdAt: "desc" as const },
+  ];
   const orderBy = signedOnly || (!isAccountant && !isCeo) ? signedOrder : defaultOrder;
 
   const slips = await prisma.salarySlip.findMany({
@@ -139,7 +143,15 @@ export async function POST(req: Request) {
   const fileName = norm(body?.fileName);
   const fileDataUrl = norm(body?.fileDataUrl);
 
-  if (!employeeId || !year || !Number.isInteger(month) || month < 1 || month > 12 || !fileName || !fileDataUrl) {
+  if (
+    !employeeId ||
+    !year ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12 ||
+    !fileName ||
+    !fileDataUrl
+  ) {
     return jsonError("Champs requis: employeeId, year, month, fileName, fileDataUrl", 400);
   }
   const currentYear = new Date().getFullYear();

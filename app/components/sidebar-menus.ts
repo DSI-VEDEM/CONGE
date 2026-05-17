@@ -4,8 +4,7 @@ const LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
 const LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC = Date.UTC(2027, 0, 1, 0, 0, 0, 0);
 const NOW_UTC_MS = Date.now();
 const SHOW_FIRST_YEAR_ADJUSTMENT_LINK =
-  NOW_UTC_MS >= LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC &&
-  NOW_UTC_MS < LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC;
+  NOW_UTC_MS >= LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC && NOW_UTC_MS < LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC;
 
 export const employeeMenu: SidebarSection[] = [
   { title: null, links: [{ label: "Tableau de bord", icon: "home", to: "/dashboard/employee" }] },
@@ -22,13 +21,10 @@ export const employeeMenu: SidebarSection[] = [
       { label: "Mes bulletins", icon: "clipboard", to: "/dashboard/employee/payslips" },
       { label: "Mes contrats", icon: "shield", to: "/dashboard/employee/administration/contracts" },
     ],
-    
   },
   {
     title: "Compte",
-    links: [
-      { label: "Profil", icon: "user", to: "/dashboard/employee/profile" },
-    ],
+    links: [{ label: "Profil", icon: "user", to: "/dashboard/employee/profile" }],
   },
 ];
 
@@ -44,9 +40,7 @@ export const accountantMenu: SidebarSection[] = [
   },
   {
     title: "Demandes",
-    links: [
-      { label: "Demandes reçues", icon: "clipboard", to: "/dashboard/accountant/inbox" },
-    ],
+    links: [{ label: "Demandes reçues", icon: "clipboard", to: "/dashboard/accountant/inbox" }],
   },
   {
     title: "Département DAF",
@@ -78,12 +72,24 @@ export const accountantMenu: SidebarSection[] = [
   {
     title: "Administration",
     links: [
-      { label: "Contrats à ajouter", icon: "shield", to: "/dashboard/accountant/administration/contracts/types", },
-      { label: "Documents contractuels", icon: "file-text", to: "/dashboard/accountant/administration/contracts/documents", },
+      {
+        label: "Contrats à ajouter",
+        icon: "shield",
+        to: "/dashboard/accountant/administration/contracts/types",
+      },
+      {
+        label: "Documents contractuels",
+        icon: "file-text",
+        to: "/dashboard/accountant/administration/contracts/documents",
+      },
       { label: "Jours fériés", icon: "shield", to: "/dashboard/accountant/holidays" },
       { label: "Bulletins à ajouter", icon: "shield", to: "/dashboard/accountant/payslips/imported" },
-      { label: "Bulletins employés", icon: "file-text", to: "/dashboard/accountant/payslips/imported/by-year" },
-      { label: "Documents RH employés", icon: "file-text", to: "/dashboard/accountant/documents/employees", },
+      {
+        label: "Bulletins employés",
+        icon: "file-text",
+        to: "/dashboard/accountant/payslips/imported/by-year",
+      },
+      { label: "Documents RH employés", icon: "file-text", to: "/dashboard/accountant/documents/employees" },
     ],
   },
   {
@@ -105,7 +111,11 @@ export const managerMenu: SidebarSection[] = [
     title: "Sous-direction",
     links: [
       { label: "Demandes transmises", icon: "clipboard", to: "/dashboard/manager/inbox" },
-      { label: "Historique des employés", icon: "clock", to: "/dashboard/manager/department/employees-history" },
+      {
+        label: "Historique des employés",
+        icon: "clock",
+        to: "/dashboard/manager/department/employees-history",
+      },
       { label: "Équipe", icon: "users", to: "/dashboard/manager/team" },
     ],
   },
@@ -134,24 +144,31 @@ export const ceoMenu: SidebarSection[] = [
   },
   {
     title: "Employés",
-    links: [
-      { label: "Tous les employés", icon: "users", to: "/dashboard/ceo/employees" },
-    ],
+    links: [{ label: "Tous les employés", icon: "users", to: "/dashboard/ceo/employees" }],
   },
   {
     title: "Département Autres",
     links: [
       { label: "Employés", icon: "users", to: "/dashboard/ceo/department/others/employees" },
-      { label: "Historique des employés", icon: "clock", to: "/dashboard/ceo/department/others/employees-history", },
+      {
+        label: "Historique des employés",
+        icon: "clock",
+        to: "/dashboard/ceo/department/others/employees-history",
+      },
     ],
   },
-  { title: "ADMINISTRATION", 
+  {
+    title: "ADMINISTRATION",
     links: [
       { label: "Bulletins à signer", icon: "shield", to: "/dashboard/ceo/payslips/sign" },
       { label: "Bulletins employés", icon: "file-text", to: "/dashboard/ceo/payslips/imported/by-year" },
-      { label: "Documents contractuels", icon: "file-text", to: "/dashboard/ceo/administration/contracts/documents", },
+      {
+        label: "Documents contractuels",
+        icon: "file-text",
+        to: "/dashboard/ceo/administration/contracts/documents",
+      },
       { label: "Documents RH", icon: "file-text", to: "/dashboard/ceo/documents" },
-    ], 
+    ],
   },
-  { title: "Compte", links: [{ label: "Profil", icon: "user", to: "/dashboard/ceo/profile" }], },
+  { title: "Compte", links: [{ label: "Profil", icon: "user", to: "/dashboard/ceo/profile" }] },
 ];

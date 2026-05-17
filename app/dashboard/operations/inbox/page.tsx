@@ -47,7 +47,10 @@ export default function OperationsInbox() {
     if (!token) return;
     let cancelled = false;
 
-    const fetchPendingPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
+    const fetchPendingPage = async (
+      targetPage: number,
+      options: { applyResult: boolean; showLoader: boolean }
+    ) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
         // GET /api/leave-requests/pending pour charger la page courante.

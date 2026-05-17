@@ -106,37 +106,40 @@ export default function EmployeeRequests() {
     const loadHistory = async () => {
       setIsHistoryLoading(true);
       try {
-        const res = await fetch(`/api/leave-requests/history?mine=1&page=${historyPage}&take=${HISTORY_PAGE_SIZE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/leave-requests/history?mine=1&page=${historyPage}&take=${HISTORY_PAGE_SIZE}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => {
-              const startRaw = x.startDate ?? "";
-              const endRaw = x.endDate ?? "";
-              const startRawDate = startRaw ? new Date(startRaw) : null;
-              const leaveYear =
-                startRawDate && !Number.isNaN(startRawDate.getTime()) ? startRawDate.getUTCFullYear() : null;
-              const start = formatDateDMY(startRaw);
-              const end = formatDateDMY(endRaw);
-              return {
-                id: x.id,
-                type: x.type,
-                startDate: start,
-                endDate: end,
-                year: leaveYear,
-                status: x.status,
-                decidedAt: formatDateDMY(x.decisions?.[0]?.createdAt),
-                days:
-                  startRaw && endRaw
-                    ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
-                    : 0,
-                endDateRaw: endRaw,
-                returnDate: "-",
-                justificationFileName: x.justificationFileName ?? null,
-                justificationMimeType: x.justificationMimeType ?? null,
-              };
-            });
+            const startRaw = x.startDate ?? "";
+            const endRaw = x.endDate ?? "";
+            const startRawDate = startRaw ? new Date(startRaw) : null;
+            const leaveYear =
+              startRawDate && !Number.isNaN(startRawDate.getTime()) ? startRawDate.getUTCFullYear() : null;
+            const start = formatDateDMY(startRaw);
+            const end = formatDateDMY(endRaw);
+            return {
+              id: x.id,
+              type: x.type,
+              startDate: start,
+              endDate: end,
+              year: leaveYear,
+              status: x.status,
+              decidedAt: formatDateDMY(x.decisions?.[0]?.createdAt),
+              days:
+                startRaw && endRaw
+                  ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type })
+                  : 0,
+              endDateRaw: endRaw,
+              returnDate: "-",
+              justificationFileName: x.justificationFileName ?? null,
+              justificationMimeType: x.justificationMimeType ?? null,
+            };
+          });
           setHistoryItems(mapped);
           setHistoryHasNext(mapped.length === HISTORY_PAGE_SIZE);
         }
@@ -347,9 +350,7 @@ export default function EmployeeRequests() {
         searchPlaceholder="Rechercher une demande..."
         onRefresh={() => window.location.reload()}
       />
-      {isLoading ? (
-        <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div>
-      ) : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des demandes...</div> : null}
 
       <div className="mt-8">
         <div className="text-lg font-semibold mb-1 text-vdm-gold-800">Historique</div>

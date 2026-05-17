@@ -15,7 +15,9 @@ const prismaWithNotificationEmails = prismaClient.$extends({
         const notification = await query(args);
         const createdNotifications = notificationEmailRecordsFromCreateManyData(notification);
         const notifications =
-          createdNotifications.length > 0 ? createdNotifications : notificationEmailRecordsFromCreateManyData(args.data);
+          createdNotifications.length > 0
+            ? createdNotifications
+            : notificationEmailRecordsFromCreateManyData(args.data);
         sendNotificationEmailsInBackground(prismaClient, notifications);
         return notification;
       },

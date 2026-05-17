@@ -147,9 +147,12 @@ export default function EmployeeDocumentsSection({
   const [editFileInputKey, setEditFileInputKey] = useState(0);
   const [isEditingBusy, setIsEditingBusy] = useState(false);
   const [openingDocId, setOpeningDocId] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ id: string; fileName: string; url: string; mimeType: string } | null>(
-    null
-  );
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    fileName: string;
+    url: string;
+    mimeType: string;
+  } | null>(null);
   const [deleteModalDoc, setDeleteModalDoc] = useState<EmployeeDocument | null>(null);
   const employeeFilterControl = hasGlobalAccess ? (
     <>
@@ -295,7 +298,9 @@ export default function EmployeeDocumentsSection({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return;
       const list = Array.isArray(data?.employees) ? (data.employees as EmployeeOption[]) : [];
-      setEmployees(list.filter((item) => item.role !== "CEO" && (!isEmployeesScope || item.id !== employee.id)));
+      setEmployees(
+        list.filter((item) => item.role !== "CEO" && (!isEmployeesScope || item.id !== employee.id))
+      );
     };
 
     loadEmployees();
@@ -370,20 +375,18 @@ export default function EmployeeDocumentsSection({
   );
   const availableUploadTypes = useMemo(
     () =>
-      documentTypes.filter(
-        (item) => {
-          if (item.value === "CHILD_BIRTH_CERTIFICATE" && !hasChildren) return false;
-          if (
-            item.value === "CHILD_BIRTH_CERTIFICATE" &&
-            typeof employee.childrenCount === "number" &&
-            childDocumentCount >= employee.childrenCount
-          ) {
-            return false;
-          }
-          if (item.value === "SPOUSE_BIRTH_CERTIFICATE" && !isMarried) return false;
-          return item.value === "CHILD_BIRTH_CERTIFICATE" || !uploadOwnerTypeSet.has(item.value);
+      documentTypes.filter((item) => {
+        if (item.value === "CHILD_BIRTH_CERTIFICATE" && !hasChildren) return false;
+        if (
+          item.value === "CHILD_BIRTH_CERTIFICATE" &&
+          typeof employee.childrenCount === "number" &&
+          childDocumentCount >= employee.childrenCount
+        ) {
+          return false;
         }
-      ),
+        if (item.value === "SPOUSE_BIRTH_CERTIFICATE" && !isMarried) return false;
+        return item.value === "CHILD_BIRTH_CERTIFICATE" || !uploadOwnerTypeSet.has(item.value);
+      }),
     [uploadOwnerTypeSet, documentTypes, hasChildren, isMarried, childDocumentCount, employee.childrenCount]
   );
   const effectiveSelectedType = useMemo(
@@ -394,7 +397,8 @@ export default function EmployeeDocumentsSection({
     [availableUploadTypes, selectedType]
   );
   const needsRelatedName =
-    effectiveSelectedType === "SPOUSE_BIRTH_CERTIFICATE" || effectiveSelectedType === "CHILD_BIRTH_CERTIFICATE";
+    effectiveSelectedType === "SPOUSE_BIRTH_CERTIFICATE" ||
+    effectiveSelectedType === "CHILD_BIRTH_CERTIFICATE";
   const isChildType = effectiveSelectedType === "CHILD_BIRTH_CERTIFICATE";
   const needsValidityDate = documentRequiresValidityDate(effectiveSelectedType);
   const isUploadButtonDisabled =
@@ -701,7 +705,11 @@ export default function EmployeeDocumentsSection({
         .map((item) => item.type)
     );
     return documentTypes.filter((item) => {
-      if (item.value === "SPOUSE_BIRTH_CERTIFICATE" && !isMarried && doc.type !== "SPOUSE_BIRTH_CERTIFICATE") {
+      if (
+        item.value === "SPOUSE_BIRTH_CERTIFICATE" &&
+        !isMarried &&
+        doc.type !== "SPOUSE_BIRTH_CERTIFICATE"
+      ) {
         return false;
       }
       return item.value === "CHILD_BIRTH_CERTIFICATE" || item.value === doc.type || !occupied.has(item.value);
@@ -813,7 +821,9 @@ export default function EmployeeDocumentsSection({
 
             {needsRelatedName ? (
               <div>
-                <div className="text-xs text-vdm-gold-600 mb-1">{isChildType ? "Nom de l'enfant" : "Nom du conjoint"}</div>
+                <div className="text-xs text-vdm-gold-600 mb-1">
+                  {isChildType ? "Nom de l'enfant" : "Nom du conjoint"}
+                </div>
                 <input
                   value={relatedPersonName}
                   onChange={(e) => setRelatedPersonName(e.target.value)}
@@ -873,8 +883,8 @@ export default function EmployeeDocumentsSection({
           </button>
           {availableUploadTypes.length === 0 ? (
             <div className="text-xs text-vdm-gold-700 mt-1">
-              Tous les documents à exemplaire unique sont déjà ajoutés. Seuls les extraits d&apos;enfant peuvent être
-              multiples.
+              Tous les documents à exemplaire unique sont déjà ajoutés. Seuls les extraits d&apos;enfant
+              peuvent être multiples.
             </div>
           ) : null}
         </div>
@@ -938,7 +948,9 @@ export default function EmployeeDocumentsSection({
                             </div>
                           )}
                           <div>
-                            <div className="text-sm font-semibold text-vdm-gold-900">{typeLabel(doc.type, documentTypes)}</div>
+                            <div className="text-sm font-semibold text-vdm-gold-900">
+                              {typeLabel(doc.type, documentTypes)}
+                            </div>
                             <div className="text-xs text-vdm-gold-700">
                               Fichier:{" "}
                               <button
@@ -954,7 +966,8 @@ export default function EmployeeDocumentsSection({
                             </div>
                             {doc.relatedPersonName ? (
                               <div className="text-xs text-vdm-gold-700">
-                                {doc.type === "CHILD_BIRTH_CERTIFICATE" ? "Enfant" : "Conjoint"}: {doc.relatedPersonName}
+                                {doc.type === "CHILD_BIRTH_CERTIFICATE" ? "Enfant" : "Conjoint"}:{" "}
+                                {doc.relatedPersonName}
                                 {doc.type === "CHILD_BIRTH_CERTIFICATE" && doc.childOrder
                                   ? ` (rang ${doc.childOrder})`
                                   : ""}
@@ -967,7 +980,8 @@ export default function EmployeeDocumentsSection({
                             ) : null}
                             {hasGlobalAccess ? (
                               <div className="text-xs text-vdm-gold-700">
-                                Employé: {employeeLabel(doc.employee)} | Déposé par: {doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}
+                                Employé: {employeeLabel(doc.employee)} | Déposé par:{" "}
+                                {doc.uploadedBy?.firstName} {doc.uploadedBy?.lastName}
                               </div>
                             ) : null}
                           </div>
@@ -1033,7 +1047,9 @@ export default function EmployeeDocumentsSection({
 
                             {isEditingNeedsRelatedName ? (
                               <div>
-                                <div className="text-xs text-vdm-gold-600 mb-1">{isEditingChildType ? "Nom de l'enfant" : "Nom du conjoint"}</div>
+                                <div className="text-xs text-vdm-gold-600 mb-1">
+                                  {isEditingChildType ? "Nom de l'enfant" : "Nom du conjoint"}
+                                </div>
                                 <input
                                   value={editRelatedPersonName}
                                   onChange={(e) => setEditRelatedPersonName(e.target.value)}
@@ -1045,7 +1061,9 @@ export default function EmployeeDocumentsSection({
 
                             {isEditingChildType ? (
                               <div>
-                                <div className="text-xs text-vdm-gold-600 mb-1">Rang de l'enfant (facultatif)</div>
+                                <div className="text-xs text-vdm-gold-600 mb-1">
+                                  Rang de l'enfant (facultatif)
+                                </div>
                                 <input
                                   value={editChildOrder}
                                   onChange={(e) => setEditChildOrder(e.target.value.replace(/\D/g, ""))}
@@ -1069,7 +1087,9 @@ export default function EmployeeDocumentsSection({
                           </div>
 
                           <div>
-                            <div className="text-xs text-vdm-gold-600 mb-1">Remplacer le fichier (optionnel)</div>
+                            <div className="text-xs text-vdm-gold-600 mb-1">
+                              Remplacer le fichier (optionnel)
+                            </div>
                             <input
                               key={editFileInputKey}
                               type="file"
@@ -1175,9 +1195,17 @@ export default function EmployeeDocumentsSection({
             <div className="p-4 h-full min-h-0">
               {previewDoc.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewDoc.url} alt="Aperçu document" />
+                <img
+                  className="h-full w-full object-contain rounded-lg border border-vdm-gold-200"
+                  src={previewDoc.url}
+                  alt="Aperçu document"
+                />
               ) : (
-                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewDoc.url} title="Aperçu document" />
+                <iframe
+                  className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                  src={previewDoc.url}
+                  title="Aperçu document"
+                />
               )}
             </div>
           </div>

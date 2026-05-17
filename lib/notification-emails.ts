@@ -56,13 +56,7 @@ function getActionUrl(metadata: unknown) {
 
 function buildTextEmail(notification: NotificationEmailRecord, recipient: Recipient) {
   const actionUrl = getActionUrl(notification.metadata);
-  const lines = [
-    `Bonjour ${getRecipientName(recipient)},`,
-    "",
-    notification.title,
-    "",
-    notification.body,
-  ];
+  const lines = [`Bonjour ${getRecipientName(recipient)},`, "", notification.title, "", notification.body];
 
   if (actionUrl) {
     lines.push("", `Ouvrir dans l'application : ${actionUrl}`);
@@ -121,14 +115,13 @@ export function notificationEmailRecordsFromCreateManyData(data: unknown) {
     .filter((item): item is NotificationEmailRecord => Boolean(item));
 }
 
-export async function sendNotificationEmails(
-  prisma: EmployeeReader,
-  records: NotificationEmailRecord[]
-) {
+export async function sendNotificationEmails(prisma: EmployeeReader, records: NotificationEmailRecord[]) {
   const notificationRecords = records.filter((record) => record.employeeId);
   if (notificationRecords.length === 0) return;
 
-  const employeeIds = Array.from(new Set(notificationRecords.map((record) => record.employeeId).filter(Boolean)));
+  const employeeIds = Array.from(
+    new Set(notificationRecords.map((record) => record.employeeId).filter(Boolean))
+  );
   const recipients = await prisma.employee.findMany({
     where: { id: { in: employeeIds as string[] } },
     select: { id: true, email: true, firstName: true, lastName: true },

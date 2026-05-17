@@ -26,7 +26,12 @@ import {
   requestedLeaveDaysForType,
   syncEmployeeLeaveBalance,
 } from "@/lib/leave-balance";
-import { isAnticipatedPaidLeaveType, isLeaveType, isMenstrualLeaveType, isPaidLeaveType } from "@/lib/leave-types";
+import {
+  isAnticipatedPaidLeaveType,
+  isLeaveType,
+  isMenstrualLeaveType,
+  isPaidLeaveType,
+} from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
 import { expandRecurringAnchorsBetweenInclusive, normalizeUtcDateOnly } from "@/lib/holidays";
 
@@ -49,7 +54,8 @@ function appliesToEmployee(
 ) {
   const targetIds = Array.isArray(blackout.employeeIds) ? blackout.employeeIds : [];
   if (targetIds.includes(employee.id)) return true;
-  if (blackout.departmentId && employee.departmentId && blackout.departmentId === employee.departmentId) return true;
+  if (blackout.departmentId && employee.departmentId && blackout.departmentId === employee.departmentId)
+    return true;
   return !blackout.departmentId && targetIds.length === 0;
 }
 
@@ -161,7 +167,12 @@ export async function POST(req: Request) {
     );
     const debtFromPreviousCycle = await debtCarriedIntoCycle(prisma, employee, actorId, leaveCycle.start);
     const currentEntitlement = Math.max(0, cycleCalc.entitlement - debtFromPreviousCycle);
-    const consumed = await consumedLeaveDaysForRange(prisma, actorId, leaveCycle.start, leaveCycle.endExclusive);
+    const consumed = await consumedLeaveDaysForRange(
+      prisma,
+      actorId,
+      leaveCycle.start,
+      leaveCycle.endExclusive
+    );
     const nextYearEntitlement = calculateEntitledLeaveDaysForCycle(
       {
         id: employee.id,
@@ -251,7 +262,7 @@ export async function POST(req: Request) {
   const created = await prisma.leaveRequest.create({
     data: {
       employeeId: actorId,
-    type: leaveType as LeaveType,
+      type: leaveType as LeaveType,
       startDate,
       endDate,
       reason,
@@ -260,7 +271,8 @@ export async function POST(req: Request) {
       justificationFileDataUrl: justification.value?.fileDataUrl ?? null,
       status: "PENDING",
       currentAssigneeId: assignee.id,
-      deptHeadAssignedAt: assignee.role === "DEPT_HEAD" || assignee.role === "SERVICE_HEAD" ? new Date() : null,
+      deptHeadAssignedAt:
+        assignee.role === "DEPT_HEAD" || assignee.role === "SERVICE_HEAD" ? new Date() : null,
       reachedCeoAt: assignee.role === "CEO" ? new Date() : reachedCeoAt,
     },
     select: {

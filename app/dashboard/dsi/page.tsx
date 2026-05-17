@@ -31,29 +31,12 @@ type DecisionItem = {
 
 const BASE_ALLOWANCE = 25;
 
-const MONTHS = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Juin",
-  "Juil",
-  "Août",
-  "Sept",
-  "Oct",
-  "Nov",
-  "Déc",
-];
+const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
 
 function consumedDaysForYear(leaves: LeaveItem[], year: number) {
   let total = 0;
   for (const leave of leaves) {
-    if (
-      leave.status === "APPROVED" ||
-      leave.status === "PENDING" ||
-      leave.status === "SUBMITTED"
-    ) {
+    if (leave.status === "APPROVED" || leave.status === "PENDING" || leave.status === "SUBMITTED") {
       if (!isPaidLeaveType(leave.type)) continue;
       total += countLeaveDaysOverlapInYear({
         start: leave.startDate,
@@ -98,17 +81,13 @@ export default function DsiDashboard() {
     if (myRes.ok) {
       const nextLeaves = myData?.leaves ?? [];
       setLeaves(nextLeaves);
-      const base = Number(
-        myData?.annualLeaveBalance ?? myData?.employee?.leaveBalance ?? BASE_ALLOWANCE
-      );
+      const base = Number(myData?.annualLeaveBalance ?? myData?.employee?.leaveBalance ?? BASE_ALLOWANCE);
       const normalizedBase = Number.isFinite(base) ? base : BASE_ALLOWANCE;
       setAnnualBalance(normalizedBase);
       const remainingFromApi = Number(myData?.remainingCurrentYear ?? NaN);
       const year = new Date().getFullYear();
       const fallbackRemaining = normalizedBase - consumedDaysForYear(nextLeaves, year);
-      setRemainingBalance(
-        Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining
-      );
+      setRemainingBalance(Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining);
     }
 
     const pendingData = await pendingRes.json().catch(() => ({}));
@@ -169,8 +148,7 @@ export default function DsiDashboard() {
     const monthlyCounts = Array.from({ length: 12 }, () => 0);
 
     for (const leave of leaves) {
-      if (leave.status === "PENDING" || leave.status === "SUBMITTED")
-        pendingCount += 1;
+      if (leave.status === "PENDING" || leave.status === "SUBMITTED") pendingCount += 1;
 
       if (leave.status === "APPROVED") {
         approvedCount += 1;
@@ -220,17 +198,13 @@ export default function DsiDashboard() {
         <div className="text-xl font-semibold text-vdm-gold-800">
           Bonjour {employee?.firstName ?? ""} {employee?.lastName ?? ""}
         </div>
-        <div className="text-sm text-vdm-gold-700">
-          Vous êtes connecté en tant que DSI (Administrateur).
-        </div>
+        <div className="text-sm text-vdm-gold-700">Vous êtes connecté en tant que DSI (Administrateur).</div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-sm text-vdm-gold-700">
-              Solde de congés
-            </div>
+            <div className="text-sm text-vdm-gold-700">Solde de congés</div>
             <button
               type="button"
               onClick={refreshData}
@@ -239,44 +213,26 @@ export default function DsiDashboard() {
               Rafraîchir
             </button>
           </div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
-            {stats.balance} jours
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-          Base annuelle : {annualBalance} jours.
-          </div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{stats.balance} jours</div>
+          <div className="text-xs text-gray-500 mt-2">Base annuelle : {annualBalance} jours.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="text-sm text-vdm-gold-700">À traiter</div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
-            {pendingLeaves.length}
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            Demandes transmises par la comptable.
-          </div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{pendingLeaves.length}</div>
+          <div className="text-xs text-gray-500 mt-2">Demandes transmises par la comptable.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="text-sm text-vdm-gold-700">Auto-validées</div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
-            {stats.autoApprovedCount}
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            Demandes validées automatiquement.
-          </div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{stats.autoApprovedCount}</div>
+          <div className="text-xs text-gray-500 mt-2">Demandes validées automatiquement.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
-          <div className="text-sm text-vdm-gold-700">
-            Comptes en attente
-          </div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
-            {pendingEmployees.length}
-          </div>
-          <div className="text-xs text-gray-500 mt-2">
-            Validation des nouveaux employés.
-          </div>
+          <div className="text-sm text-vdm-gold-700">Comptes en attente</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{pendingEmployees.length}</div>
+          <div className="text-xs text-gray-500 mt-2">Validation des nouveaux employés.</div>
         </div>
       </div>
 

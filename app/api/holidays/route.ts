@@ -35,7 +35,9 @@ export async function GET(req: Request) {
 
   const [oneOff, recurring] = await Promise.all([
     prisma.holiday.findMany({
-      where: all ? { isRecurring: { not: true } } : { isRecurring: { not: true }, date: { gte: start, lt: endExclusive } },
+      where: all
+        ? { isRecurring: { not: true } }
+        : { isRecurring: { not: true }, date: { gte: start, lt: endExclusive } },
       orderBy: { date: "asc" },
       select: { id: true, date: true, label: true, createdAt: true, isRecurring: true },
     }),

@@ -7,6 +7,7 @@ import { jsonError, jsonServerError } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { parseBody } from "@/lib/validate";
 import { registerSchema } from "@/lib/schemas/auth.schema";
+import { logError } from "@/lib/logger";
 
 export async function POST(req: Request) {
   /// Endpoint d'inscription publique : crée un employé en statut pending.
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
     if (err?.code === "P2002") {
       return jsonError("Email ou matricule déjà utilisé", 409);
     }
-    console.error("[auth/register] erreur serveur", e);
+    logError("auth/register", e, "erreur serveur lors de l'inscription");
     return jsonServerError(e);
   }
 }

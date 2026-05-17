@@ -4,13 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EmployeeRole, getEmployee, routeForRole } from "@/lib/auth-client";
 
-export default function RoleGate({
-  allow,
-  children,
-}: {
-  allow: EmployeeRole[];
-  children: React.ReactNode;
-}) {
+export default function RoleGate({ allow, children }: { allow: EmployeeRole[]; children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {

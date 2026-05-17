@@ -9,6 +9,7 @@ import { requireAuth } from "@/lib/leave-requests";
 import { isDsiAdmin } from "@/lib/dsiAdmin";
 import { norm } from "@/lib/validators";
 import { sendEmail, isEmailEnabled } from "@/lib/email";
+import { logError } from "@/lib/logger";
 import type { NotificationCategory } from "@/generated/prisma/client";
 
 function generateTemporaryPassword(length = 16): string {
@@ -106,7 +107,7 @@ Ce mot de passe n'est connu que de vous — aucun administrateur n'y a accès.</
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    console.error("[auth/reset-password] erreur serveur", e);
+    logError("auth/reset-password", e, "erreur serveur");
     return jsonServerError(e);
   }
 }

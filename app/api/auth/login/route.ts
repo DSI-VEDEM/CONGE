@@ -8,6 +8,7 @@ import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { parseBody } from "@/lib/validate";
 import { loginSchema } from "@/lib/schemas/auth.schema";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import { logError } from "@/lib/logger";
 
 export async function POST(req: Request) {
   /// Authentifie par email / matricule et émet un cookie httpOnly + retourne le token (legacy).
@@ -124,7 +125,7 @@ export async function POST(req: Request) {
 
     return setAuthCookie(response, token);
   } catch (e: unknown) {
-    console.error("[auth/login] erreur serveur", e);
+    logError("auth/login", e, "erreur serveur lors du login");
     return jsonServerError(e);
   }
 }

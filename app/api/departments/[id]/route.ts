@@ -1,9 +1,11 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { verifyJwt } from "@/lib/auth";
 import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
+import * as departmentsService from "@/lib/services/departments.service";
+import { serviceErrorToResponse } from "@/lib/services/service-error";
+import { logError } from "@/lib/logger";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -11,19 +13,14 @@ export async function GET(req: Request, ctx: Ctx) {
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
-  const params = await ctx.params;
-  const id = params.id;
+  const { id } = await ctx.params;
 
-  const department = await prisma.department.findUnique({
-    where: { id },
-    include: {
-      services: true,
-      responsables: { where: { endAt: null }, include: { employee: true, supervisor: true } },
-    },
-  });
-
-  if (!department) return jsonError("Département introuvable", 404);
-  return NextResponse.json({ department });
+  try {
+    const department = await departmentsService.getDepartmentDetail(id);
+    return NextResponse.json({ department });
+  } catch (e: unknown) {
+    return serviceErrorToResponse(e);
+  }
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -31,24 +28,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
-  const params = await ctx.params;
-  const id = params.id;
+  const { id } = await ctx.params;
 
   try {
     const body = await req.json().catch(() => ({}));
-
-    const updated = await prisma.department.update({
-      where: { id },
-      data: {
-        name: body?.name ? body.name : undefined,
-        description: body?.description ? body.description : undefined,
-      },
+    const updated = await departmentsService.updateDepartment(id, {
+      name: body?.name,
+      description: body?.description,
     });
-
     return NextResponse.json({ department: updated });
   } catch (e: unknown) {
-    console.error("[departments/:id] PATCH erreur", e);
-    return jsonServerError(e);
+    logError("departments/:id:PATCH", e, "modification département : erreur");
+    return serviceErrorToResponse(e);
   }
 }
 
@@ -57,14 +48,13 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
-  const params = await ctx.params;
-  const id = params.id;
+  const { id } = await ctx.params;
 
   try {
-    await prisma.department.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+    const result = await departmentsService.deleteDepartment(id);
+    return NextResponse.json(result);
   } catch (e: unknown) {
-    console.error("[departments/:id] DELETE erreur", e);
-    return jsonServerError(e);
+    logError("departments/:id:DELETE", e, "suppression département : erreur");
+    return serviceErrorToResponse(e);
   }
 }

@@ -52,7 +52,7 @@ export default function RegisterPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const pw = useMemo(() => {
     const emailTrim = norm(email).toLowerCase();
@@ -153,13 +153,7 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
       <div className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden bg-gradient-to-br from-vdm-gold-600 via-vdm-gold-500 to-vdm-gold-200 p-12 flex-col justify-center items-center text-white">
         <div className="max-w-md text-center">
           <div className="mb-8 h-28 w-28 flex items-center justify-center overflow-hidden mx-auto">
-            <Image
-              src="/logo.jpeg"
-              alt="Logo"
-              width={96}
-              height={96}
-              className="h-24 w-24 object-contain"
-            />
+            <Image src="/logo.jpeg" alt="Logo" width={96} height={96} className="h-24 w-24 object-contain" />
           </div>
           <h1 className="text-5xl font-bold mb-6">Créer un compte</h1>
           <p className="text-xl opacity-90 leading-relaxed">
@@ -386,7 +380,10 @@ const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value
 
             <p className="mt-6 text-center text-sm text-gray-600">
               Déjà un compte ?{" "}
-              <a href="/login" className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline">
+              <a
+                href="/login"
+                className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline"
+              >
                 Se connecter
               </a>
             </p>

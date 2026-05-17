@@ -20,11 +20,7 @@ function supportsLeaveBlackoutEmployeeIds() {
 function normalizeEmployeeIds(value: unknown) {
   if (!Array.isArray(value)) return [];
   return Array.from(
-    new Set(
-      value
-        .map((v) => (v == null ? "" : String(v).trim()))
-        .filter((v) => v.length > 0)
-    )
+    new Set(value.map((v) => (v == null ? "" : String(v).trim())).filter((v) => v.length > 0))
   );
 }
 
@@ -78,9 +74,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     blackouts: items.map((item) => ({
       ...item,
-      targetEmployees: (item.employeeIds ?? [])
-        .map((id) => employeeMap.get(id))
-        .filter(Boolean),
+      targetEmployees: (item.employeeIds ?? []).map((id) => employeeMap.get(id)).filter(Boolean),
     })),
   });
 }

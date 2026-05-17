@@ -1,6 +1,13 @@
 "use client";
 
-import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 import { getToken } from "@/lib/auth-client";
 
@@ -133,7 +140,8 @@ export default function CeoSalarySlipSigning() {
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const [rejectComment, setRejectComment] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [signaturePlacement, setSignaturePlacement] = useState<SignaturePlacement>(DEFAULT_SIGNATURE_PLACEMENT);
+  const [signaturePlacement, setSignaturePlacement] =
+    useState<SignaturePlacement>(DEFAULT_SIGNATURE_PLACEMENT);
   const [hasCustomPlacement, setHasCustomPlacement] = useState(false);
   const [isDraggingSignature, setIsDraggingSignature] = useState(false);
 
@@ -251,7 +259,8 @@ export default function CeoSalarySlipSigning() {
   }, [sortedPendingSlips]);
 
   const signedHistoryYears = useMemo(
-    () => Array.from(new Set(sortedSignedSlips.map((s) => String(s.year)))).sort((a, b) => Number(b) - Number(a)),
+    () =>
+      Array.from(new Set(sortedSignedSlips.map((s) => String(s.year)))).sort((a, b) => Number(b) - Number(a)),
     [sortedSignedSlips]
   );
 
@@ -376,22 +385,25 @@ export default function CeoSalarySlipSigning() {
     [hasCustomPlacement, loadSlipPreview, refresh, signaturePlacement.x, signaturePlacement.yTop]
   );
 
-  const openSlipPreview = useCallback(async (id: string) => {
-    setPreviewLoadingId(id);
-    setError(null);
+  const openSlipPreview = useCallback(
+    async (id: string) => {
+      setPreviewLoadingId(id);
+      setError(null);
 
-    try {
-      const slipPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu");
-      if (slipPreview) {
-        setPreviewSlip(slipPreview);
-        setRejectComment("");
+      try {
+        const slipPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu");
+        if (slipPreview) {
+          setPreviewSlip(slipPreview);
+          setRejectComment("");
+        }
+      } catch {
+        setError("Erreur réseau");
+      } finally {
+        setPreviewLoadingId(null);
       }
-    } catch {
-      setError("Erreur réseau");
-    } finally {
-      setPreviewLoadingId(null);
-    }
-  }, [loadSlipPreview]);
+    },
+    [loadSlipPreview]
+  );
 
   const rejectSlip = useCallback(
     async (id: string) => {
@@ -435,21 +447,24 @@ export default function CeoSalarySlipSigning() {
     [refresh, rejectComment]
   );
 
-  const openSignedSlipPreview = useCallback(async (id: string) => {
-    setPreviewLoadingId(id);
-    setError(null);
+  const openSignedSlipPreview = useCallback(
+    async (id: string) => {
+      setPreviewLoadingId(id);
+      setError(null);
 
-    try {
-      const slipPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu du bulletin signé");
-      if (slipPreview) {
-        setSignedPreviewSlip(slipPreview);
+      try {
+        const slipPreview = await loadSlipPreview(id, "Impossible d'ouvrir l'aperçu du bulletin signé");
+        if (slipPreview) {
+          setSignedPreviewSlip(slipPreview);
+        }
+      } catch {
+        setError("Erreur réseau");
+      } finally {
+        setPreviewLoadingId(null);
       }
-    } catch {
-      setError("Erreur réseau");
-    } finally {
-      setPreviewLoadingId(null);
-    }
-  }, [loadSlipPreview]);
+    },
+    [loadSlipPreview]
+  );
 
   const updatePlacementFromClient = useCallback((clientX: number, clientY: number) => {
     const frame = previewFrameRef.current;
@@ -519,7 +534,11 @@ export default function CeoSalarySlipSigning() {
         </button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <section className="rounded-xl border border-vdm-gold-200 bg-white p-4 space-y-3">
         <div className="text-sm font-semibold text-vdm-gold-900">Ma signature</div>
@@ -561,7 +580,9 @@ export default function CeoSalarySlipSigning() {
                     <details key={`${group.year}-${monthGroup.month}`} open={monthIndex === 0}>
                       <summary className="list-none px-4 py-3 bg-vdm-gold-50/40 text-vdm-gold-900 font-medium flex items-center justify-between">
                         <span>{MONTH_LABELS[monthGroup.month - 1] ?? `Mois ${monthGroup.month}`}</span>
-                        <span className="text-xs text-vdm-gold-700">{monthGroup.slips.length} bulletin(s)</span>
+                        <span className="text-xs text-vdm-gold-700">
+                          {monthGroup.slips.length} bulletin(s)
+                        </span>
                       </summary>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
@@ -590,7 +611,9 @@ export default function CeoSalarySlipSigning() {
                                     type="button"
                                     onClick={() => downloadSlip(slip.id)}
                                     disabled={
-                                      downloadingId === slip.id || signingId === slip.id || previewLoadingId === slip.id
+                                      downloadingId === slip.id ||
+                                      signingId === slip.id ||
+                                      previewLoadingId === slip.id
                                     }
                                     className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
                                   >
@@ -600,7 +623,9 @@ export default function CeoSalarySlipSigning() {
                                     type="button"
                                     onClick={() => openSlipPreview(slip.id)}
                                     disabled={
-                                      previewLoadingId === slip.id || signingId === slip.id || downloadingId === slip.id
+                                      previewLoadingId === slip.id ||
+                                      signingId === slip.id ||
+                                      downloadingId === slip.id
                                     }
                                     className="px-3 py-1.5 rounded-md border border-vdm-gold-300 text-vdm-gold-800 hover:bg-vdm-gold-50 disabled:opacity-60"
                                   >
@@ -665,7 +690,9 @@ export default function CeoSalarySlipSigning() {
           >
             <div className="px-4 py-3 border-b border-vdm-gold-100 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold text-vdm-gold-900">Aperçu et placement de la signature</h3>
+                <h3 className="text-base font-semibold text-vdm-gold-900">
+                  Aperçu et placement de la signature
+                </h3>
                 <p className="text-xs text-vdm-gold-700">{previewSlip.fileName}</p>
               </div>
               <button
@@ -703,7 +730,11 @@ export default function CeoSalarySlipSigning() {
                     onPointerUp={stopDraggingSignature}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={signatureImageDataUrl} alt="Signature PDG" className="w-40 max-h-20 object-contain" />
+                    <img
+                      src={signatureImageDataUrl}
+                      alt="Signature PDG"
+                      className="w-40 max-h-20 object-contain"
+                    />
                   </div>
                 )}
               </div>
@@ -711,7 +742,8 @@ export default function CeoSalarySlipSigning() {
               <div className="rounded-lg border border-vdm-gold-200 bg-vdm-gold-50/30 p-3 space-y-3">
                 <p className="text-sm text-vdm-gold-900">Glissez la signature sur l'aperçu puis signez.</p>
                 <p className="text-xs text-vdm-gold-700">
-                  La position est appliquée au PDF final au moment de la signature et réutilisée pour les signatures suivantes.
+                  La position est appliquée au PDF final au moment de la signature et réutilisée pour les
+                  signatures suivantes.
                 </p>
 
                 <div className="rounded-lg border border-vdm-gold-200 bg-white p-3">
@@ -773,7 +805,10 @@ export default function CeoSalarySlipSigning() {
       )}
 
       {signedPreviewSlip && (
-        <div className="fixed inset-0 z-[60] bg-black/70 p-4 md:p-8" onClick={() => setSignedPreviewSlip(null)}>
+        <div
+          className="fixed inset-0 z-[60] bg-black/70 p-4 md:p-8"
+          onClick={() => setSignedPreviewSlip(null)}
+        >
           <div
             className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
             onClick={(event) => event.stopPropagation()}
@@ -845,7 +880,9 @@ export default function CeoSalarySlipSigning() {
                     <details key={`${group.year}-${monthGroup.month}`}>
                       <summary className="list-none px-4 py-3 bg-vdm-gold-50/40 text-vdm-gold-900 font-medium flex items-center justify-between">
                         <span>{MONTH_LABELS[monthGroup.month - 1] ?? `Mois ${monthGroup.month}`}</span>
-                        <span className="text-xs text-vdm-gold-700">{monthGroup.slips.length} bulletin(s)</span>
+                        <span className="text-xs text-vdm-gold-700">
+                          {monthGroup.slips.length} bulletin(s)
+                        </span>
                       </summary>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
@@ -870,7 +907,9 @@ export default function CeoSalarySlipSigning() {
                                 </td>
                                 <td className="px-4 py-3">{toPeriod(slip.year, slip.month)}</td>
                                 <td className="px-4 py-3">{slip.fileName}</td>
-                                <td className="px-4 py-3">{formatDateTime(String(slip.signedAt ?? slip.createdAt))}</td>
+                                <td className="px-4 py-3">
+                                  {formatDateTime(String(slip.signedAt ?? slip.createdAt))}
+                                </td>
                                 <td className="px-4 py-3 text-right space-x-2">
                                   <button
                                     type="button"
@@ -885,7 +924,11 @@ export default function CeoSalarySlipSigning() {
                                     onClick={() => {
                                       void openSignedSlipPreview(slip.id);
                                     }}
-                                    disabled={previewLoadingId === slip.id || signingId === slip.id || downloadingId === slip.id}
+                                    disabled={
+                                      previewLoadingId === slip.id ||
+                                      signingId === slip.id ||
+                                      downloadingId === slip.id
+                                    }
                                     className="px-3 py-1.5 rounded-md bg-vdm-gold-800 text-white hover:bg-vdm-gold-700 disabled:opacity-60"
                                   >
                                     {previewLoadingId === slip.id ? "Ouverture..." : "Aperçu"}

@@ -20,12 +20,7 @@ const DOCUMENT_TYPES = new Set([
   "GEOGRAPHIC_LOCATION",
   "CONTRACT",
 ]);
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
+const ALLOWED_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 const DATA_URL_RE = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_URL_LENGTH = 12 * 1024 * 1024;
 const DEFAULT_PAGE_SIZE = 30;
@@ -34,7 +29,8 @@ const SPOUSE_TYPE = "SPOUSE_BIRTH_CERTIFICATE";
 const CHILD_TYPE = "CHILD_BIRTH_CERTIFICATE";
 
 function parsePositiveIntResult(value: unknown) {
-  if (value == null || String(value).trim() === "") return { provided: false as const, value: null as number | null };
+  if (value == null || String(value).trim() === "")
+    return { provided: false as const, value: null as number | null };
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) return { provided: true as const, value: null as number | null };
   return { provided: true as const, value: n };
@@ -83,19 +79,19 @@ function documentHasValidity(type?: DocumentType | null) {
   return DOCUMENTS_REQUIRING_VALID_UNTIL_SET.has(type);
 }
 
-async function ensureDocumentExpirationNotifications(documents: {
-  id: string;
-  employeeId: string;
-  type: DocumentType;
-  validUntil?: Date | null;
-  expirationNotificationSentAt?: Date | null;
-  contractDocumentTypeId?: string | null;
-  contractDocumentType?: { name?: string | null } | null;
-}[]) {
+async function ensureDocumentExpirationNotifications(
+  documents: {
+    id: string;
+    employeeId: string;
+    type: DocumentType;
+    validUntil?: Date | null;
+    expirationNotificationSentAt?: Date | null;
+    contractDocumentTypeId?: string | null;
+    contractDocumentType?: { name?: string | null } | null;
+  }[]
+) {
   const ceo = await findActiveEmployeeByRole("CEO");
-  const expiredDocs = documents.filter(
-    (doc) => documentHasValidity(doc.type) && isDocumentExpired(doc)
-  );
+  const expiredDocs = documents.filter((doc) => documentHasValidity(doc.type) && isDocumentExpired(doc));
   if (expiredDocs.length === 0) {
     return;
   }

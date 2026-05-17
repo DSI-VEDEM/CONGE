@@ -35,7 +35,13 @@ type LeaveApiItem = {
   startDate?: string;
   endDate?: string;
   status?: "APPROVED" | "REJECTED" | "CANCELLED";
-  employee?: { firstName?: string; lastName?: string; profilePhotoUrl?: string; role?: string; leaveBalance?: number } | null;
+  employee?: {
+    firstName?: string;
+    lastName?: string;
+    profilePhotoUrl?: string;
+    role?: string;
+    leaveBalance?: number;
+  } | null;
   decisions?: Array<{
     createdAt?: string;
     actor?: { firstName?: string; lastName?: string; role?: string } | null;
@@ -103,8 +109,7 @@ export default function DsiDeptEmployeesHistory() {
             id: item.id,
             firstName: item.employee?.firstName ?? "",
             lastName: item.employee?.lastName ?? "",
-            employeeName:
-              `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
+            employeeName: `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
             profilePhotoUrl: item.employee?.profilePhotoUrl ?? null,
             employeeRole: item.employee?.role ?? "—",
             leaveBalance: item.employee?.leaveBalance ?? 0,
@@ -112,10 +117,7 @@ export default function DsiDeptEmployeesHistory() {
             startDate: formatDateDMY(startRaw),
             endDate: formatDateDMY(endRaw),
             status: item.status,
-            decidedBy:
-              `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() ||
-              actor?.role ||
-              "-",
+            decidedBy: `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
             decidedAt: decidedAtRaw ? formatDateDMY(decidedAtRaw) : "-",
             days:
               startRaw && endRaw
@@ -143,11 +145,7 @@ export default function DsiDeptEmployeesHistory() {
   const historyYears = useMemo(
     () =>
       Array.from(
-        new Set(
-          rows
-            .map((item) => item.year)
-            .filter((value): value is number => value != null)
-        )
+        new Set(rows.map((item) => item.year).filter((value): value is number => value != null))
       ).sort((a, b) => b - a),
     [rows]
   );
@@ -160,8 +158,7 @@ export default function DsiDeptEmployeesHistory() {
         returnDate: computeReturnDate(item.endDateRaw, holidays) ?? "-",
       }))
       .filter((item) => {
-        const statusMatched =
-          historyStatusFilter === "ALL" ? true : item.status === historyStatusFilter;
+        const statusMatched = historyStatusFilter === "ALL" ? true : item.status === historyStatusFilter;
         if (!statusMatched) return false;
 
         if (historyYearFilter === "ALL") return true;
@@ -274,7 +271,9 @@ export default function DsiDeptEmployeesHistory() {
         searchPlaceholder="Rechercher une demande..."
         onRefresh={loadHistory}
       />
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div> : null}
+      {isLoading ? (
+        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+      ) : null}
     </div>
   );
 }

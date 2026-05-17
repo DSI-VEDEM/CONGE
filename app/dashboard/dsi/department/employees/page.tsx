@@ -27,11 +27,14 @@ type DepartmentOption = {
   type?: string | null;
 };
 
-type RawDepartment = {
-  id?: string | null;
-  name?: string | null;
-  type?: string | null;
-} | null | undefined;
+type RawDepartment =
+  | {
+      id?: string | null;
+      name?: string | null;
+      type?: string | null;
+    }
+  | null
+  | undefined;
 
 type EmployeeApiItem = {
   id: string;
@@ -162,8 +165,8 @@ export default function DsiDepartmentEmployees() {
         return;
       }
       const list = Array.isArray(data?.departments) ? data.departments : [];
-      const validDepartments = list.filter(
-        (dept: RawDepartment): dept is DepartmentOption => Boolean(dept?.id)
+      const validDepartments = list.filter((dept: RawDepartment): dept is DepartmentOption =>
+        Boolean(dept?.id)
       ) as DepartmentOption[];
       setDepartmentOptions(
         validDepartments.map((dept) => ({
@@ -306,25 +309,25 @@ export default function DsiDepartmentEmployees() {
               </label>
               <label className="text-sm text-vdm-gold-900">
                 Département
-                  <select
-                    value={draft.department ?? ""}
-                    onChange={(e) => {
-                      const selected = departmentOptions.find((dept) => dept.id === e.target.value);
-                      setDraft({
-                        ...draft,
-                        department: e.target.value,
-                        departmentName: selected ? `${selected.name}` : draft.departmentName,
-                      });
-                    }}
-                    className="mt-1 w-full rounded-md border border-vdm-gold-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                  >
-                    <option value="">Sélectionner un département</option>
-                    {departmentOptions.map((dept) => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                  </select>
+                <select
+                  value={draft.department ?? ""}
+                  onChange={(e) => {
+                    const selected = departmentOptions.find((dept) => dept.id === e.target.value);
+                    setDraft({
+                      ...draft,
+                      department: e.target.value,
+                      departmentName: selected ? `${selected.name}` : draft.departmentName,
+                    });
+                  }}
+                  className="mt-1 w-full rounded-md border border-vdm-gold-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                >
+                  <option value="">Sélectionner un département</option>
+                  {departmentOptions.map((dept) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="text-sm text-vdm-gold-900">
                 Service (ID)

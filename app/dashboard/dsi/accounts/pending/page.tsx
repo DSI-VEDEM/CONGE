@@ -2,7 +2,6 @@
 // app/(dashboard)/dsi/accounts/pending/page.tsx  (ou ton chemin exact)
 // ✅ FICHIER COMPLET
 
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
@@ -27,9 +26,7 @@ export default function DsiAccountsPending() {
   const [rows, setRows] = useState<PendingEmp[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<{ id: string; label: string; type?: string }[]>([]);
-  const [services, setServices] = useState<{ id: string; label: string; departmentId: string }[]>(
-    []
-  );
+  const [services, setServices] = useState<{ id: string; label: string; departmentId: string }[]>([]);
   const operationsDepartmentLabel =
     departments.find((d) => d.type === "OPERATIONS")?.label ?? "Direction des opérations";
   const dafDepartmentLabel =
@@ -72,7 +69,7 @@ export default function DsiAccountsPending() {
           setDepartments(
             (depData?.departments ?? []).map((d: any) => ({
               id: d.id,
-              label: d.type === "OTHERS" ? "Autres" : d.name ?? d.type ?? d.id,
+              label: d.type === "OTHERS" ? "Autres" : (d.name ?? d.type ?? d.id),
               type: d.type,
             }))
           );
@@ -93,11 +90,7 @@ export default function DsiAccountsPending() {
   }, []);
 
   const setDeptFor = useCallback((id: string, value: string) => {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.id === id ? { ...row, department: value, service: "" } : row
-      )
-    );
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, department: value, service: "" } : row)));
   }, []);
 
   const setServiceFor = useCallback((id: string, value: string) => {
@@ -187,36 +180,33 @@ export default function DsiAccountsPending() {
     [rows]
   );
 
-  const reject = useCallback(
-    async (id: string) => {
-      const token = getToken();
-      if (!token) return;
+  const reject = useCallback(async (id: string) => {
+    const token = getToken();
+    if (!token) return;
 
-      try {
-        const t = toast.loading("Refus en cours...");
-        // PATCH /api/admin/employees/:id/status pour rejeter une demande.
-        const res = await fetch(`/api/admin/employees/${id}/status`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: "REJECTED" }),
-        });
+    try {
+      const t = toast.loading("Refus en cours...");
+      // PATCH /api/admin/employees/:id/status pour rejeter une demande.
+      const res = await fetch(`/api/admin/employees/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "REJECTED" }),
+      });
 
-        if (res.ok) {
-          setRows((prev) => prev.filter((row) => row.id !== id));
-          toast.success("Compte refusé.", { id: t });
-          return;
-        }
-
-        toast.error("Erreur lors du refus.", { id: t });
-      } catch {
-        toast.error("Erreur lors du refus.");
+      if (res.ok) {
+        setRows((prev) => prev.filter((row) => row.id !== id));
+        toast.success("Compte refusé.", { id: t });
+        return;
       }
-    },
-    []
-  );
+
+      toast.error("Erreur lors du refus.", { id: t });
+    } catch {
+      toast.error("Erreur lors du refus.");
+    }
+  }, []);
 
   const columns = useMemo<ColumnDef<PendingEmp>[]>(
     () => [
@@ -281,9 +271,9 @@ export default function DsiAccountsPending() {
               {departments
                 .filter((d) => !(row.original.role === "DEPT_HEAD" && d.type === "OTHERS"))
                 .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
                 ))}
             </select>
           ),

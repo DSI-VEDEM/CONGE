@@ -14,10 +14,7 @@ const NotificationBellContext = createContext<NotificationBellContextValue>({
 
 export function NotificationBellProvider({ children }: { children: React.ReactNode }) {
   const [hasDedicatedBell, setHasDedicatedBell] = useState(false);
-  const value = useMemo(
-    () => ({ hasDedicatedBell, setHasDedicatedBell }),
-    [hasDedicatedBell]
-  );
+  const value = useMemo(() => ({ hasDedicatedBell, setHasDedicatedBell }), [hasDedicatedBell]);
   return <NotificationBellContext.Provider value={value}>{children}</NotificationBellContext.Provider>;
 }
 

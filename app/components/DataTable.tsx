@@ -69,7 +69,6 @@ export default function DataTable<TData>({
     }
   };
 
-
   return (
     <div className="bg-white border border-vdm-gold-200 rounded-xl overflow-hidden">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border-b border-vdm-gold-100 bg-vdm-gold-50">
@@ -99,7 +98,6 @@ export default function DataTable<TData>({
             )}
           </button>
         </div>
-
       </div>
 
       <div className="overflow-x-auto">
@@ -142,7 +140,10 @@ export default function DataTable<TData>({
               rows.map((row) => (
                 <tr key={row.id} className="border-b border-vdm-gold-100 last:border-b-0">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={`px-4 py-3 text-vdm-gold-900${(cell.column.columnDef.meta as { className?: string } | undefined)?.className ? ` ${(cell.column.columnDef.meta as { className?: string }).className}` : ""}`}>
+                    <td
+                      key={cell.id}
+                      className={`px-4 py-3 text-vdm-gold-900${(cell.column.columnDef.meta as { className?: string } | undefined)?.className ? ` ${(cell.column.columnDef.meta as { className?: string }).className}` : ""}`}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

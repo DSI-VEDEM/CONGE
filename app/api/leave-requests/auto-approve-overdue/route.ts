@@ -30,4 +30,3 @@ export async function GET(req: Request) {
   const approvedCount = await autoApproveOverdueDirectorLeavesForCeo(ceo.id, getDelayDays());
   return NextResponse.json({ approvedCount });
 }
-

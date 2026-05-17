@@ -12,6 +12,4 @@ export const DEFAULT_DOCUMENT_TYPES = [
 
 export type DocumentTypeItem = (typeof DEFAULT_DOCUMENT_TYPES)[number];
 export type DocumentType = DocumentTypeItem["value"];
-export const PROFILE_DOCUMENT_TYPES = DEFAULT_DOCUMENT_TYPES.filter(
-  (item) => item.value !== "CONTRACT"
-);
+export const PROFILE_DOCUMENT_TYPES = DEFAULT_DOCUMENT_TYPES.filter((item) => item.value !== "CONTRACT");

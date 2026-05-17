@@ -31,17 +31,17 @@ npm run dev                  # http://localhost:3000
 
 ## Scripts npm
 
-| Script | Description |
-| --- | --- |
-| `npm run dev` | Démarre Next en mode développement |
-| `npm run build` | Build production (sortie `.next/standalone`) |
-| `npm start` | Démarre le serveur Next compilé |
-| `npm run lint` | Lint ESLint |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm test` | Tests Vitest (run unique) |
-| `npm run test:watch` | Tests Vitest en watch |
-| `npm run test:coverage` | Tests + rapport de couverture |
-| `npm run seed` | Seed initial (admin DSI) |
+| Script                  | Description                                  |
+| ----------------------- | -------------------------------------------- |
+| `npm run dev`           | Démarre Next en mode développement           |
+| `npm run build`         | Build production (sortie `.next/standalone`) |
+| `npm start`             | Démarre le serveur Next compilé              |
+| `npm run lint`          | Lint ESLint                                  |
+| `npm run typecheck`     | `tsc --noEmit`                               |
+| `npm test`              | Tests Vitest (run unique)                    |
+| `npm run test:watch`    | Tests Vitest en watch                        |
+| `npm run test:coverage` | Tests + rapport de couverture                |
+| `npm run seed`          | Seed initial (admin DSI)                     |
 
 ## Variables d'environnement
 
@@ -111,6 +111,7 @@ L'image prod tourne en `node:20-bookworm-slim`, `USER node`, `tini` comme PID 1,
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`) :
+
 - `quality` : `lint` + `typecheck` + `prisma validate` + `test`
 - `build` : `next build`
 - `security` : `npm audit` (informatif, non bloquant)

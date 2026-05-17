@@ -61,9 +61,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const placementX = parseNormalizedRatio((body as { placementX?: unknown } | null)?.placementX);
   const placementYTop = parseNormalizedRatio((body as { placementYTop?: unknown } | null)?.placementYTop);
   const hasPlacementPayload = Boolean(
-    body &&
-      typeof body === "object" &&
-      ("placementX" in body || "placementYTop" in body)
+    body && typeof body === "object" && ("placementX" in body || "placementYTop" in body)
   );
 
   if (hasPlacementPayload && (placementX == null || placementYTop == null)) {
@@ -87,7 +85,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     });
   } catch (error: unknown) {
     if (isPrismaSchemaOutdatedError(error)) {
-      return jsonError("Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur", 503);
+      return jsonError(
+        "Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur",
+        503
+      );
     }
     throw error;
   }
@@ -192,7 +193,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     });
   } catch (error: unknown) {
     if (isPrismaSchemaOutdatedError(error)) {
-      return jsonError("Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur", 503);
+      return jsonError(
+        "Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur",
+        503
+      );
     }
     throw error;
   }
@@ -211,23 +215,23 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const ownerLabel = ownerNameParts.length > 0 ? ownerNameParts.join(" ").trim() : "Votre bulletin";
   const monthLabel = String(signedSlip.month).padStart(2, "0");
   const yearLabel = signedSlip.year;
-      await prisma.notification.create({
-        data: {
-          title: "Bulletin signé",
-          body: `Le PDG a signé le bulletin de ${ownerLabel} (${monthLabel}/${yearLabel}). Il est maintenant disponible dans Mes bulletins.`,
-          category: "INFO" as NotificationCategory,
-          employeeId: signedSlip.employeeId,
-          targetRole: null,
-          global: false,
-          metadata: {
-            salarySlipId: signedSlip.id,
-            year: signedSlip.year,
-            month: signedSlip.month,
-            actionPath: "/dashboard/employee/payslips",
-            actionLabel: "Voir bulletin signé",
-          },
-        },
-      });
+  await prisma.notification.create({
+    data: {
+      title: "Bulletin signé",
+      body: `Le PDG a signé le bulletin de ${ownerLabel} (${monthLabel}/${yearLabel}). Il est maintenant disponible dans Mes bulletins.`,
+      category: "INFO" as NotificationCategory,
+      employeeId: signedSlip.employeeId,
+      targetRole: null,
+      global: false,
+      metadata: {
+        salarySlipId: signedSlip.id,
+        year: signedSlip.year,
+        month: signedSlip.month,
+        actionPath: "/dashboard/employee/payslips",
+        actionLabel: "Voir bulletin signé",
+      },
+    },
+  });
 
   return NextResponse.json({ slip: signed }, { status: 200 });
 }

@@ -2,13 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  EmployeeRole,
-  getEmployee,
-  getToken,
-  hasRequiredProfileData,
-  routeForRole,
-} from "@/lib/auth-client";
+import { EmployeeRole, getEmployee, getToken, hasRequiredProfileData, routeForRole } from "@/lib/auth-client";
 
 export default function RequireRole({
   allow,

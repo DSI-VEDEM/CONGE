@@ -32,11 +32,7 @@ export function yearsOverlappingRangeInclusive(start: Date, end: Date) {
   return years;
 }
 
-export function expandRecurringAnchorsBetweenInclusive(
-  recurringAnchors: Date[],
-  start: Date,
-  end: Date
-) {
+export function expandRecurringAnchorsBetweenInclusive(recurringAnchors: Date[], start: Date, end: Date) {
   if (!Array.isArray(recurringAnchors) || recurringAnchors.length === 0) return [];
   const s = normalizeUtcDateOnly(start).getTime();
   const e = normalizeUtcDateOnly(end).getTime();

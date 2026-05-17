@@ -182,9 +182,7 @@ export default function CeoEmployees() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setRows((prev) =>
-          prev.map((r) => (r.id === selectedEmployee.id ? { ...r, ...data.employee } : r))
-        );
+        setRows((prev) => prev.map((r) => (r.id === selectedEmployee.id ? { ...r, ...data.employee } : r)));
         toast.success("Utilisateur modifié.", { id: t });
       } else {
         toast.error(data?.error || "Erreur lors de la mise à jour.", { id: t });
@@ -343,20 +341,20 @@ export default function CeoEmployees() {
       setServices(svcMap);
 
       const employees = (empData?.employees ?? []).map((e: Partial<EmployeeRow>) => ({
-          id: e.id,
-          firstName: e.firstName,
-          lastName: e.lastName,
-          email: e.email,
-          profilePhotoUrl: e.profilePhotoUrl ?? null,
-          matricule: e.matricule,
-          jobTitle: e.jobTitle,
-          role: e.role ?? "EMPLOYEE",
-          status: e.status ?? "ACTIVE",
-          leaveBalance: e.leaveBalance ?? 25,
-          annualLeaveBalance: e.annualLeaveBalance ?? e.leaveBalance ?? 25,
-          departmentId: e.departmentId ?? null,
-          serviceId: e.serviceId ?? null,
-        }));
+        id: e.id,
+        firstName: e.firstName,
+        lastName: e.lastName,
+        email: e.email,
+        profilePhotoUrl: e.profilePhotoUrl ?? null,
+        matricule: e.matricule,
+        jobTitle: e.jobTitle,
+        role: e.role ?? "EMPLOYEE",
+        status: e.status ?? "ACTIVE",
+        leaveBalance: e.leaveBalance ?? 25,
+        annualLeaveBalance: e.annualLeaveBalance ?? e.leaveBalance ?? 25,
+        departmentId: e.departmentId ?? null,
+        serviceId: e.serviceId ?? null,
+      }));
       setRows(employees.filter((e: EmployeeRow) => e.id !== currentEmployee?.id));
     } finally {
       setIsLoading(false);
@@ -445,7 +443,9 @@ export default function CeoEmployees() {
           <div className="relative w-full max-w-2xl rounded-xl bg-white p-6 shadow-lg">
             <div className="text-lg font-semibold text-vdm-gold-800">Modifier l’utilisateur</div>
             <div className="text-sm text-vdm-gold-700 mt-1">
-              {selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : "Utilisateur"}
+              {selectedEmployee
+                ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
+                : "Utilisateur"}
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">

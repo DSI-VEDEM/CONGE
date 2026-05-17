@@ -21,4 +21,3 @@ export async function DELETE(req: Request, ctx: Ctx) {
 
   return NextResponse.json({ ok: true });
 }
-

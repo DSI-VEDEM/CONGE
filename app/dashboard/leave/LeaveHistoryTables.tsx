@@ -102,8 +102,7 @@ const defaultHistoryAdapter = (data: any): HistoryItem[] => {
       justificationFileName: x.justificationFileName ?? null,
       justificationMimeType: x.justificationMimeType ?? null,
       decidedAt: x.decisions?.[0]?.createdAt ? formatDateDMY(x.decisions?.[0]?.createdAt) : "-",
-      days:
-        startRaw && endRaw ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type }) : 0,
+      days: startRaw && endRaw ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: x.type }) : 0,
       endDateRaw: endRaw,
     };
   });
@@ -137,12 +136,12 @@ export default function LeaveHistoryTables({
 
   const resolvedHistoryTitle = historyTitle ?? "Historique";
   const resolvedHistorySubtitle = historySubtitle ?? "Historique complet de mes demandes.";
-  const resolvedHistoryPageSize = typeof historyPageSize === "number" ? historyPageSize : DEFAULT_HISTORY_PAGE_SIZE;
+  const resolvedHistoryPageSize =
+    typeof historyPageSize === "number" ? historyPageSize : DEFAULT_HISTORY_PAGE_SIZE;
   const resolvedAllowCancellation = allowCancellation ?? true;
   const resolvedActiveSearchPlaceholder = activeSearchPlaceholder ?? "Rechercher une demande...";
   const resolvedHistorySearchPlaceholder = historySearchPlaceholder ?? "Rechercher une demande...";
-  const resolvedActiveErrorMessage =
-    activeErrorMessage ?? "Impossible de charger les demandes en cours.";
+  const resolvedActiveErrorMessage = activeErrorMessage ?? "Impossible de charger les demandes en cours.";
   const resolvedHistoryErrorMessage =
     historyErrorMessage ?? "Impossible de charger l'historique des demandes.";
   const historyMapper = useMemo(() => historyAdapter ?? defaultHistoryAdapter, [historyAdapter]);
@@ -222,7 +221,14 @@ export default function LeaveHistoryTables({
     } finally {
       setIsHistoryLoading(false);
     }
-  }, [addPagingParams, fetchFromRoutes, historyRoutes, historyMapper, resolvedHistoryErrorMessage, resolvedHistoryPageSize]);
+  }, [
+    addPagingParams,
+    fetchFromRoutes,
+    historyRoutes,
+    historyMapper,
+    resolvedHistoryErrorMessage,
+    resolvedHistoryPageSize,
+  ]);
 
   useEffect(() => {
     const token = getToken();

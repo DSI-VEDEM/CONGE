@@ -84,9 +84,12 @@ export default function ContractDocumentsSection({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ id: string; fileName: string; url: string; mimeType: string } | null>(
-    null
-  );
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    fileName: string;
+    url: string;
+    mimeType: string;
+  } | null>(null);
   const [highlightedDocumentTypeId, setHighlightedDocumentTypeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -137,7 +140,6 @@ export default function ContractDocumentsSection({
     // Charger la liste des employés via l'API /api/employees/options.
     loadEmployees();
   }, [employee.id, showEmployeeFilter, showUploader, enableEmployeeFilter]);
-
 
   const missingDocumentTypeSummaries = useMemo<MissingDocumentTypeSummary[]>(() => {
     if (contractDocumentTypes.length === 0) return [];
@@ -203,7 +205,7 @@ export default function ContractDocumentsSection({
   }, [employees, highlightedDocumentTypeId, missingDocumentTypeSummaryMap, showTypeCards]);
 
   const highlightedTypeSummary = highlightedDocumentTypeId
-    ? missingDocumentTypeSummaryMap.get(highlightedDocumentTypeId) ?? null
+    ? (missingDocumentTypeSummaryMap.get(highlightedDocumentTypeId) ?? null)
     : null;
 
   useEffect(() => {
@@ -214,7 +216,7 @@ export default function ContractDocumentsSection({
     setUploadEmployeeId((prev) =>
       filteredEmployeesForSelect.some((item) => item.id === prev)
         ? prev
-        : filteredEmployeesForSelect[0]?.id ?? ""
+        : (filteredEmployeesForSelect[0]?.id ?? "")
     );
   }, [filteredEmployeesForSelect]);
 
@@ -286,7 +288,9 @@ export default function ContractDocumentsSection({
 
   const highlightedDocumentTypeFilter =
     showTypeCards && highlightedDocumentTypeId ? highlightedDocumentTypeId : null;
-  const activeDocumentTypeFilter = highlightedDocumentTypeFilter ?? (enableDocumentTypeFilter ? documentTypeFilter : filterContractDocumentTypeId);
+  const activeDocumentTypeFilter =
+    highlightedDocumentTypeFilter ??
+    (enableDocumentTypeFilter ? documentTypeFilter : filterContractDocumentTypeId);
 
   const filteredDocuments = useMemo(() => {
     let list = documents;
@@ -552,11 +556,13 @@ export default function ContractDocumentsSection({
                 className="mt-1 w-full rounded-md border border-vdm-gold-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
               >
                 <option value="">Tous les types</option>
-                {(dynamicTypeOptions.length === 0 ? contractDocumentTypes : dynamicTypeOptions).map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
+                {(dynamicTypeOptions.length === 0 ? contractDocumentTypes : dynamicTypeOptions).map(
+                  (type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  )
+                )}
               </select>
             </label>
           )}
@@ -569,16 +575,19 @@ export default function ContractDocumentsSection({
                 className="mt-1 w-full rounded-md border border-vdm-gold-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
               >
                 <option value="">Tous les employés</option>
-                {(dynamicEmployeeOptions.length === 0 ? documentEmployees : dynamicEmployeeOptions).length === 0 ? (
+                {(dynamicEmployeeOptions.length === 0 ? documentEmployees : dynamicEmployeeOptions).length ===
+                0 ? (
                   <option value="" disabled>
                     Aucun document associé à un collaborateur
                   </option>
                 ) : (
-                  (dynamicEmployeeOptions.length === 0 ? documentEmployees : dynamicEmployeeOptions).map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {employeeLabel(emp)}
-                    </option>
-                  ))
+                  (dynamicEmployeeOptions.length === 0 ? documentEmployees : dynamicEmployeeOptions).map(
+                    (emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {employeeLabel(emp)}
+                      </option>
+                    )
+                  )
                 )}
               </select>
             </label>
@@ -624,7 +633,9 @@ export default function ContractDocumentsSection({
                 <div className="text-xs text-vdm-gold-600">Documents manquants par type</div>
                 {contractDocumentTypes.length === 0 ? (
                   <div className="text-xs text-vdm-gold-600">
-                    {isContractDocumentTypesLoading ? "Chargement des types..." : "Aucun type de document défini."}
+                    {isContractDocumentTypesLoading
+                      ? "Chargement des types..."
+                      : "Aucun type de document défini."}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -635,19 +646,22 @@ export default function ContractDocumentsSection({
                       const blockClass = isFullyAvailable
                         ? "border-vdm-gold-300 bg-vdm-gold-50 text-vdm-gold-900"
                         : "border-vdm-gold-200 bg-white text-vdm-gold-800 hover:bg-vdm-gold-50";
-                      const label = isLoading || isContractDocumentTypesLoading ? "Chargement..." : formatMissingLabel(missingCount);
+                      const label =
+                        isLoading || isContractDocumentTypesLoading
+                          ? "Chargement..."
+                          : formatMissingLabel(missingCount);
                       const isSelectedCard = highlightedDocumentTypeId === type.id;
                       const selectedClass = isSelectedCard ? "ring-2 ring-vdm-gold-300" : "";
                       return (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() =>
-                        setHighlightedDocumentTypeId((prev) => (prev === type.id ? null : type.id))
-                      }
-                      className={`rounded-lg border px-3 py-2 text-left ${blockClass} ${selectedClass}`}
-                      aria-pressed={isSelectedCard}
-                    >
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() =>
+                            setHighlightedDocumentTypeId((prev) => (prev === type.id ? null : type.id))
+                          }
+                          className={`rounded-lg border px-3 py-2 text-left ${blockClass} ${selectedClass}`}
+                          aria-pressed={isSelectedCard}
+                        >
                           <div className="text-sm font-semibold text-vdm-gold-900">{type.name}</div>
                           <div className="text-xs text-vdm-gold-700">{label}</div>
                         </button>
@@ -761,11 +775,16 @@ export default function ContractDocumentsSection({
                       </button>
                     </div>
                     {isCollapsed ? (
-                      <div className="text-xs text-vdm-gold-500">Section repliée. Cliquez sur "Afficher".</div>
+                      <div className="text-xs text-vdm-gold-500">
+                        Section repliée. Cliquez sur "Afficher".
+                      </div>
                     ) : (
                       <div className="space-y-3">
                         {group.documents.map((doc) => (
-                          <div key={doc.id} className="border border-vdm-gold-200 rounded-md p-3 flex flex-col gap-2">
+                          <div
+                            key={doc.id}
+                            className="border border-vdm-gold-200 rounded-md p-3 flex flex-col gap-2"
+                          >
                             <div className="flex items-center justify-between">
                               <div>
                                 <button
@@ -826,7 +845,10 @@ export default function ContractDocumentsSection({
                                 />
                                 {editSelectedFile ? (
                                   <div className="rounded-lg border border-vdm-gold-200 bg-white p-2">
-                                    <div className="text-xs text-vdm-gold-800 truncate" title={editSelectedFile.name}>
+                                    <div
+                                      className="text-xs text-vdm-gold-800 truncate"
+                                      title={editSelectedFile.name}
+                                    >
                                       {editSelectedFile.name}
                                     </div>
                                     <div className="mt-2 flex flex-wrap gap-2">
@@ -912,9 +934,17 @@ export default function ContractDocumentsSection({
             <div className="p-4 h-full min-h-0">
               {previewFile.type.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewUrl} alt="Aperçu document" />
+                <img
+                  className="h-full w-full object-contain rounded-lg border border-vdm-gold-200"
+                  src={previewUrl}
+                  alt="Aperçu document"
+                />
               ) : (
-                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewUrl} title="Aperçu document" />
+                <iframe
+                  className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                  src={previewUrl}
+                  title="Aperçu document"
+                />
               )}
             </div>
           </div>
@@ -957,9 +987,17 @@ export default function ContractDocumentsSection({
             <div className="p-4 h-full min-h-0">
               {previewDoc.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="h-full w-full object-contain rounded-lg border border-vdm-gold-200" src={previewDoc.url} alt="Aperçu document" />
+                <img
+                  className="h-full w-full object-contain rounded-lg border border-vdm-gold-200"
+                  src={previewDoc.url}
+                  alt="Aperçu document"
+                />
               ) : (
-                <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewDoc.url} title="Aperçu document" />
+                <iframe
+                  className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                  src={previewDoc.url}
+                  title="Aperçu document"
+                />
               )}
             </div>
           </div>

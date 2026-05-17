@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import { logError } from "@/lib/logger";
 import { norm } from "@/lib/validators";
 import { isEmployeeGender } from "@/lib/employee-gender";
 import { isMaritalStatus } from "@/lib/marital-status";
@@ -94,7 +95,6 @@ export async function GET(req: Request) {
   return NextResponse.json({ employee });
 }
 
-
 export async function PUT(req: Request) {
   // Met à jour les champs autorisés sur le profil (pas d'email, pas de rôle).
   const v = verifyJwt(req);
@@ -122,10 +122,7 @@ export async function PUT(req: Request) {
     const field = firstProfileValidationField(errors);
     if (field) {
       const message = errors[field] as string;
-      const status =
-        field === "profilePhotoUrl" && message === PROFILE_PHOTO_TOO_LARGE_MESSAGE
-          ? 413
-          : 400;
+      const status = field === "profilePhotoUrl" && message === PROFILE_PHOTO_TOO_LARGE_MESSAGE ? 413 : 400;
       return profileFieldError(field, message, status);
     }
   }
@@ -293,11 +290,8 @@ export async function PUT(req: Request) {
       },
     });
   } catch (error) {
-    console.error("Erreur mise à jour profil", error);
-    return jsonError(
-      "Impossible d'enregistrer le profil. Vérifiez les informations puis réessayez.",
-      500
-    );
+    logError("auth/me:PUT", error, "Erreur mise à jour profil");
+    return jsonError("Impossible d'enregistrer le profil. Vérifiez les informations puis réessayez.", 500);
   }
 
   if (!updated) return jsonError("Employé introuvable", 404);

@@ -17,7 +17,10 @@ export default function ContractDocumentTypeManager({ contractDocumentTypes, onR
   const [isListExpanded, setIsListExpanded] = useState(false);
 
   const sortedTypes = useMemo(
-    () => [...contractDocumentTypes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () =>
+      [...contractDocumentTypes].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
     [contractDocumentTypes]
   );
 
@@ -86,8 +89,8 @@ export default function ContractDocumentTypeManager({ contractDocumentTypes, onR
     <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 mb-6">
       <div className="text-lg font-semibold text-vdm-gold-800 mb-2">Types de documents de contrats</div>
       <p className="text-sm text-vdm-gold-700 mb-3">
-        Ajoutez ici de nouvelles catégories de documents de contrats pour mieux qualifier les fichiers déposés par la
-        comptabilité.
+        Ajoutez ici de nouvelles catégories de documents de contrats pour mieux qualifier les fichiers déposés
+        par la comptabilité.
       </p>
       <form onSubmit={handleSubmit} className="flex gap-2 flex-wrap">
         <input
@@ -138,7 +141,9 @@ export default function ContractDocumentTypeManager({ contractDocumentTypes, onR
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-xs text-vdm-gold-500">Liste repliée. Cliquez sur "Afficher" pour voir les types.</p>
+          <p className="mt-2 text-xs text-vdm-gold-500">
+            Liste repliée. Cliquez sur "Afficher" pour voir les types.
+          </p>
         )
       ) : (
         <p className="mt-2 text-sm text-vdm-gold-700">Aucun type défini pour le moment.</p>

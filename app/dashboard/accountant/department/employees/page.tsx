@@ -171,11 +171,7 @@ export default function AccountantDepartmentEmployees({
       })) as EmployeeRow[];
 
       setRows(
-        employees.filter(
-          (e) =>
-            e.id !== currentEmployee?.id &&
-            (adjustmentOnly ? e.role !== "CEO" : true)
-        )
+        employees.filter((e) => e.id !== currentEmployee?.id && (adjustmentOnly ? e.role !== "CEO" : true))
       );
     } finally {
       setIsLoading(false);
@@ -243,7 +239,9 @@ export default function AccountantDepartmentEmployees({
             ? {
                 ...row,
                 leaveBalance: Number(employee?.leaveBalance ?? row.leaveBalance ?? 0),
-                leaveBalanceAdjustment: Number(employee?.leaveBalanceAdjustment ?? row.leaveBalanceAdjustment ?? 0),
+                leaveBalanceAdjustment: Number(
+                  employee?.leaveBalanceAdjustment ?? row.leaveBalanceAdjustment ?? 0
+                ),
                 firstYearLeaveUsedDays: Number(employee?.firstYearLeaveUsedDays ?? 0),
                 firstYearLeaveUsedYear: employee?.firstYearLeaveUsedYear ?? null,
               }
@@ -334,7 +332,10 @@ export default function AccountantDepartmentEmployees({
       {
         id: "actions",
         header: "Actions",
-        meta: { className: "sticky right-0 bg-white z-10 border-l border-vdm-gold-100 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]" },
+        meta: {
+          className:
+            "sticky right-0 bg-white z-10 border-l border-vdm-gold-100 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]",
+        },
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-2">
             <button
@@ -409,7 +410,8 @@ export default function AccountantDepartmentEmployees({
             </label>
 
             <div className="text-xs text-vdm-gold-700">
-              Cette valeur s'applique uniquement au cycle courant de l'employé. Mettez 0 pour retirer l'ajustement.
+              Cette valeur s'applique uniquement au cycle courant de l'employé. Mettez 0 pour retirer
+              l'ajustement.
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -500,7 +502,6 @@ export default function AccountantDepartmentEmployees({
                   className="mt-1 w-full rounded-md border border-vdm-gold-200 bg-vdm-gold-50 px-3 py-2 text-sm text-vdm-gold-800"
                 />
               </label>
-
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

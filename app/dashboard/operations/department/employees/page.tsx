@@ -231,9 +231,7 @@ export default function OperationsDepartmentEmployees() {
         onRefresh={loadEmployees}
       />
 
-      {isLoading ? (
-        <div className="mt-3 text-xs text-vdm-gold-700">Chargement des employés…</div>
-      ) : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement des employés…</div> : null}
 
       {editingId && draft ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

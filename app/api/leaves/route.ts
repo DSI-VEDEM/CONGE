@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { verifyJwt, jsonError } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 import { parseLeaveJustificationInput } from "@/lib/leave-justification";
-import { isAnticipatedPaidLeaveType, isLeaveType, isMenstrualLeaveType, isPaidLeaveType } from "@/lib/leave-types";
+import {
+  isAnticipatedPaidLeaveType,
+  isLeaveType,
+  isMenstrualLeaveType,
+  isPaidLeaveType,
+} from "@/lib/leave-types";
 import type { LeaveType } from "@/generated/prisma/client";
 import {
   calculateEntitledLeaveDaysForCycle,
@@ -44,26 +49,39 @@ export async function GET(req: Request) {
 
   const where = mine ? { employeeId } : undefined;
 
-  const leaves = await prisma.leaveRequest.findMany({
-    where,
-    select: {
-      id: true,
-      type: true,
-      startDate: true,
-      endDate: true,
-      reason: true,
-      justificationFileName: true,
-      justificationMimeType: true,
-      status: true,
-      currentAssigneeId: true,
-      currentAssignee: { select: { id: true, firstName: true, lastName: true, role: true } },
-      employee: { select: { id: true, firstName: true, lastName: true } },
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Pagination : ?take=100 (max 300), ?skip=0
+  const DEFAULT_TAKE = 100;
+  const MAX_TAKE = 300;
+  const takeRaw = Number(url.searchParams.get("take") ?? DEFAULT_TAKE);
+  const skipRaw = Number(url.searchParams.get("skip") ?? 0);
+  const take = Math.min(MAX_TAKE, Math.max(1, Number.isFinite(takeRaw) ? takeRaw : DEFAULT_TAKE));
+  const skip = Math.max(0, Number.isFinite(skipRaw) ? skipRaw : 0);
 
-  return NextResponse.json({ leaves });
+  const [leaves, total] = await Promise.all([
+    prisma.leaveRequest.findMany({
+      where,
+      select: {
+        id: true,
+        type: true,
+        startDate: true,
+        endDate: true,
+        reason: true,
+        justificationFileName: true,
+        justificationMimeType: true,
+        status: true,
+        currentAssigneeId: true,
+        currentAssignee: { select: { id: true, firstName: true, lastName: true, role: true } },
+        employee: { select: { id: true, firstName: true, lastName: true } },
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take,
+      skip,
+    }),
+    prisma.leaveRequest.count({ where }),
+  ]);
+
+  return NextResponse.json({ leaves, total, take, skip });
 }
 
 export async function POST(req: Request) {
@@ -146,8 +164,16 @@ export async function POST(req: Request) {
     const cycleCalc = calculateEntitledLeaveDaysForCycle(actor, startDate);
     const debtFromPreviousCycle = await debtCarriedIntoCycle(prisma, actor, employeeId, leaveCycle.start);
     const currentEntitlement = Math.max(0, cycleCalc.entitlement - debtFromPreviousCycle);
-    const consumed = await consumedLeaveDaysForRange(prisma, employeeId, leaveCycle.start, leaveCycle.endExclusive);
-    const nextCycleEntitlement = calculateEntitledLeaveDaysForCycle(actor, leaveCycle.endExclusive).entitlement;
+    const consumed = await consumedLeaveDaysForRange(
+      prisma,
+      employeeId,
+      leaveCycle.start,
+      leaveCycle.endExclusive
+    );
+    const nextCycleEntitlement = calculateEntitledLeaveDaysForCycle(
+      actor,
+      leaveCycle.endExclusive
+    ).entitlement;
     const availableCurrentCycle = Math.max(0, currentEntitlement - consumed);
     const alreadyBorrowed = Math.max(0, consumed - currentEntitlement);
     const availableAnticipated = Math.max(0, nextCycleEntitlement - alreadyBorrowed);

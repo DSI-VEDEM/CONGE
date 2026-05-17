@@ -104,7 +104,10 @@ export default function AccountantInbox() {
     if (!token) return;
     let cancelled = false;
 
-    const fetchPendingPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
+    const fetchPendingPage = async (
+      targetPage: number,
+      options: { applyResult: boolean; showLoader: boolean }
+    ) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
         const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
@@ -113,26 +116,26 @@ export default function AccountantInbox() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({
-              id: x.id,
-              firstName: x.employee?.firstName ?? "",
-              lastName: x.employee?.lastName ?? "",
-              employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
-              profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
-              department: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
-              departmentId: x.employee?.departmentId ?? null,
-              departmentName: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
-              period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
-              status: x.status,
-              note: x.reason ?? "",
-              justificationFileName: x.justificationFileName ?? null,
-              justificationMimeType: x.justificationMimeType ?? null,
-              origin:
-                x.employee?.role === "DEPT_HEAD"
-                  ? "DEPT_HEAD"
-                  : x.employee?.role === "SERVICE_HEAD"
+            id: x.id,
+            firstName: x.employee?.firstName ?? "",
+            lastName: x.employee?.lastName ?? "",
+            employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
+            profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
+            department: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
+            departmentId: x.employee?.departmentId ?? null,
+            departmentName: x.employee?.department?.name ?? x.employee?.department?.type ?? "",
+            period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
+            status: x.status,
+            note: x.reason ?? "",
+            justificationFileName: x.justificationFileName ?? null,
+            justificationMimeType: x.justificationMimeType ?? null,
+            origin:
+              x.employee?.role === "DEPT_HEAD"
+                ? "DEPT_HEAD"
+                : x.employee?.role === "SERVICE_HEAD"
                   ? "SERVICE_HEAD"
                   : "EMPLOYEE",
-            }));
+          }));
           const entry = { rows: mapped, hasNext: mapped.length === PENDING_PAGE_SIZE };
           pendingPageCacheRef.current[targetPage] = entry;
           if (options.applyResult && !cancelled) {
@@ -172,46 +175,52 @@ export default function AccountantInbox() {
     if (!token) return;
     let cancelled = false;
 
-    const fetchHistoryPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
+    const fetchHistoryPage = async (
+      targetPage: number,
+      options: { applyResult: boolean; showLoader: boolean }
+    ) => {
       if (options.showLoader && !cancelled) setIsHistoryLoading(true);
       try {
-        const res = await fetch(`/api/leave-requests/history?scope=all&page=${targetPage}&take=${HISTORY_PAGE_SIZE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/leave-requests/history?scope=all&page=${targetPage}&take=${HISTORY_PAGE_SIZE}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((leave: any) => {
-              const startRaw = leave.startDate ?? "";
-              const endRaw = leave.endDate ?? "";
-              const start = formatDateDMY(startRaw);
-              const end = formatDateDMY(endRaw);
-              const decision = leave.decisions?.[0];
-              const decisionComment = decision?.comment ?? "";
-              const isAutoApproved =
-                leave.status === "APPROVED" && decisionComment.toLowerCase().includes("auto-approval");
-              const actor = decision?.actor;
-              return {
-                id: leave.id,
-                firstName: leave.employee?.firstName ?? "",
-                lastName: leave.employee?.lastName ?? "",
-                employeeName: `${leave.employee?.firstName ?? ""} ${leave.employee?.lastName ?? ""}`.trim(),
-                profilePhotoUrl: leave.employee?.profilePhotoUrl ?? null,
-                department: leave.employee?.department?.name ?? leave.employee?.department?.type ?? "—",
-                period: `${start} - ${end}`,
-                decision: leave.status,
-                decidedBy: isAutoApproved
-                  ? "Auto-validation"
-                  : `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
-                decidedAt: decision?.createdAt ? formatDateDMY(decision.createdAt) : "-",
-                isAutoApproved,
-                days:
-                  startRaw && endRaw
-                    ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: leave.type })
-                    : 0,
-                endDateRaw: endRaw,
-                returnDate: "-",
-              };
-            });
+            const startRaw = leave.startDate ?? "";
+            const endRaw = leave.endDate ?? "";
+            const start = formatDateDMY(startRaw);
+            const end = formatDateDMY(endRaw);
+            const decision = leave.decisions?.[0];
+            const decisionComment = decision?.comment ?? "";
+            const isAutoApproved =
+              leave.status === "APPROVED" && decisionComment.toLowerCase().includes("auto-approval");
+            const actor = decision?.actor;
+            return {
+              id: leave.id,
+              firstName: leave.employee?.firstName ?? "",
+              lastName: leave.employee?.lastName ?? "",
+              employeeName: `${leave.employee?.firstName ?? ""} ${leave.employee?.lastName ?? ""}`.trim(),
+              profilePhotoUrl: leave.employee?.profilePhotoUrl ?? null,
+              department: leave.employee?.department?.name ?? leave.employee?.department?.type ?? "—",
+              period: `${start} - ${end}`,
+              decision: leave.status,
+              decidedBy: isAutoApproved
+                ? "Auto-validation"
+                : `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
+              decidedAt: decision?.createdAt ? formatDateDMY(decision.createdAt) : "-",
+              isAutoApproved,
+              days:
+                startRaw && endRaw
+                  ? countLeaveDaysInclusive({ start: startRaw, end: endRaw, type: leave.type })
+                  : 0,
+              endDateRaw: endRaw,
+              returnDate: "-",
+            };
+          });
           const entry = { rows: mapped, hasNext: mapped.length === HISTORY_PAGE_SIZE };
           historyPageCacheRef.current[targetPage] = entry;
           if (options.applyResult && !cancelled) {
@@ -341,10 +350,10 @@ export default function AccountantInbox() {
       } else {
         toast.error("Erreur lors de la transmission.", { id: t });
       }
-  } catch {
-    toast.error("Erreur réseau lors de la transmission.", { id: t });
-  }
-}, []);
+    } catch {
+      toast.error("Erreur réseau lors de la transmission.", { id: t });
+    }
+  }, []);
 
   const openJustification = useCallback(async (id: string, fileName?: string | null) => {
     const token = getToken();
@@ -606,7 +615,9 @@ export default function AccountantInbox() {
             </button>
           </div>
         </div>
-        {isHistoryLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l’historique...</div> : null}
+        {isHistoryLoading ? (
+          <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l’historique...</div>
+        ) : null}
       </div>
     </div>
   );

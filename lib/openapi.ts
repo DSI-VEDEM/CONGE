@@ -498,7 +498,9 @@ export const openapiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         requestBody: {
           required: false,
-          content: { "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } } },
+          content: {
+            "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } },
+          },
         },
         responses: { "200": { description: "OK" } },
       },
@@ -510,7 +512,9 @@ export const openapiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         requestBody: {
           required: false,
-          content: { "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } } },
+          content: {
+            "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } },
+          },
         },
         responses: { "200": { description: "OK" } },
       },
@@ -544,7 +548,9 @@ export const openapiSpec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         requestBody: {
           required: false,
-          content: { "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } } },
+          content: {
+            "application/json": { schema: { type: "object", properties: { comment: { type: "string" } } } },
+          },
         },
         responses: { "200": { description: "OK" } },
       },

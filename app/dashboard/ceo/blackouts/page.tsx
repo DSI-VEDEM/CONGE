@@ -144,7 +144,7 @@ export default function CeoBlackouts() {
       void load();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []); 
+  }, []);
 
   const createBlackout = async () => {
     if (!startDate || !endDate) {
@@ -195,9 +195,7 @@ export default function CeoBlackouts() {
   };
 
   const toggleEmployee = (id: string) => {
-    setSelectedEmployeeIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedEmployeeIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const goPrevMonth = () => setCalendarMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -247,7 +245,11 @@ export default function CeoBlackouts() {
     const selected =
       !!startDate &&
       (endDate
-        ? inRange(dateValue, startDate <= endDate ? startDate : endDate, startDate <= endDate ? endDate : startDate)
+        ? inRange(
+            dateValue,
+            startDate <= endDate ? startDate : endDate,
+            startDate <= endDate ? endDate : startDate
+          )
         : dateValue === startDate);
     return { selected, boundary, existing, dateValue };
   };
@@ -336,9 +338,7 @@ export default function CeoBlackouts() {
         ) : null}
         {targetScope === "PEOPLE" ? (
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-vdm-gold-800 mb-1">
-              Personnes ciblées
-            </label>
+            <label className="block text-sm font-medium text-vdm-gold-800 mb-1">Personnes ciblées</label>
             <div className="max-h-40 overflow-auto border border-vdm-gold-200 rounded-md p-2 grid gap-1">
               {employees.length === 0 ? (
                 <div className="text-sm text-gray-500">Aucun employé disponible.</div>
@@ -498,10 +498,7 @@ export default function CeoBlackouts() {
             <div className="text-sm text-gray-500">Aucune période bloquée.</div>
           ) : (
             items.map((b) => (
-              <div
-                key={b.id}
-                className="border border-vdm-gold-100 rounded-lg bg-white/60 p-3 space-y-2"
-              >
+              <div key={b.id} className="border border-vdm-gold-100 rounded-lg bg-white/60 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="font-semibold text-vdm-gold-900">{b.title || "Période bloquée"}</div>
@@ -516,9 +513,7 @@ export default function CeoBlackouts() {
                     Supprimer
                   </button>
                 </div>
-                <div className="text-xs text-gray-600">
-                  {targetLabel(b)}
-                </div>
+                <div className="text-xs text-gray-600">{targetLabel(b)}</div>
                 {b.reason ? (
                   <div className="text-xs text-gray-600">
                     <span className="font-semibold text-vdm-gold-800">Motif :</span> {b.reason}

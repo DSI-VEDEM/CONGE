@@ -32,10 +32,7 @@ export function jsonError(message: string, status: number, extra?: Record<string
 export function jsonServerError(err: unknown, fallback = "Erreur serveur") {
   if (!IS_PROD) {
     const e = err as { code?: string; message?: string };
-    return NextResponse.json(
-      { error: fallback, code: e?.code, details: e?.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: fallback, code: e?.code, details: e?.message }, { status: 500 });
   }
   return NextResponse.json({ error: fallback }, { status: 500 });
 }

@@ -45,8 +45,7 @@ export default function ManagerTeamPage() {
         matricule: e.matricule,
         jobTitle: e.jobTitle,
         status: e.status ?? "ACTIVE",
-        service:
-          e.service?.name ?? e.service?.type ?? e.serviceId ?? null,
+        service: e.service?.name ?? e.service?.type ?? e.serviceId ?? null,
         departmentId: e.departmentId ?? null,
       })) as TeamMember[];
       setRows(employees);
@@ -57,7 +56,7 @@ export default function ManagerTeamPage() {
 
   useEffect(() => {
     loadTeam();
-    }, [loadTeam]);
+  }, [loadTeam]);
 
   const columns = useMemo<ColumnDef<TeamMember>[]>(
     () => [
@@ -92,9 +91,7 @@ export default function ManagerTeamPage() {
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Équipe</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">
-        Liste des employés de votre service.
-      </div>
+      <div className="text-sm text-vdm-gold-700 mb-4">Liste des employés de votre service.</div>
 
       <DataTable
         data={rows}
@@ -102,9 +99,7 @@ export default function ManagerTeamPage() {
         searchPlaceholder="Rechercher un employé..."
         onRefresh={loadTeam}
       />
-      {isLoading ? (
-        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l'équipe...</div>
-      ) : null}
+      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l'équipe...</div> : null}
     </div>
   );
 }

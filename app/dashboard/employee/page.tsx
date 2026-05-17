@@ -20,20 +20,7 @@ type LeaveItem = {
 };
 
 const BASE_ALLOWANCE = 25;
-const MONTHS = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Juin",
-  "Juil",
-  "Août",
-  "Sept",
-  "Oct",
-  "Nov",
-  "Déc",
-];
+const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sept", "Oct", "Nov", "Déc"];
 
 function consumedDaysForYear(leaves: LeaveItem[], year: number) {
   let total = 0;
@@ -154,9 +141,7 @@ export default function EmployeeDashboard() {
 
     const last = leaves[0];
     const lastLabel = last
-      ? `${statusLabel(last.status)} - ${formatDateDMY(last.startDate)} - ${formatDateDMY(
-          last.endDate
-        )}`
+      ? `${statusLabel(last.status)} - ${formatDateDMY(last.startDate)} - ${formatDateDMY(last.endDate)}`
       : "Aucune";
 
     return { balance, pendingCount, lastLabel, lineData, pieData, barData };

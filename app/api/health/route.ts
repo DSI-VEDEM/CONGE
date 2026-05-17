@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/logger";
 
 /**
  * Route santé : sonde technique pour Docker / Kubernetes / load balancer.
@@ -20,7 +21,7 @@ export async function GET() {
     await prisma.$runCommandRaw({ ping: 1 });
     dbOk = true;
   } catch (err) {
-    console.error("[health] DB ping failed", err);
+    logError("health", err, "DB ping failed");
     dbOk = false;
   }
 

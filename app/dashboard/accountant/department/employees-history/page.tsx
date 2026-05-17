@@ -108,8 +108,7 @@ export default function AccountantDeptEmployeesHistory() {
             employeeId: item.employee?.id ?? "",
             firstName: item.employee?.firstName ?? "",
             lastName: item.employee?.lastName ?? "",
-            employeeName:
-              `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
+            employeeName: `${item.employee?.firstName ?? ""} ${item.employee?.lastName ?? ""}`.trim() || "—",
             profilePhotoUrl: item.employee?.profilePhotoUrl ?? null,
             employeeRole: item.employee?.role ?? "—",
             leaveBalance: item.employee?.leaveBalance ?? 0,
@@ -117,10 +116,7 @@ export default function AccountantDeptEmployeesHistory() {
             startDate: formatDateDMY(startRaw),
             endDate: formatDateDMY(endRaw),
             status: item.status,
-            decidedBy:
-              `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() ||
-              actor?.role ||
-              "-",
+            decidedBy: `${actor?.firstName ?? ""} ${actor?.lastName ?? ""}`.trim() || actor?.role || "-",
             decidedAt: decidedAtRaw ? formatDateDMY(decidedAtRaw) : "-",
             days:
               startRaw && endRaw
@@ -237,7 +233,9 @@ export default function AccountantDeptEmployeesHistory() {
         searchPlaceholder="Rechercher une demande..."
         onRefresh={loadHistory}
       />
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div> : null}
+      {isLoading ? (
+        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+      ) : null}
     </div>
   );
 }

@@ -52,7 +52,14 @@ export async function GET(req: Request) {
       status: true,
       createdAt: true,
       employee: {
-        select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true, role: true, leaveBalance: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          profilePhotoUrl: true,
+          role: true,
+          leaveBalance: true,
+        },
       },
       decisions: {
         where: { type: { in: ["APPROVE", "REJECT", "CANCEL"] } },

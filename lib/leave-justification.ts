@@ -14,10 +14,7 @@ const DATA_URL_RE = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,[A-Za-z0-9+
 
 const ALLOWED_MIME_TYPES = new Set<string>(LEAVE_JUSTIFICATION_ALLOWED_MIME_TYPES);
 
-export function parseLeaveJustificationInput(input: {
-  fileName?: unknown;
-  fileDataUrl?: unknown;
-}) {
+export function parseLeaveJustificationInput(input: { fileName?: unknown; fileDataUrl?: unknown }) {
   const fileName = norm(input.fileName);
   const fileDataUrl = norm(input.fileDataUrl);
 

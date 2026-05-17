@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonServerError } from "@/lib/auth";
 import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
+import { logError } from "@/lib/logger";
 
 type Ctx = { params: Promise<{ id: string; rid: string }> };
 
@@ -27,7 +28,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     return NextResponse.json({ responsibility: updated });
   } catch (e: unknown) {
-    console.error("[departments/:id/responsable/:rid] PATCH erreur", e);
+    logError("departments/:id/responsable/:rid:PATCH", e, "clôture responsable : erreur");
     return jsonServerError(e);
   }
 }
@@ -44,7 +45,7 @@ export async function DELETE(req: Request, ctx: Ctx) {
     await prisma.departmentResponsibility.delete({ where: { id: rid } });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    console.error("[departments/:id/responsable/:rid] DELETE erreur", e);
+    logError("departments/:id/responsable/:rid:DELETE", e, "suppression responsable : erreur");
     return jsonServerError(e);
   }
 }

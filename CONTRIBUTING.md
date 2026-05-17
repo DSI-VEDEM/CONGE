@@ -23,6 +23,7 @@ Préfixes recommandés :
 - `ci:` pipeline CI
 
 Format :
+
 ```
 <type>: résumé court (~50 caractères)
 
@@ -53,6 +54,7 @@ npm test
 1. Créer (ou réutiliser) un schéma Zod dans `lib/schemas/<resource>.schema.ts`.
 2. Écrire la logique métier dans `lib/services/<resource>.service.ts` (lance `ServiceError` si besoin).
 3. Créer la route :
+
    ```ts
    export const runtime = "nodejs";
    import { requireRole } from "@/lib/auth";
@@ -76,6 +78,7 @@ npm test
      }
    }
    ```
+
 4. Ajouter un test dans `tests/services/<resource>.test.ts` (avec mocks de `repositories/`).
 
 ## Sécurité
@@ -94,6 +97,7 @@ npm test
 ## Bugs / fonctionnalités
 
 Ouvrir une issue avec :
+
 - Description du comportement attendu vs observé
 - Étapes de reproduction
 - Capture d'écran ou logs si pertinent

@@ -29,7 +29,8 @@ function appliesToEmployee(
 ) {
   const targetIds = Array.isArray(blackout.employeeIds) ? blackout.employeeIds : [];
   if (targetIds.includes(employee.id)) return true;
-  if (blackout.departmentId && employee.departmentId && blackout.departmentId === employee.departmentId) return true;
+  if (blackout.departmentId && employee.departmentId && blackout.departmentId === employee.departmentId)
+    return true;
   return !blackout.departmentId && targetIds.length === 0;
 }
 
@@ -63,7 +64,11 @@ export async function GET(req: Request) {
       })
       .catch(() => []),
     prisma.holiday
-      .findMany({ where: { isRecurring: true }, select: { id: true, date: true, label: true }, orderBy: { date: "asc" } })
+      .findMany({
+        where: { isRecurring: true },
+        select: { id: true, date: true, label: true },
+        orderBy: { date: "asc" },
+      })
       .catch(() => []),
   ]);
 

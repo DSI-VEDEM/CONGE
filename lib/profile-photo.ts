@@ -1,7 +1,6 @@
 export const PROFILE_PHOTO_MAX_LABEL = "2 Mo";
 export const MAX_PROFILE_PHOTO_SIZE_BYTES = 2 * 1024 * 1024;
-export const MAX_PROFILE_PHOTO_DATA_URL_LENGTH =
-  Math.ceil((MAX_PROFILE_PHOTO_SIZE_BYTES * 4) / 3) + 128;
+export const MAX_PROFILE_PHOTO_DATA_URL_LENGTH = Math.ceil((MAX_PROFILE_PHOTO_SIZE_BYTES * 4) / 3) + 128;
 
 export const PROFILE_PHOTO_TOO_LARGE_MESSAGE = `Photo trop volumineuse (max ${PROFILE_PHOTO_MAX_LABEL}).`;
 export const PROFILE_PHOTO_INVALID_MESSAGE = "Photo invalide (upload image requis).";
@@ -29,11 +28,7 @@ export function isProfilePhotoDataUrlTooLarge(value: string | null | undefined) 
   return raw.startsWith("data:image/") && raw.length > MAX_PROFILE_PHOTO_DATA_URL_LENGTH;
 }
 
-export function profilePhotoSaveErrorMessage(
-  status: number,
-  serverError: unknown,
-  fallback: string
-) {
+export function profilePhotoSaveErrorMessage(status: number, serverError: unknown, fallback: string) {
   if (typeof serverError === "string" && serverError.trim()) {
     return serverError.trim();
   }

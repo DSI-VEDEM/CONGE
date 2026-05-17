@@ -155,7 +155,9 @@ async function waitForDatabaseReady() {
       return;
     } catch (error) {
       if (attempt === maxAttempts) {
-        throw new Error(`MongoDB n'est pas prêt après ${maxAttempts} tentatives: ${(error as Error).message}`);
+        throw new Error(
+          `MongoDB n'est pas prêt après ${maxAttempts} tentatives: ${(error as Error).message}`
+        );
       }
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
@@ -305,7 +307,9 @@ async function main() {
   const departmentMap = await ensureDepartments();
   await seedEmployees(departmentMap);
   await ensureDsiResponsibility(departmentMap);
-  console.log(`✅ Tous les comptes de base sont en place (mot de passe par défaut : ${DEFAULT_SEED_PASSWORD}).`);
+  console.log(
+    `✅ Tous les comptes de base sont en place (mot de passe par défaut : ${DEFAULT_SEED_PASSWORD}).`
+  );
 }
 
 main()

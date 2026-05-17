@@ -6,6 +6,7 @@ import { jsonServerError } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { parseBody } from "@/lib/validate";
 import { forgotPasswordSchema } from "@/lib/schemas/auth.schema";
+import { logError } from "@/lib/logger";
 
 export async function POST(req: Request) {
   /// Page de demande d'oubli de mot de passe : on ne révèle pas si l'utilisateur existe.
@@ -57,7 +58,8 @@ export async function POST(req: Request) {
           where: { id: employee.id },
           data: { passwordResetRequested: true },
         });
-        const fullName = [employee.firstName, employee.lastName].filter(Boolean).join(" ").trim() || identifier;
+        const fullName =
+          [employee.firstName, employee.lastName].filter(Boolean).join(" ").trim() || identifier;
         const message = `${fullName} (${identifier}) a demandé la réinitialisation de son mot de passe. Merci de réinitialiser le compte et de lui attribuer le mot de passe par défaut.`;
 
         await prisma.notification.createMany({
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
-    console.error("[auth/forgot-password] erreur serveur", e);
+    logError("auth/forgot-password", e, "erreur serveur");
     return jsonServerError(e);
   }
 }

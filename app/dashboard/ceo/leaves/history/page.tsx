@@ -70,20 +70,29 @@ export default function CeoLeavesHistory() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/leave-requests/history?scope=all&page=${historyPage}&take=${HISTORY_PAGE_SIZE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/leave-requests/history?scope=all&page=${historyPage}&take=${HISTORY_PAGE_SIZE}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         const data = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          const mapped = (data?.leaves ?? []).map((x: {
+          const mapped = (data?.leaves ?? []).map(
+            (x: {
               id: string;
               type?: string;
               startDate?: string;
               endDate?: string;
               status?: string;
-              employee?: { firstName?: string; lastName?: string; profilePhotoUrl?: string; role?: string } | null;
+              employee?: {
+                firstName?: string;
+                lastName?: string;
+                profilePhotoUrl?: string;
+                role?: string;
+              } | null;
               decisions?: Array<{
                 createdAt?: string;
                 actor?: { firstName?: string; lastName?: string; role?: string } | null;
@@ -127,7 +136,8 @@ export default function CeoLeavesHistory() {
                 endDateRaw: endRaw,
                 returnDate: "-",
               };
-            });
+            }
+          );
           setRows(mapped);
           setHistoryHasNext(mapped.length === HISTORY_PAGE_SIZE);
         }
@@ -140,7 +150,10 @@ export default function CeoLeavesHistory() {
   }, [historyPage]);
 
   const historyYears = useMemo(
-    () => Array.from(new Set(rows.map((item) => item.year).filter((value): value is number => value != null))).sort((a, b) => b - a),
+    () =>
+      Array.from(
+        new Set(rows.map((item) => item.year).filter((value): value is number => value != null))
+      ).sort((a, b) => b - a),
     [rows]
   );
 
@@ -210,7 +223,9 @@ export default function CeoLeavesHistory() {
   return (
     <div className="p-6">
       <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Historique global des congés</div>
-      <div className="text-sm text-vdm-gold-700 mb-4">Toutes les demandes traitées par l&apos;entreprise.</div>
+      <div className="text-sm text-vdm-gold-700 mb-4">
+        Toutes les demandes traitées par l&apos;entreprise.
+      </div>
       <div className="mb-3">
         <label className="text-sm text-vdm-gold-900">
           Filtrer par année
@@ -260,7 +275,9 @@ export default function CeoLeavesHistory() {
         </div>
       </div>
 
-      {isLoading ? <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div> : null}
+      {isLoading ? (
+        <div className="mt-3 text-xs text-vdm-gold-700">Chargement de l&apos;historique...</div>
+      ) : null}
     </div>
   );
 }

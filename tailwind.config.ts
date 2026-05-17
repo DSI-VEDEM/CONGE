@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const vdmGold = {
-  50:  "#fff9ed",
+  50: "#fff9ed",
   100: "#fff2d6",
   200: "#ffe2a3",
   300: "#ffd170",

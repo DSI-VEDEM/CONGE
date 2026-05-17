@@ -17,11 +17,7 @@ import {
   EMPLOYEE_GENDERS,
   isEmployeeGender,
 } from "@/lib/employee-gender";
-import {
-  MARITAL_STATUS_LABELS,
-  MARITAL_STATUSES,
-  isMaritalStatus,
-} from "@/lib/marital-status";
+import { MARITAL_STATUS_LABELS, MARITAL_STATUSES, isMaritalStatus } from "@/lib/marital-status";
 import {
   PROFILE_PHOTO_TOO_LARGE_MESSAGE,
   isProfilePhotoDataUrlTooLarge,
@@ -54,7 +50,10 @@ function parsePhone(value: string | null | undefined) {
       return { country, local: "" };
     }
     const country = body.slice(0, sep).replace(/\D/g, "").slice(0, 3);
-    const local = body.slice(sep + 1).replace(/\D/g, "").slice(0, 12);
+    const local = body
+      .slice(sep + 1)
+      .replace(/\D/g, "")
+      .slice(0, 12);
     return { country, local };
   }
   if (raw.startsWith("00")) {
@@ -95,9 +94,7 @@ function currentHireDateValue(draft: EditableEmployee) {
 export default function OnboardingPage() {
   const router = useRouter();
   const initialEmployee = useMemo(() => getEmployee(), []);
-  const [draft, setDraft] = useState<EditableEmployee | null>(
-    initialEmployee as EditableEmployee | null
-  );
+  const [draft, setDraft] = useState<EditableEmployee | null>(initialEmployee as EditableEmployee | null);
   const [isSaving, setIsSaving] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ProfileValidationErrors>({});
@@ -126,13 +123,7 @@ export default function OnboardingPage() {
       return;
     }
     if (hasRequiredProfileData(employee)) {
-      router.replace(
-        routeForRole(
-          employee.role,
-          employee.isDsiAdmin,
-          employee.departmentType ?? null
-        )
-      );
+      router.replace(routeForRole(employee.role, employee.isDsiAdmin, employee.departmentType ?? null));
       return;
     }
 
@@ -149,13 +140,7 @@ export default function OnboardingPage() {
         localStorage.setItem("employee", JSON.stringify(merged));
         setDraft(merged);
         if (hasRequiredProfileData(merged)) {
-          router.replace(
-            routeForRole(
-              merged.role,
-              merged.isDsiAdmin,
-              merged.departmentType ?? null
-            )
-          );
+          router.replace(routeForRole(merged.role, merged.isDsiAdmin, merged.departmentType ?? null));
         }
       }
     };
@@ -188,12 +173,9 @@ export default function OnboardingPage() {
       }
       setPhotoError(null);
       clearFieldError("profilePhotoUrl");
-      setDraft((prev) =>
-        prev ? { ...prev, profilePhotoUrl: result } : prev
-      );
+      setDraft((prev) => (prev ? { ...prev, profilePhotoUrl: result } : prev));
     };
-    reader.onerror = () =>
-      setPhotoError("Erreur lors du chargement de l'image.");
+    reader.onerror = () => setPhotoError("Erreur lors du chargement de l'image.");
     reader.readAsDataURL(file);
   };
 
@@ -263,13 +245,7 @@ export default function OnboardingPage() {
       const updated = { ...draft, ...(data?.employee ?? {}) };
       localStorage.setItem("employee", JSON.stringify(updated));
       toast.success("Profil complété. Bienvenue.", { id: t });
-      router.replace(
-        routeForRole(
-          updated.role,
-          updated.isDsiAdmin,
-          updated.departmentType ?? null
-        )
-      );
+      router.replace(routeForRole(updated.role, updated.isDsiAdmin, updated.departmentType ?? null));
     } catch {
       const message = draft.profilePhotoUrl
         ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."
@@ -291,12 +267,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white border border-vdm-gold-200 rounded-2xl p-6 space-y-5">
         <div>
-          <div className="text-2xl font-semibold text-vdm-gold-800">
-            Information Complémentaire
-          </div>
-          <div className="text-sm text-vdm-gold-700">
-            Complétez vos informations.
-          </div>
+          <div className="text-2xl font-semibold text-vdm-gold-800">Information Complémentaire</div>
+          <div className="text-sm text-vdm-gold-700">Complétez vos informations.</div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -312,9 +284,7 @@ export default function OnboardingPage() {
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
             />
             {fieldErrors.firstName ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.firstName}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</div>
             ) : null}
           </div>
           <div>
@@ -329,15 +299,11 @@ export default function OnboardingPage() {
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm"
             />
             {fieldErrors.lastName ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.lastName}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</div>
             ) : null}
           </div>
           <div>
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Genre (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Genre (obligatoire)</div>
             <select
               value={draft.gender ?? ""}
               onChange={(e) => {
@@ -359,9 +325,7 @@ export default function OnboardingPage() {
               ))}
             </select>
             {fieldErrors.gender ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.gender}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.gender}</div>
             ) : null}
           </div>
           <div>
@@ -377,9 +341,7 @@ export default function OnboardingPage() {
             />
           </div>
           <div>
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Statut matrimonial (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Statut matrimonial (obligatoire)</div>
             <select
               value={draft.maritalStatus ?? ""}
               onChange={(e) => {
@@ -401,15 +363,11 @@ export default function OnboardingPage() {
               ))}
             </select>
             {fieldErrors.maritalStatus ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.maritalStatus}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.maritalStatus}</div>
             ) : null}
           </div>
           <div>
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Nombre d'enfants (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Nombre d'enfants (obligatoire)</div>
             <input
               type="number"
               min={0}
@@ -419,8 +377,7 @@ export default function OnboardingPage() {
                 clearFieldError("childrenCount");
                 setDraft({
                   ...draft,
-                  childrenCount:
-                    raw === "" ? null : Number(raw.replace(/\D/g, "")),
+                  childrenCount: raw === "" ? null : Number(raw.replace(/\D/g, "")),
                 });
               }}
               inputMode="numeric"
@@ -429,23 +386,17 @@ export default function OnboardingPage() {
               placeholder="0"
             />
             {fieldErrors.childrenCount ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.childrenCount}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</div>
             ) : null}
           </div>
           <div>
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Téléphone (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Téléphone (obligatoire)</div>
             <div className="flex gap-2">
               <div className="w-24">
                 <input
                   value={phone.country ? `+${phone.country}` : "+"}
                   onChange={(e) => {
-                    const nextCountry = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 3);
+                    const nextCountry = e.target.value.replace(/\D/g, "").slice(0, 3);
                     clearFieldError("phone");
                     setDraft({
                       ...draft,
@@ -472,16 +423,10 @@ export default function OnboardingPage() {
                 inputMode="numeric"
               />
             </div>
-            {fieldErrors.phone ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.phone}
-              </div>
-            ) : null}
+            {fieldErrors.phone ? <div className="mt-1 text-xs text-red-600">{fieldErrors.phone}</div> : null}
           </div>
           <div className="">
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Adresse précise (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Adresse précise (obligatoire)</div>
             <input
               value={draft.fullAddress ?? ""}
               onChange={(e) => {
@@ -493,9 +438,7 @@ export default function OnboardingPage() {
               placeholder="Rue, ville, code postal, pays"
             />
             {fieldErrors.fullAddress ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.fullAddress}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.fullAddress}</div>
             ) : null}
           </div>
           <div>
@@ -524,9 +467,7 @@ export default function OnboardingPage() {
             ) : null}
           </div>
           <div>
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Numéro CNPS (obligatoire)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Numéro CNPS (obligatoire)</div>
             <input
               value={draft.cnpsNumber ?? ""}
               onChange={(e) => {
@@ -538,27 +479,19 @@ export default function OnboardingPage() {
               placeholder="Ex : CNPS-123456"
             />
             {fieldErrors.cnpsNumber ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.cnpsNumber}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.cnpsNumber}</div>
             ) : null}
           </div>
           <div className="md:col-span-2">
-            <div className="text-xs text-vdm-gold-600 mb-1">
-              Photo de profil (facultative)
-            </div>
+            <div className="text-xs text-vdm-gold-600 mb-1">Photo de profil (facultative)</div>
             <input
               type="file"
               accept="image/*"
-              onChange={(e) =>
-                onProfilePhotoChange(e.target.files?.[0] ?? null)
-              }
+              onChange={(e) => onProfilePhotoChange(e.target.files?.[0] ?? null)}
               className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm bg-white file:bg-vdm-gold-50 file:text-vdm-gold-800 file:border file:border-vdm-gold-200 file:rounded-md file:px-3 file:py-1 file:mr-3"
             />
             {fieldErrors.profilePhotoUrl || photoError ? (
-              <div className="mt-1 text-xs text-red-600">
-                {fieldErrors.profilePhotoUrl ?? photoError}
-              </div>
+              <div className="mt-1 text-xs text-red-600">{fieldErrors.profilePhotoUrl ?? photoError}</div>
             ) : null}
             {draft.profilePhotoUrl ? (
               <div className="mt-3">

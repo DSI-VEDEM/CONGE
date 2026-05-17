@@ -18,7 +18,11 @@ function isWeekdayUtc(utcDayMs: number) {
   return dow !== 0 && dow !== 6;
 }
 
-function countHolidayWeekdaysInRange(startUtcDayMs: number, endUtcDayMs: number, holidays?: Array<string | Date>) {
+function countHolidayWeekdaysInRange(
+  startUtcDayMs: number,
+  endUtcDayMs: number,
+  holidays?: Array<string | Date>
+) {
   if (!Array.isArray(holidays) || holidays.length === 0) return 0;
   const unique = new Set<number>();
   for (const h of holidays) {
@@ -107,7 +111,20 @@ export function countLeaveDaysOverlapInYear(options: {
 }
 
 const FR_DAYS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-const FR_MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const FR_MONTHS = [
+  "Janvier",
+  "Février",
+  "Mars",
+  "Avril",
+  "Mai",
+  "Juin",
+  "Juillet",
+  "Août",
+  "Septembre",
+  "Octobre",
+  "Novembre",
+  "Décembre",
+];
 
 function formatUtcDateDMY(utcMs: number): string {
   const d = new Date(utcMs);

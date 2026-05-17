@@ -66,7 +66,13 @@ export default function ForgotPasswordPage() {
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
               <div className="lg:hidden mx-auto mb-4 h-16 w-16 flex items-center justify-center overflow-hidden">
-                <Image src="/logo.jpeg" alt="Logo" width={56} height={56} className="h-14 w-14 object-contain" />
+                <Image
+                  src="/logo.jpeg"
+                  alt="Logo"
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                />
               </div>
               <h2 className="text-3xl font-bold text-vdm-gold-800 mb-2">Réinitialisation</h2>
               <p className="text-gray-600">Saisissez votre email ou matricule</p>
@@ -102,7 +108,10 @@ export default function ForgotPasswordPage() {
 
             <p className="mt-8 text-center text-sm text-gray-600">
               Retour à{" "}
-              <a href="/login" className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline">
+              <a
+                href="/login"
+                className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline"
+              >
                 la connexion
               </a>
             </p>

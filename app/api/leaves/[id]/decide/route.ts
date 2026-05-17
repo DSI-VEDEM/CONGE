@@ -8,10 +8,16 @@ type Ctx = { params: Promise<{ id: string }> };
 
 async function findTargetByRole(role: string, departmentId?: string | null) {
   if (role === "CEO") {
-    return prisma.employee.findFirst({ where: { role: "CEO", status: "ACTIVE" }, select: { id: true, role: true } });
+    return prisma.employee.findFirst({
+      where: { role: "CEO", status: "ACTIVE" },
+      select: { id: true, role: true },
+    });
   }
   if (role === "ACCOUNTANT") {
-    return prisma.employee.findFirst({ where: { role: "ACCOUNTANT", status: "ACTIVE" }, select: { id: true, role: true } });
+    return prisma.employee.findFirst({
+      where: { role: "ACCOUNTANT", status: "ACTIVE" },
+      select: { id: true, role: true },
+    });
   }
   if (role === "DSI") {
     const dsiDept = await prisma.department.findFirst({ where: { type: "DSI" }, select: { id: true } });
@@ -54,9 +60,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const body = await req.json().catch(() => ({}));
   const type = body?.type as string | undefined;
   const decisionTypes = ["APPROVE", "REJECT", "ESCALATE", "CANCEL"] as const;
-  const decisionType = decisionTypes.includes(type as any)
-    ? (type as (typeof decisionTypes)[number])
-    : null;
+  const decisionType = decisionTypes.includes(type as any) ? (type as (typeof decisionTypes)[number]) : null;
   const comment = body?.comment ?? null;
   const toEmployeeId = body?.toEmployeeId ?? null;
   const toRole = body?.toRole ?? null;
@@ -154,4 +158,3 @@ export async function POST(req: Request, ctx: Ctx) {
 
   return NextResponse.json({ leave: updated });
 }
-

@@ -3,12 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { getToken } from "@/lib/auth-client";
-import {
-  MONTH_LABELS,
-  SalarySlip,
-  toPeriod,
-  formatDateTime,
-} from "@/app/components/salary-slip-utils";
+import { MONTH_LABELS, SalarySlip, toPeriod, formatDateTime } from "@/app/components/salary-slip-utils";
 
 type EmployeeItem = {
   id: string;
@@ -36,7 +31,11 @@ function fileToDataUrl(file: File) {
   });
 }
 
-export default function SalarySlipsAdmin({ showIndividualImport = true }: { showIndividualImport?: boolean }) {
+export default function SalarySlipsAdmin({
+  showIndividualImport = true,
+}: {
+  showIndividualImport?: boolean;
+}) {
   const now = new Date();
   const currentYear = now.getFullYear();
   const [employees, setEmployees] = useState<EmployeeItem[]>([]);
@@ -63,7 +62,6 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
   const [isUploadPreviewOpen, setIsUploadPreviewOpen] = useState(false);
   const [masterPdfs, setMasterPdfs] = useState<File[]>([]);
-
 
   const refreshEmployees = useCallback(async () => {
     const token = getToken();
@@ -171,17 +169,14 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
     [importFileKey, importPreviewFile]
   );
 
-  const toggleImportFileSelected = useCallback(
-    (key: string) => {
-      setSelectedImportFileKeys((prev) => {
-        const next = new Set(prev);
-        if (next.has(key)) next.delete(key);
-        else next.add(key);
-        return next;
-      });
-    },
-    []
-  );
+  const toggleImportFileSelected = useCallback((key: string) => {
+    setSelectedImportFileKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const clearImportList = useCallback(() => {
     setMasterPdfs([]);
@@ -485,9 +480,12 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
         <div>
           <h2 className="text-base font-semibold text-vdm-gold-900">Import (multi-sélection de PDFs)</h2>
           <p className="text-sm text-vdm-gold-700">
-            Sélectionne plusieurs PDFs d&apos;un coup. Le système lit uniquement le <span className="font-medium">nom du fichier</span>{" "}
-            pour trouver <span className="font-medium">matricule</span> et <span className="font-medium">date</span>, puis importe.
-            Exemple: <span className="font-medium">001A-2026-03.pdf</span>, <span className="font-medium">03-2026_013.pdf</span> ou <span className="font-medium">bulletin_001_2026-03.pdf</span>.
+            Sélectionne plusieurs PDFs d&apos;un coup. Le système lit uniquement le{" "}
+            <span className="font-medium">nom du fichier</span> pour trouver{" "}
+            <span className="font-medium">matricule</span> et <span className="font-medium">date</span>, puis
+            importe. Exemple: <span className="font-medium">001A-2026-03.pdf</span>,{" "}
+            <span className="font-medium">03-2026_013.pdf</span> ou{" "}
+            <span className="font-medium">bulletin_001_2026-03.pdf</span>.
           </p>
         </div>
 
@@ -521,7 +519,12 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
 
         <div className="text-xs text-vdm-gold-700">
           Sélectionnés: {masterPdfs.length} PDF(s)
-          {masterPdfs.length ? ` — ${masterPdfs.slice(0, 3).map((f) => f.name).join(", ")}${masterPdfs.length > 3 ? "…" : ""}` : ""}
+          {masterPdfs.length
+            ? ` — ${masterPdfs
+                .slice(0, 3)
+                .map((f) => f.name)
+                .join(", ")}${masterPdfs.length > 3 ? "…" : ""}`
+            : ""}
         </div>
 
         {masterPdfs.length ? (
@@ -718,7 +721,10 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
       ) : null}
 
       {isUploadPreviewOpen && uploadPreviewUrl ? (
-        <div className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8" onClick={() => setIsUploadPreviewOpen(false)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/60 p-4 md:p-8"
+          onClick={() => setIsUploadPreviewOpen(false)}
+        >
           <div
             className="mx-auto h-full w-full max-w-6xl rounded-xl bg-white shadow-xl flex flex-col"
             onClick={(event) => event.stopPropagation()}
@@ -737,7 +743,11 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
               </button>
             </div>
             <div className="p-4 h-full min-h-0">
-              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={uploadPreviewUrl} title="Aperçu bulletin avant import" />
+              <iframe
+                className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                src={uploadPreviewUrl}
+                title="Aperçu bulletin avant import"
+              />
             </div>
           </div>
         </div>
@@ -763,7 +773,11 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
               </button>
             </div>
             <div className="p-4 h-full min-h-0">
-              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={importPreviewUrl} title="Aperçu fichier import" />
+              <iframe
+                className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                src={importPreviewUrl}
+                title="Aperçu fichier import"
+              />
             </div>
           </div>
         </div>
@@ -899,14 +913,21 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
               </div>
             </div>
             <div className="p-4 h-full min-h-0">
-              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewSlipUrl} title="Aperçu bulletin en attente" />
+              <iframe
+                className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                src={previewSlipUrl}
+                title="Aperçu bulletin en attente"
+              />
             </div>
           </div>
         </div>
       ) : null}
 
       {deleteModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setDeleteModal(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setDeleteModal(null)}
+        >
           <div
             className="w-full max-w-md rounded-[24px] bg-white shadow-[0_30px_60px_rgba(0,0,0,0.35)] overflow-hidden"
             onClick={(event) => event.stopPropagation()}
@@ -939,7 +960,6 @@ export default function SalarySlipsAdmin({ showIndividualImport = true }: { show
           </div>
         </div>
       ) : null}
-
     </div>
   );
 }

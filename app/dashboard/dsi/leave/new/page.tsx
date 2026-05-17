@@ -48,11 +48,7 @@ function toUtcDay(value: string | undefined) {
 function consumedDaysForYear(leaves: LeaveItem[], year: number, holidayDates: string[]) {
   let total = 0;
   for (const leave of leaves) {
-    if (
-      leave.status === "APPROVED" ||
-      leave.status === "PENDING" ||
-      leave.status === "SUBMITTED"
-    ) {
+    if (leave.status === "APPROVED" || leave.status === "PENDING" || leave.status === "SUBMITTED") {
       if (!isPaidLeaveType(leave.type)) continue;
       total += countLeaveDaysOverlapInYear({
         start: leave.startDate,
@@ -140,7 +136,12 @@ export default function DsiLeaveNew() {
   const daysRequested = useMemo(
     () =>
       startDate && endDate
-        ? countLeaveDaysInclusive({ start: startDate, end: endDate, type, holidays: holidays.map((h) => h.date) })
+        ? countLeaveDaysInclusive({
+            start: startDate,
+            end: endDate,
+            type,
+            holidays: holidays.map((h) => h.date),
+          })
         : 0,
     [startDate, endDate, holidays, type]
   );
@@ -175,11 +176,15 @@ export default function DsiLeaveNew() {
     const base = Number(data?.annualLeaveBalance ?? data?.employee?.leaveBalance ?? BASE_ALLOWANCE);
     const remaining = Number(
       data?.remainingCurrentYear ??
-      (() => {
-        const year = new Date().getFullYear();
-        const consumedDays = consumedDaysForYear(nextLeaves, year, holidays.map((h) => h.date));
-        return base - consumedDays;
-      })()
+        (() => {
+          const year = new Date().getFullYear();
+          const consumedDays = consumedDaysForYear(
+            nextLeaves,
+            year,
+            holidays.map((h) => h.date)
+          );
+          return base - consumedDays;
+        })()
     );
     setAnnualBalance(base);
     setBalance(remaining);
@@ -236,12 +241,12 @@ export default function DsiLeaveNew() {
   };
 
   const hasBlackout = useCallback(
-    (day: number | null) => day != null && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate)),
+    (day: number | null) =>
+      day != null && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate)),
     [blackouts, month, year]
   );
 
-  const selectedDateLabel =
-    selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
+  const selectedDateLabel = selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
 
   const selectedBlackouts = useMemo(() => {
     if (selectedDay == null) return [];
@@ -267,8 +272,7 @@ export default function DsiLeaveNew() {
   }, [holidaysByDate, month, selectedDay, year]);
 
   const hasBlackoutOverlap = useCallback(
-    (start: string, end: string) =>
-      blackouts.some((b) => rangesOverlap(start, end, b.startDate, b.endDate)),
+    (start: string, end: string) => blackouts.some((b) => rangesOverlap(start, end, b.startDate, b.endDate)),
     [blackouts]
   );
 
@@ -277,29 +281,32 @@ export default function DsiLeaveNew() {
     setJustificationFileDataUrl("");
   }, []);
 
-  const handleJustificationChange = useCallback(async (file: File | null) => {
-    if (!file) {
-      clearJustification();
-      return;
-    }
-    const validationError = validateLeaveJustificationFile(file);
-    if (validationError) {
-      toast.error(validationError);
-      clearJustification();
-      return;
-    }
-    setIsReadingJustification(true);
-    try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setJustificationFileName(file.name);
-      setJustificationFileDataUrl(dataUrl);
-    } catch {
-      toast.error("Impossible de lire le justificatif.");
-      clearJustification();
-    } finally {
-      setIsReadingJustification(false);
-    }
-  }, [clearJustification]);
+  const handleJustificationChange = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        clearJustification();
+        return;
+      }
+      const validationError = validateLeaveJustificationFile(file);
+      if (validationError) {
+        toast.error(validationError);
+        clearJustification();
+        return;
+      }
+      setIsReadingJustification(true);
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        setJustificationFileName(file.name);
+        setJustificationFileDataUrl(dataUrl);
+      } catch {
+        toast.error("Impossible de lire le justificatif.");
+        clearJustification();
+      } finally {
+        setIsReadingJustification(false);
+      }
+    },
+    [clearJustification]
+  );
 
   const isPastDay = useCallback(
     (day: number | null) => {
@@ -442,7 +449,10 @@ export default function DsiLeaveNew() {
         {!paidLeaveEligible ? (
           <div className="md:col-span-2 text-sm text-amber-700">
             Congés payés disponibles à partir du{" "}
-            {paidLeaveEligibilityDate ? formatDateDMY(paidLeaveEligibilityDate) : "premier anniversaire d'entrée"}.
+            {paidLeaveEligibilityDate
+              ? formatDateDMY(paidLeaveEligibilityDate)
+              : "premier anniversaire d'entrée"}
+            .
           </div>
         ) : null}
 
@@ -474,13 +484,15 @@ export default function DsiLeaveNew() {
           <div className="space-y-0.5">
             Solde restant période : {formatLeaveDays(balance)} / {formatLeaveDays(annualBalance)} JOURS
             <div className="text-xs text-vdm-gold-600">
-              Ancienneté : {seniorityYears} an{seniorityYears > 1 ? "s" : ""} | Bonus : +{formatLeaveDays(seniorityBonusDays)}{" "}
-              {Number(seniorityBonusDays) === 1 ? "jour" : "jours"}
+              Ancienneté : {seniorityYears} an{seniorityYears > 1 ? "s" : ""} | Bonus : +
+              {formatLeaveDays(seniorityBonusDays)} {Number(seniorityBonusDays) === 1 ? "jour" : "jours"}
             </div>
             {paidLeaveEligible && isExhausted ? (
               <div className="text-xs text-amber-700">
                 Avance disponible : {formatLeaveDays(advanceBalance)} jour{advanceBalance > 1 ? "s" : ""}
-                {borrowedDays > 0 ? ` | Déjà emprunté : ${formatLeaveDays(borrowedDays)} jour${borrowedDays > 1 ? "s" : ""}` : ""}
+                {borrowedDays > 0
+                  ? ` | Déjà emprunté : ${formatLeaveDays(borrowedDays)} jour${borrowedDays > 1 ? "s" : ""}`
+                  : ""}
               </div>
             ) : null}
           </div>
@@ -624,15 +636,12 @@ export default function DsiLeaveNew() {
               const blackout = hasBlackout(day);
               const past = isPastDay(day);
               const dateValue = day != null ? toDateValueForDay(year, month, day) : "";
-              const holidayItems = dateValue ? holidaysByDate.get(dateValue) ?? [] : [];
+              const holidayItems = dateValue ? (holidaysByDate.get(dateValue) ?? []) : [];
               const isHoliday = holidayItems.length > 0;
               const isSelectedStart = !!day && dateValue === startDate;
               const isSelectedEnd = !!day && dateValue === endDate;
               const inSelectedRange =
-                !!day &&
-                !!startDate &&
-                !!endDate &&
-                rangesOverlap(dateValue, dateValue, startDate, endDate);
+                !!day && !!startDate && !!endDate && rangesOverlap(dateValue, dateValue, startDate, endDate);
               const leaveStatus = leaveStatusForDay(day);
               const leaveClass =
                 leaveStatus === "APPROVED"
@@ -666,10 +675,17 @@ export default function DsiLeaveNew() {
                   }`}
                   title={
                     isHoliday
-                      ? `Jour férié${holidayItems.some((h) => h.label) ? ` : ${holidayItems.map((h) => h.label).filter(Boolean).join(", ")}` : ""}`
+                      ? `Jour férié${
+                          holidayItems.some((h) => h.label)
+                            ? ` : ${holidayItems
+                                .map((h) => h.label)
+                                .filter(Boolean)
+                                .join(", ")}`
+                            : ""
+                        }`
                       : blackout
-                      ? "Période bloquée"
-                      : ""
+                        ? "Période bloquée"
+                        : ""
                   }
                 >
                   <div className="leading-none">{day ?? "-"}</div>

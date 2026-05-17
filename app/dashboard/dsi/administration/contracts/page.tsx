@@ -18,13 +18,13 @@ export default function DsiAdministrationContractsPage() {
         </p>
       </div>
       {employee ? (
-          <ContractDocumentsSection
-            employee={employee}
-            contractDocumentTypes={contractDocumentTypes}
-            isContractDocumentTypesLoading={isContractDocumentTypesLoading}
-            showUploader={false}
-            showEmployeeFilter={false}
-          />
+        <ContractDocumentsSection
+          employee={employee}
+          contractDocumentTypes={contractDocumentTypes}
+          isContractDocumentTypesLoading={isContractDocumentTypesLoading}
+          showUploader={false}
+          showEmployeeFilter={false}
+        />
       ) : (
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4 text-sm text-vdm-gold-700">
           Aucune session active.

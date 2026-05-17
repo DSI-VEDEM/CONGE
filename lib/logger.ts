@@ -41,6 +41,20 @@ export const logger = pino({
 });
 
 /// Helper pratique pour scoper le logger à un module.
+/// Usage : `const log = childLogger({ route: "auth/login" });`
 export function childLogger(bindings: Record<string, unknown>) {
   return logger.child(bindings);
+}
+
+/// Sucre pour logger une erreur avec son contexte route/module.
+/// `logError("auth/login", err, "échec connexion")` produit un log JSON
+/// avec route, err (stack+code redactés), msg.
+export function logError(route: string, err: unknown, msg: string, extra?: Record<string, unknown>) {
+  const payload: Record<string, unknown> = { route, ...extra };
+  if (err instanceof Error) {
+    payload.err = { name: err.name, message: err.message, stack: err.stack };
+  } else {
+    payload.err = err;
+  }
+  logger.error(payload, msg);
 }

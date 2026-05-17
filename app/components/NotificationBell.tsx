@@ -96,13 +96,9 @@ export default function NotificationBell() {
           body: JSON.stringify({ notificationIds: [notification.id] }),
         });
         if (!response.ok) throw new Error("update failed");
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-        );
+        setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)));
         setUnreadCount((prev) => Math.max(0, prev - 1));
-        setSelectedNotification((prev) =>
-          prev?.id === notification.id ? { ...prev, isRead: true } : prev
-        );
+        setSelectedNotification((prev) => (prev?.id === notification.id ? { ...prev, isRead: true } : prev));
       } catch {
         toast.error("Impossible de marquer la notification comme lue.");
       }
@@ -195,10 +191,19 @@ export default function NotificationBell() {
     });
   }, [notifications]);
   const visibleNotifications = useMemo(() => sortedNotifications.slice(0, 6), [sortedNotifications]);
-  const selectedRequesterName = selectedNotification ? extractRequesterName(selectedNotification.metadata) : undefined;
-  const selectedActionPath = selectedNotification ? extractActionPath(selectedNotification.metadata) : undefined;
-  const selectedActionLabel = selectedNotification ? extractActionLabel(selectedNotification.metadata) : undefined;
-  const readNotificationsCount = useMemo(() => notifications.filter((notification) => notification.isRead).length, [notifications]);
+  const selectedRequesterName = selectedNotification
+    ? extractRequesterName(selectedNotification.metadata)
+    : undefined;
+  const selectedActionPath = selectedNotification
+    ? extractActionPath(selectedNotification.metadata)
+    : undefined;
+  const selectedActionLabel = selectedNotification
+    ? extractActionLabel(selectedNotification.metadata)
+    : undefined;
+  const readNotificationsCount = useMemo(
+    () => notifications.filter((notification) => notification.isRead).length,
+    [notifications]
+  );
   const hasNotifications = notifications.length > 0;
   const handleNotificationClick = useCallback(
     (notification: NotificationSummary) => {
@@ -319,12 +324,16 @@ export default function NotificationBell() {
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <span className="mt-1">
-                      <Circle className={`h-3 w-3 ${notification.isRead ? "text-gray-300" : "text-vdm-gold-500"}`} />
+                      <Circle
+                        className={`h-3 w-3 ${notification.isRead ? "text-gray-300" : "text-vdm-gold-500"}`}
+                      />
                     </span>
                     <div className="flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-gray-800">{notification.title}</p>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${label.color}`}>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${label.color}`}
+                        >
                           {label.text}
                         </span>
                       </div>
@@ -363,15 +372,15 @@ export default function NotificationBell() {
       )}
       {selectedNotification && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-vdm-gold-800">{selectedNotification.title}</p>
-              {selectedRequesterName && (
-                <p className="text-xs text-gray-500">Demandeur : {selectedRequesterName}</p>
-              )}
-              <p className="text-xs text-gray-500">{formatDate(selectedNotification.createdAt)}</p>
-            </div>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-vdm-gold-800">{selectedNotification.title}</p>
+                {selectedRequesterName && (
+                  <p className="text-xs text-gray-500">Demandeur : {selectedRequesterName}</p>
+                )}
+                <p className="text-xs text-gray-500">{formatDate(selectedNotification.createdAt)}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setSelectedNotification(null)}

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
 import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
+import { logError } from "@/lib/logger";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -73,11 +74,19 @@ export async function POST(req: Request, ctx: Ctx) {
         select: { id: true, departmentId: true, role: true, status: true, serviceId: true },
       });
       if (!supervisor) return jsonError("Directeur Adjoint introuvable", 404);
-      if (supervisor.departmentId !== id || supervisor.role !== "SERVICE_HEAD" || supervisor.status !== "ACTIVE") {
+      if (
+        supervisor.departmentId !== id ||
+        supervisor.role !== "SERVICE_HEAD" ||
+        supervisor.status !== "ACTIVE"
+      ) {
         return jsonError("supervisorId invalide: doit être un Directeur Adjoint actif du département", 400);
       }
 
-      if (targetEmployee.serviceId && supervisor.serviceId && targetEmployee.serviceId !== supervisor.serviceId) {
+      if (
+        targetEmployee.serviceId &&
+        supervisor.serviceId &&
+        targetEmployee.serviceId !== supervisor.serviceId
+      ) {
         return jsonError("Le responsable doit dépendre du même service que son Directeur Adjoint", 400);
       }
 
@@ -107,7 +116,7 @@ export async function POST(req: Request, ctx: Ctx) {
 
     return NextResponse.json({ responsibility: created }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[departments/:id/responsable] POST erreur", e);
+    logError("departments/:id/responsable:POST", e, "affectation responsable : erreur");
     return jsonServerError(e);
   }
 }

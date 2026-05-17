@@ -1,48 +1,35 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { verifyJwt } from "@/lib/auth";
 import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
+import * as svc from "@/lib/services/services.service";
+import { serviceErrorToResponse } from "@/lib/services/service-error";
+import { logError } from "@/lib/logger";
 
 export async function GET(req: Request) {
-  // Liste des services avec leur département et le nombre de membres.
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
-  const services = await prisma.service.findMany({
-    include: { department: true, _count: { select: { members: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-
+  const services = await svc.listServices();
   return NextResponse.json({ services });
 }
 
 export async function POST(req: Request) {
-  // Création d'un service : réservée au CEO ou à l'admin DSI.
   const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   try {
     const body = await req.json().catch(() => ({}));
-
-    // Ces champs sont obligatoires pour respecter l'enum ServiceType et la relation.
-    if (!body?.departmentId || !body?.type || !body?.name) {
-      return jsonError("Champs requis: departmentId, type, name", 400);
-    }
-
-    const created = await prisma.service.create({
-      data: {
-        departmentId: body.departmentId,
-        type: body.type, // enum ServiceType
-        name: body.name,
-        description: body?.description ?? null,
-      },
+    const created = await svc.createService({
+      departmentId: String(body?.departmentId ?? "").trim(),
+      type: String(body?.type ?? "").trim(),
+      name: String(body?.name ?? "").trim(),
+      description: body?.description ?? null,
     });
-
     return NextResponse.json({ service: created }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[services] POST erreur", e);
-    return jsonServerError(e);
+    logError("services:POST", e, "création service : erreur");
+    return serviceErrorToResponse(e);
   }
 }

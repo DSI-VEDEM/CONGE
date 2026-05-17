@@ -1,0 +1,9 @@
+node_modules
+.next
+generated
+coverage
+public
+*.min.js
+*.min.css
+package-lock.json
+prisma/migrations

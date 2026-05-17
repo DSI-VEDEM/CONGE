@@ -146,15 +146,13 @@ export default function CeoHome() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setDecisions(
-          (data?.decisions ?? []).map((d: {
-            id: string;
-            type: "APPROVE" | "REJECT" | "ESCALATE" | "CANCEL";
-            createdAt: string;
-          }) => ({
-            id: d.id,
-            type: d.type,
-            createdAt: d.createdAt,
-          }))
+          (data?.decisions ?? []).map(
+            (d: { id: string; type: "APPROVE" | "REJECT" | "ESCALATE" | "CANCEL"; createdAt: string }) => ({
+              id: d.id,
+              type: d.type,
+              createdAt: d.createdAt,
+            })
+          )
         );
       }
     };
@@ -206,10 +204,7 @@ export default function CeoHome() {
       { name: "Auto-validées", value: metrics?.autoApprovedThisMonth ?? 0 },
       {
         name: "Délai moyen",
-        value:
-          metrics?.avgDecisionDelayDays != null
-            ? Number(metrics.avgDecisionDelayDays.toFixed(1))
-            : 0,
+        value: metrics?.avgDecisionDelayDays != null ? Number(metrics.avgDecisionDelayDays.toFixed(1)) : 0,
       },
     ],
     [metrics]
@@ -223,8 +218,7 @@ export default function CeoHome() {
     day && today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
   const isPast = (day: number | null) =>
-    day &&
-    Date.UTC(year, month, day) < Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    day && Date.UTC(year, month, day) < Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
 
   const hasLeave = (day: number | null) =>
     day && approvedLeaves.some((l) => inRange(day, month, year, l.startDate, l.endDate));
@@ -232,14 +226,11 @@ export default function CeoHome() {
   const hasBlackout = (day: number | null) =>
     day && blackouts.some((b) => inRange(day, month, year, b.startDate, b.endDate));
 
-  const selectedDateLabel =
-    selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
+  const selectedDateLabel = selectedDay != null ? formatDateDMY(new Date(year, month, selectedDay)) : "";
 
   const details = useMemo(() => {
     if (selectedDay == null) return { leaves: [], blackouts: [] };
-    const leaves = approvedLeaves.filter((l) =>
-      inRange(selectedDay, month, year, l.startDate, l.endDate)
-    );
+    const leaves = approvedLeaves.filter((l) => inRange(selectedDay, month, year, l.startDate, l.endDate));
     const blk = blackouts.filter((b) => inRange(selectedDay, month, year, b.startDate, b.endDate));
     return { leaves, blackouts: blk };
   }, [approvedLeaves, blackouts, selectedDay, month, year]);
@@ -248,17 +239,13 @@ export default function CeoHome() {
     <div className="p-6 space-y-6">
       <div>
         <div className="text-xl font-semibold text-vdm-gold-800">Tableau de bord PDG</div>
-        <div className="text-sm text-vdm-gold-700 mt-1">
-          Décision finale sur les demandes escaladées.
-        </div>
+        <div className="text-sm text-vdm-gold-700 mt-1">Décision finale sur les demandes escaladées.</div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="text-sm text-vdm-gold-700">Demandes Reçues</div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
-            {metrics?.escalatedPending ?? "—"}
-          </div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{metrics?.escalatedPending ?? "—"}</div>
           <div className="text-xs text-gray-500 mt-2">À traiter en priorité.</div>
         </div>
 
@@ -390,9 +377,7 @@ export default function CeoHome() {
                         </div>
                         <div className="text-xs text-gray-500">
                           {(l.employee?.matricule ?? "—") + " · "}
-                          {(l.employee?.department?.type ??
-                            l.employee?.department?.name ??
-                            "—") + " · "}
+                          {(l.employee?.department?.type ?? l.employee?.department?.name ?? "—") + " · "}
                           {formatDateDMY(l.startDate)} - {formatDateDMY(l.endDate)}
                         </div>
                       </li>
@@ -418,8 +403,7 @@ export default function CeoHome() {
                             className="odd:bg-white even:bg-vdm-gold-50/40"
                           >
                             <td className="px-2 py-1 border-b border-vdm-gold-100">
-                              {`${l.employee?.firstName ?? ""} ${l.employee?.lastName ?? ""}`.trim() ||
-                                "—"}
+                              {`${l.employee?.firstName ?? ""} ${l.employee?.lastName ?? ""}`.trim() || "—"}
                             </td>
                             <td className="px-2 py-1 border-b border-vdm-gold-100">
                               {l.employee?.matricule ?? "—"}

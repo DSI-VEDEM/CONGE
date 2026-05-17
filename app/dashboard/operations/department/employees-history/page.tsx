@@ -34,7 +34,13 @@ type LeaveApiItem = {
   startDate?: string;
   endDate?: string;
   status?: "APPROVED" | "REJECTED" | "CANCELLED";
-  employee?: { firstName?: string; lastName?: string; profilePhotoUrl?: string; role?: string; leaveBalance?: number } | null;
+  employee?: {
+    firstName?: string;
+    lastName?: string;
+    profilePhotoUrl?: string;
+    role?: string;
+    leaveBalance?: number;
+  } | null;
   decisions?: Array<{
     createdAt?: string;
     actor?: { firstName?: string; lastName?: string; role?: string } | null;

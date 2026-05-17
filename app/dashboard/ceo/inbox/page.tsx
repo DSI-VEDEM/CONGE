@@ -53,7 +53,10 @@ export default function CeoInbox() {
     if (!token) return;
     let cancelled = false;
 
-    const fetchPendingPage = async (targetPage: number, options: { applyResult: boolean; showLoader: boolean }) => {
+    const fetchPendingPage = async (
+      targetPage: number,
+      options: { applyResult: boolean; showLoader: boolean }
+    ) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
         const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
@@ -62,23 +65,23 @@ export default function CeoInbox() {
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({
-              id: x.id,
-              firstName: x.employee?.firstName ?? "",
-              lastName: x.employee?.lastName ?? "",
-              employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
-              profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
-              period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
-              origin:
-                x.employee?.role === "DEPT_HEAD"
-                  ? "DEPT_HEAD"
-                  : x.employee?.role === "SERVICE_HEAD"
-                    ? "SERVICE_HEAD"
-                    : "ACCOUNTANT",
-              note: x.reason ?? "",
-              justificationFileName: x.justificationFileName ?? null,
-              justificationMimeType: x.justificationMimeType ?? null,
-              status: x.status,
-            }));
+            id: x.id,
+            firstName: x.employee?.firstName ?? "",
+            lastName: x.employee?.lastName ?? "",
+            employeeName: `${x.employee?.firstName ?? ""} ${x.employee?.lastName ?? ""}`.trim(),
+            profilePhotoUrl: x.employee?.profilePhotoUrl ?? null,
+            period: `${formatDateDMY(x.startDate)} - ${formatDateDMY(x.endDate)}`,
+            origin:
+              x.employee?.role === "DEPT_HEAD"
+                ? "DEPT_HEAD"
+                : x.employee?.role === "SERVICE_HEAD"
+                  ? "SERVICE_HEAD"
+                  : "ACCOUNTANT",
+            note: x.reason ?? "",
+            justificationFileName: x.justificationFileName ?? null,
+            justificationMimeType: x.justificationMimeType ?? null,
+            status: x.status,
+          }));
           const entry = { rows: mapped, hasNext: mapped.length === PENDING_PAGE_SIZE };
           pendingPageCacheRef.current[targetPage] = entry;
           if (options.applyResult && !cancelled) {
@@ -220,9 +223,7 @@ export default function CeoInbox() {
         header: "Origine",
         accessorKey: "origin",
         cell: ({ row }) => (
-          <span className="text-xs font-semibold text-vdm-gold-800">
-            {originLabel(row.original.origin)}
-          </span>
+          <span className="text-xs font-semibold text-vdm-gold-800">{originLabel(row.original.origin)}</span>
         ),
       },
       {

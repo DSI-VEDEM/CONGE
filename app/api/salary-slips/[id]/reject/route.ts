@@ -59,7 +59,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   const monthLabel = String(slip.month).padStart(2, "0");
   const ownerParts = [slip.employee?.firstName, slip.employee?.lastName].filter(Boolean);
-  const ownerLabel = ownerParts.length ? ownerParts.join(" ").trim() : slip.employee?.matricule ?? slip.employee?.email ?? "Employé";
+  const ownerLabel = ownerParts.length
+    ? ownerParts.join(" ").trim()
+    : (slip.employee?.matricule ?? slip.employee?.email ?? "Employé");
   const fileLabel = slip.fileName ? `Fichier: ${slip.fileName}` : "";
 
   await prisma.notification.create({
@@ -86,4 +88,3 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
-

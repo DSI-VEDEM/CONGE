@@ -65,9 +65,21 @@ function LoginContent() {
 
       toast.success("Connexion réussie", { id: loadingToast });
 
-      const role = data.employee.role as "CEO" | "ACCOUNTANT" | "DEPT_HEAD" | "SERVICE_HEAD" | "EMPLOYEE" | undefined;
+      const role = data.employee.role as
+        | "CEO"
+        | "ACCOUNTANT"
+        | "DEPT_HEAD"
+        | "SERVICE_HEAD"
+        | "EMPLOYEE"
+        | undefined;
       const isDsiAdmin = Boolean(data.employee.isDsiAdmin);
-      const departmentType = (data.employee.departmentType ?? null) as "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null;
+      const departmentType = (data.employee.departmentType ?? null) as
+        | "DAF"
+        | "DSI"
+        | "OPERATIONS"
+        | "OTHERS"
+        | string
+        | null;
       const nextRoute = !hasRequiredProfileData(data.employee)
         ? "/onboarding"
         : role
@@ -91,13 +103,7 @@ function LoginContent() {
       <div className="hidden lg:flex lg:w-1/2 lg:sticky lg:top-0 lg:h-screen lg:overflow-hidden bg-gradient-to-br from-vdm-gold-600 via-vdm-gold-500 to-vdm-gold-200 p-12 flex-col justify-center items-center text-white">
         <div className="max-w-md text-center">
           <div className="mb-8 h-28 w-28 flex items-center justify-center overflow-hidden mx-auto">
-            <Image
-              src="/logo.jpeg"
-              alt="Logo"
-              width={96}
-              height={96}
-              className="h-24 w-24 object-contain"
-            />
+            <Image src="/logo.jpeg" alt="Logo" width={96} height={96} className="h-24 w-24 object-contain" />
           </div>
           <h1 className="text-5xl font-bold mb-6">Bienvenue</h1>
           <p className="text-xl opacity-90">Connectez-vous pour accéder à votre espace personnel.</p>
@@ -193,7 +199,10 @@ function LoginContent() {
 
             <p className="mt-8 text-center text-sm text-gray-600">
               Pas encore de compte ?{" "}
-              <a href="/register" className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline">
+              <a
+                href="/register"
+                className="text-vdm-gold-600 font-semibold hover:text-vdm-gold-700 hover:underline"
+              >
                 Créer un compte
               </a>
             </p>

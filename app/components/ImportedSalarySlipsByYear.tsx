@@ -20,7 +20,11 @@ export default function ImportedSalarySlipsByYear() {
   const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [previewSlip, setPreviewSlip] = useState<{ id: string; fileName: string; fileDataUrl: string } | null>(null);
+  const [previewSlip, setPreviewSlip] = useState<{
+    id: string;
+    fileName: string;
+    fileDataUrl: string;
+  } | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -82,8 +86,8 @@ export default function ImportedSalarySlipsByYear() {
               },
             ];
           })
-          .filter((emp: { label: string | any[]; }) => emp.label.length > 0)
-          .sort((a: { label: string; }, b: { label: any; }) => a.label.localeCompare(b.label));
+          .filter((emp: { label: string | any[] }) => emp.label.length > 0)
+          .sort((a: { label: string }, b: { label: any }) => a.label.localeCompare(b.label));
         setEmployees(formatted);
       } finally {
         setIsEmployeesLoading(false);
@@ -115,7 +119,10 @@ export default function ImportedSalarySlipsByYear() {
   }, [signedSlipsForGrouping]);
 
   const historyYears = useMemo(
-    () => Array.from(new Set(signedSlipsByYear.map((group) => String(group.year)))).sort((a, b) => Number(b) - Number(a)),
+    () =>
+      Array.from(new Set(signedSlipsByYear.map((group) => String(group.year)))).sort(
+        (a, b) => Number(b) - Number(a)
+      ),
     [signedSlipsByYear]
   );
 
@@ -133,46 +140,43 @@ export default function ImportedSalarySlipsByYear() {
     }
   }, [employees, employeeFilter]);
 
-  const downloadSlip = useCallback(
-    async (slip: Pick<SalarySlip, "id">) => {
-      setError(null);
-      const token = getToken();
-      if (!token) {
-        setError("Session invalide");
+  const downloadSlip = useCallback(async (slip: Pick<SalarySlip, "id">) => {
+    setError(null);
+    const token = getToken();
+    if (!token) {
+      setError("Session invalide");
+      return;
+    }
+    setDownloadingId(slip.id);
+    try {
+      const res = await fetch(`/api/salary-slips/${slip.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(String(data?.error ?? "Impossible de télécharger le bulletin"));
         return;
       }
-      setDownloadingId(slip.id);
-      try {
-        const res = await fetch(`/api/salary-slips/${slip.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(String(data?.error ?? "Impossible de télécharger le bulletin"));
-          return;
-        }
 
-        const downloadedSlip = data?.slip;
-        if (!downloadedSlip?.fileDataUrl || !downloadedSlip?.fileName) {
-          setError("Fichier indisponible");
-          return;
-        }
-
-        const fileName = downloadedSlip.signedAt
-          ? String(downloadedSlip.fileName).replace(/\.pdf$/i, "-signe.pdf")
-          : String(downloadedSlip.fileName);
-        const link = document.createElement("a");
-        link.href = String(downloadedSlip.fileDataUrl);
-        link.download = fileName;
-        link.click();
-      } catch {
-        setError("Erreur réseau lors du téléchargement");
-      } finally {
-        setDownloadingId(null);
+      const downloadedSlip = data?.slip;
+      if (!downloadedSlip?.fileDataUrl || !downloadedSlip?.fileName) {
+        setError("Fichier indisponible");
+        return;
       }
-    },
-    []
-  );
+
+      const fileName = downloadedSlip.signedAt
+        ? String(downloadedSlip.fileName).replace(/\.pdf$/i, "-signe.pdf")
+        : String(downloadedSlip.fileName);
+      const link = document.createElement("a");
+      link.href = String(downloadedSlip.fileDataUrl);
+      link.download = fileName;
+      link.click();
+    } catch {
+      setError("Erreur réseau lors du téléchargement");
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
 
   const openPreview = useCallback(async (slip: SalarySlip) => {
     setError(null);
@@ -227,7 +231,11 @@ export default function ImportedSalarySlipsByYear() {
         </button>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <section className="rounded-xl border border-vdm-gold-200 bg-white overflow-hidden">
         <div className="px-4 py-3 border-b border-vdm-gold-100">
@@ -249,8 +257,7 @@ export default function ImportedSalarySlipsByYear() {
                 </option>
               ))}
             </select>
-          </label>
-          {' '}
+          </label>{" "}
           <label className="text-sm text-vdm-gold-900">
             Filtrer par employé
             <select
@@ -289,7 +296,9 @@ export default function ImportedSalarySlipsByYear() {
                     <details key={`${group.year}-${monthGroup.month}`}>
                       <summary className="list-none px-4 py-3 bg-vdm-gold-50/40 text-vdm-gold-900 font-medium flex items-center justify-between">
                         <span>{MONTH_LABELS[monthGroup.month - 1] ?? `Mois ${monthGroup.month}`}</span>
-                        <span className="text-xs text-vdm-gold-700">{monthGroup.slips.length} bulletin(s)</span>
+                        <span className="text-xs text-vdm-gold-700">
+                          {monthGroup.slips.length} bulletin(s)
+                        </span>
                       </summary>
 
                       <div className="overflow-x-auto">
@@ -388,7 +397,11 @@ export default function ImportedSalarySlipsByYear() {
               </div>
             </div>
             <div className="p-4 h-full min-h-0">
-              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewSlip.fileDataUrl} title="Aperçu bulletin" />
+              <iframe
+                className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                src={previewSlip.fileDataUrl}
+                title="Aperçu bulletin"
+              />
             </div>
           </div>
         </div>

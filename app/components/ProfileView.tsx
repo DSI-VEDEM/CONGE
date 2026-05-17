@@ -16,11 +16,7 @@ import {
   completionPercent,
   type ProfileDocumentCompletionSummary,
 } from "@/lib/profile-completion";
-import {
-  MARITAL_STATUS_LABELS,
-  MARITAL_STATUSES,
-  isMaritalStatus,
-} from "@/lib/marital-status";
+import { MARITAL_STATUS_LABELS, MARITAL_STATUSES, isMaritalStatus } from "@/lib/marital-status";
 import {
   PROFILE_PHOTO_TOO_LARGE_MESSAGE,
   isProfilePhotoDataUrlTooLarge,
@@ -66,7 +62,10 @@ function parsePhone(value: string | null | undefined) {
       return { country, local: "" };
     }
     const country = body.slice(0, sep).replace(/\D/g, "").slice(0, 3);
-    const local = body.slice(sep + 1).replace(/\D/g, "").slice(0, 12);
+    const local = body
+      .slice(sep + 1)
+      .replace(/\D/g, "")
+      .slice(0, 12);
     return { country, local };
   }
   if (raw.startsWith("00")) {
@@ -157,7 +156,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
     [draft]
   );
   const profileCompletion = useMemo(() => {
-    const documents = draft?.role === "CEO" ? { completed: 0, total: 0, missingLabels: [], isLoaded: true } : documentCompletion;
+    const documents =
+      draft?.role === "CEO"
+        ? { completed: 0, total: 0, missingLabels: [], isLoaded: true }
+        : documentCompletion;
     const completed = personalCompletion.completed + (documents?.completed ?? 0);
     const total = personalCompletion.total + (documents?.total ?? 0);
     return {
@@ -547,9 +549,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                 : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
             </div>
             {fieldErrors.profilePhotoUrl || photoError ? (
-              <div className="text-xs text-red-600 mt-1">
-                {fieldErrors.profilePhotoUrl ?? photoError}
-              </div>
+              <div className="text-xs text-red-600 mt-1">{fieldErrors.profilePhotoUrl ?? photoError}</div>
             ) : null}
           </div>
           {draft.profilePhotoUrl ? (
@@ -655,13 +655,13 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           <div>
             <div className="text-xs text-vdm-gold-600">Département</div>
             <div className="text-sm text-vdm-gold-900 font-medium">
-              {draft.departmentId ? departmentNames[draft.departmentId] ?? draft.departmentId : "—"}
+              {draft.departmentId ? (departmentNames[draft.departmentId] ?? draft.departmentId) : "—"}
             </div>
           </div>
           <div>
             <div className="text-xs text-vdm-gold-600">Service</div>
             <div className="text-sm text-vdm-gold-900 font-medium">
-              {draft.serviceId ? serviceNames[draft.serviceId] ?? draft.serviceId : "—"}
+              {draft.serviceId ? (serviceNames[draft.serviceId] ?? draft.serviceId) : "—"}
             </div>
           </div>
           <div>
@@ -688,313 +688,309 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
           </div>
         </div>
       </div>
-        {draft.role !== "CEO" ? (
-          <EmployeeDocumentsSection
-            employee={draft}
-            scope={employee.role === "ACCOUNTANT" ? "self" : "default"}
-            documentTypes={profileDocumentTypes}
-            onCompletionChange={setDocumentCompletion}
-          />
-        ) : null}
-        {isEditing ? (
-          <div
-            className="fixed inset-0 z-50 overflow-auto bg-black/40 px-4 py-6"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Modifier les informations de profil"
-          >
-            <div className="mx-auto w-full max-w-5xl rounded-2xl border border-vdm-gold-200 bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-vdm-gold-100 px-6 py-4">
-                <div>
-                  <div className="text-lg font-semibold text-vdm-gold-800">Modifier les informations</div>
-                  <div className="text-sm text-vdm-gold-600">Mettez à jour vos informations personnelles.</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="text-sm text-vdm-gold-600 hover:text-vdm-gold-900"
-                >
-                  Fermer
-                </button>
+      {draft.role !== "CEO" ? (
+        <EmployeeDocumentsSection
+          employee={draft}
+          scope={employee.role === "ACCOUNTANT" ? "self" : "default"}
+          documentTypes={profileDocumentTypes}
+          onCompletionChange={setDocumentCompletion}
+        />
+      ) : null}
+      {isEditing ? (
+        <div
+          className="fixed inset-0 z-50 overflow-auto bg-black/40 px-4 py-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Modifier les informations de profil"
+        >
+          <div className="mx-auto w-full max-w-5xl rounded-2xl border border-vdm-gold-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-vdm-gold-100 px-6 py-4">
+              <div>
+                <div className="text-lg font-semibold text-vdm-gold-800">Modifier les informations</div>
+                <div className="text-sm text-vdm-gold-600">Mettez à jour vos informations personnelles.</div>
               </div>
-              <div className="space-y-6 px-6 py-6">
-                <div className="flex items-center gap-4 border-b border-vdm-gold-100 pb-4">
-                  {draft.profilePhotoUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsPhotoPreviewOpen(true)}
-                      className="rounded-full focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                      aria-label="Agrandir la photo de profil"
-                    >
-                      <Image
-                        src={draft.profilePhotoUrl}
-                        alt="Photo de profil"
-                        width={64}
-                        height={64}
-                        className="h-16 w-16 rounded-full object-cover border border-vdm-gold-200 cursor-zoom-in"
-                      />
-                    </button>
-                  ) : (
-                    <div className="h-16 w-16 rounded-full bg-vdm-gold-100 text-vdm-gold-800 border border-vdm-gold-200 flex items-center justify-center font-semibold">
-                      {(draft.firstName?.[0] ?? "").toUpperCase()}
-                      {(draft.lastName?.[0] ?? "").toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 space-y-2">
-                    <div className="text-sm font-semibold text-vdm-gold-900">Photo de profil</div>
-                    <div className="text-xs text-vdm-gold-700">
-                      {draft.fullAddress && draft.phone
-                        ? "Profil complet."
-                        : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onProfilePhotoChange(e.target.files?.[0] ?? null)}
-                        className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white file:bg-vdm-gold-50 file:text-vdm-gold-800 file:border file:border-vdm-gold-200 file:rounded-md file:px-3 file:py-1 file:mr-3"
-                      />
-                      {draft.profilePhotoUrl ? (
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={downloadPassportPhoto}
-                            className="px-3 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
-                          >
-                            Télécharger la photo
-                          </button>
-                        </div>
-                      ) : null}
-                      {fieldErrors.profilePhotoUrl || photoError ? (
-                        <div className="text-xs text-red-600">
-                          {fieldErrors.profilePhotoUrl ?? photoError}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Prénom</div>
-	                    <input
-	                      value={draft.firstName}
-	                      onChange={(e) => {
-	                        clearFieldError("firstName");
-	                        setDraft({ ...draft, firstName: e.target.value });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.firstName)}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                    />
-	                    {fieldErrors.firstName ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</div>
-	                    ) : null}
-	                  </div>
-	                  <div>
-	                    <div className="text-xs text-vdm-gold-600">Nom</div>
-	                    <input
-	                      value={draft.lastName}
-	                      onChange={(e) => {
-	                        clearFieldError("lastName");
-	                        setDraft({ ...draft, lastName: e.target.value });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.lastName)}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                    />
-	                    {fieldErrors.lastName ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</div>
-	                    ) : null}
-	                  </div>
-	                  <div className="md:col-span-2">
-	                    <div className="text-xs text-vdm-gold-600">Adresse précise</div>
-	                    <input
-	                      value={draft.fullAddress ?? ""}
-	                      onChange={(e) => {
-	                        clearFieldError("fullAddress");
-	                        setDraft({ ...draft, fullAddress: e.target.value });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.fullAddress)}
-	                      placeholder="Rue, ville, code postal, pays"
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                    />
-	                    {fieldErrors.fullAddress ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.fullAddress}</div>
-	                    ) : null}
-	                  </div>
-	                  <div>
-	                    <div className="text-xs text-vdm-gold-600">Poste</div>
-	                    <input
-	                      value={draft.jobTitle ?? ""}
-	                      onChange={(e) => {
-	                        clearFieldError("jobTitle");
-	                        setDraft({ ...draft, jobTitle: e.target.value });
-	                      }}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                    />
-	                  </div>
-                  <div>
-                    <div className="text-xs text-vdm-gold-600">Téléphone</div>
-                    <div className="flex gap-2">
-                      <div className="w-24">
-                        <input
-	                          value={phone.country ? `+${phone.country}` : "+"}
-	                          onChange={(e) => {
-	                            const nextCountry = e.target.value.replace(/\D/g, "").slice(0, 3);
-	                            clearFieldError("phone");
-	                            setDraft({ ...draft, phone: composePhone(nextCountry, phone.local) });
-	                          }}
-	                          aria-invalid={Boolean(fieldErrors.phone)}
-	                          placeholder="+225"
-	                          className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                        />
-                      </div>
-	                      <input
-	                        value={formatLocalPhone(phone.local)}
-	                        onChange={(e) => {
-	                          clearFieldError("phone");
-	                          setDraft({ ...draft, phone: composePhone(phone.country, e.target.value) });
-	                        }}
-	                        aria-invalid={Boolean(fieldErrors.phone)}
-	                        placeholder="00 00 00 00 00"
-	                        inputMode="numeric"
-	                        className="flex-1 border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                      />
-	                    </div>
-	                    {fieldErrors.phone ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.phone}</div>
-	                    ) : null}
-	                  </div>
-	                  <div>
-	                    <div className="text-xs text-vdm-gold-600">Numéro CNPS</div>
-	                    <input
-	                      value={draft.cnpsNumber ?? ""}
-	                      onChange={(e) => {
-	                        clearFieldError("cnpsNumber");
-	                        setDraft({ ...draft, cnpsNumber: e.target.value });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.cnpsNumber)}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                      placeholder="Ex : CNPS-123456"
-	                    />
-	                    {fieldErrors.cnpsNumber ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.cnpsNumber}</div>
-	                    ) : null}
-	                  </div>
-	                  <div>
-	                    <div className="text-xs text-vdm-gold-600">Situation matrimoniale</div>
-	                    <select
-	                      value={draft.maritalStatus ?? ""}
-	                      onChange={(e) => {
-	                        clearFieldError("maritalStatus");
-	                        setDraft({
-	                          ...draft,
-	                          maritalStatus: isMaritalStatus(e.target.value) ? e.target.value : null,
-	                        });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.maritalStatus)}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
-	                    >
-                      <option value="">Sélectionner</option>
-                      {MARITAL_STATUSES.map((status) => (
-                        <option key={status} value={status}>
-                          {MARITAL_STATUS_LABELS[status]}
-	                        </option>
-	                      ))}
-	                    </select>
-	                    {fieldErrors.maritalStatus ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.maritalStatus}</div>
-	                    ) : null}
-	                  </div>
-	                  <div>
-	                    <div className="text-xs text-vdm-gold-600">Nombre d'enfants</div>
-                    <input
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={typeof draft.childrenCount === "number" ? String(draft.childrenCount) : ""}
-	                      onChange={(e) => {
-	                        const normalized = e.target.value.replace(/\D/g, "");
-	                        clearFieldError("childrenCount");
-	                        setDraft({
-	                          ...draft,
-	                          childrenCount: normalized === "" ? null : Number(normalized),
-	                        });
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.childrenCount)}
-	                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-	                      placeholder="0"
-	                    />
-	                    {fieldErrors.childrenCount ? (
-	                      <div className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</div>
-	                    ) : null}
-	                  </div>
-	                </div>
-                <div>
-                  <div className="text-xs text-vdm-gold-600">Mot de passe</div>
-                  <div className="relative">
-                    <input
-	                      type={showPassword ? "text" : "password"}
-	                      value={password}
-	                      onChange={(e) => {
-	                        clearFieldError("password");
-	                        setPasswordError(null);
-	                        setPassword(e.target.value);
-	                      }}
-	                      aria-invalid={Boolean(fieldErrors.password || passwordError)}
-	                      placeholder="Nouveau mot de passe"
-                      autoComplete="new-password"
-                      className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-sm text-vdm-gold-600 hover:text-vdm-gold-900"
+              >
+                Fermer
+              </button>
+            </div>
+            <div className="space-y-6 px-6 py-6">
+              <div className="flex items-center gap-4 border-b border-vdm-gold-100 pb-4">
+                {draft.profilePhotoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPhotoPreviewOpen(true)}
+                    className="rounded-full focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    aria-label="Agrandir la photo de profil"
+                  >
+                    <Image
+                      src={draft.profilePhotoUrl}
+                      alt="Photo de profil"
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 rounded-full object-cover border border-vdm-gold-200 cursor-zoom-in"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                      aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                      aria-pressed={showPassword}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                  </button>
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-vdm-gold-100 text-vdm-gold-800 border border-vdm-gold-200 flex items-center justify-center font-semibold">
+                    {(draft.firstName?.[0] ?? "").toUpperCase()}
+                    {(draft.lastName?.[0] ?? "").toUpperCase()}
                   </div>
-                  <div className="mt-2">
-                    <div className="h-2 w-full rounded-full bg-vdm-gold-200 overflow-hidden">
-                      <div
-                        className="h-2 rounded-full bg-vdm-gold-700 transition-all"
-                        style={{ width: `${Math.round((Math.min(Math.max(pw.score, 0), 4) / 4) * 100)}%` }}
-                      />
-                    </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <div className="text-sm font-semibold text-vdm-gold-900">Photo de profil</div>
+                  <div className="text-xs text-vdm-gold-700">
+                    {draft.fullAddress && draft.phone
+                      ? "Profil complet."
+                      : "Adresse précise et numéro de téléphone obligatoires. Photo facultative."}
                   </div>
-                  <div className="mt-2 text-xs text-gray-600">
-                    <span className="font-semibold">
-                      {["très faible", "faible", "moyenne", "bonne", "très bonne"][pw.score] ?? "—"}
-                    </span>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => onProfilePhotoChange(e.target.files?.[0] ?? null)}
+                      className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white file:bg-vdm-gold-50 file:text-vdm-gold-800 file:border file:border-vdm-gold-200 file:rounded-md file:px-3 file:py-1 file:mr-3"
+                    />
+                    {draft.profilePhotoUrl ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={downloadPassportPhoto}
+                          className="px-3 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-xs hover:bg-vdm-gold-50"
+                        >
+                          Télécharger la photo
+                        </button>
+                      </div>
+                    ) : null}
+                    {fieldErrors.profilePhotoUrl || photoError ? (
+                      <div className="text-xs text-red-600">{fieldErrors.profilePhotoUrl ?? photoError}</div>
+                    ) : null}
                   </div>
-	                  {fieldErrors.password || passwordError ? (
-	                    <div className="mt-2 text-xs text-red-600">
-	                      {fieldErrors.password ?? passwordError}
-	                    </div>
-	                  ) : null}
                 </div>
               </div>
-              <div className="flex justify-end gap-2 border-t border-vdm-gold-100 px-6 py-4">
-                <button
-                  type="button"
-                  onClick={saveEdit}
-                  disabled={isSaveDisabled}
-                  className={`px-4 py-2 rounded-md text-white text-sm ${isSaveDisabled ? "bg-vdm-gold-400 cursor-not-allowed" : "bg-vdm-gold-700 hover:bg-vdm-gold-800"}`}
-                >
-                  Enregistrer
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="px-4 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
-                >
-                  Annuler
-                </button>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Prénom</div>
+                  <input
+                    value={draft.firstName}
+                    onChange={(e) => {
+                      clearFieldError("firstName");
+                      setDraft({ ...draft, firstName: e.target.value });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.firstName)}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  />
+                  {fieldErrors.firstName ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Nom</div>
+                  <input
+                    value={draft.lastName}
+                    onChange={(e) => {
+                      clearFieldError("lastName");
+                      setDraft({ ...draft, lastName: e.target.value });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.lastName)}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  />
+                  {fieldErrors.lastName ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</div>
+                  ) : null}
+                </div>
+                <div className="md:col-span-2">
+                  <div className="text-xs text-vdm-gold-600">Adresse précise</div>
+                  <input
+                    value={draft.fullAddress ?? ""}
+                    onChange={(e) => {
+                      clearFieldError("fullAddress");
+                      setDraft({ ...draft, fullAddress: e.target.value });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.fullAddress)}
+                    placeholder="Rue, ville, code postal, pays"
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  />
+                  {fieldErrors.fullAddress ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.fullAddress}</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Poste</div>
+                  <input
+                    value={draft.jobTitle ?? ""}
+                    onChange={(e) => {
+                      clearFieldError("jobTitle");
+                      setDraft({ ...draft, jobTitle: e.target.value });
+                    }}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Téléphone</div>
+                  <div className="flex gap-2">
+                    <div className="w-24">
+                      <input
+                        value={phone.country ? `+${phone.country}` : "+"}
+                        onChange={(e) => {
+                          const nextCountry = e.target.value.replace(/\D/g, "").slice(0, 3);
+                          clearFieldError("phone");
+                          setDraft({ ...draft, phone: composePhone(nextCountry, phone.local) });
+                        }}
+                        aria-invalid={Boolean(fieldErrors.phone)}
+                        placeholder="+225"
+                        className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                      />
+                    </div>
+                    <input
+                      value={formatLocalPhone(phone.local)}
+                      onChange={(e) => {
+                        clearFieldError("phone");
+                        setDraft({ ...draft, phone: composePhone(phone.country, e.target.value) });
+                      }}
+                      aria-invalid={Boolean(fieldErrors.phone)}
+                      placeholder="00 00 00 00 00"
+                      inputMode="numeric"
+                      className="flex-1 border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    />
+                  </div>
+                  {fieldErrors.phone ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.phone}</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Numéro CNPS</div>
+                  <input
+                    value={draft.cnpsNumber ?? ""}
+                    onChange={(e) => {
+                      clearFieldError("cnpsNumber");
+                      setDraft({ ...draft, cnpsNumber: e.target.value });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.cnpsNumber)}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    placeholder="Ex : CNPS-123456"
+                  />
+                  {fieldErrors.cnpsNumber ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.cnpsNumber}</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Situation matrimoniale</div>
+                  <select
+                    value={draft.maritalStatus ?? ""}
+                    onChange={(e) => {
+                      clearFieldError("maritalStatus");
+                      setDraft({
+                        ...draft,
+                        maritalStatus: isMaritalStatus(e.target.value) ? e.target.value : null,
+                      });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.maritalStatus)}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 bg-white"
+                  >
+                    <option value="">Sélectionner</option>
+                    {MARITAL_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {MARITAL_STATUS_LABELS[status]}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.maritalStatus ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.maritalStatus}</div>
+                  ) : null}
+                </div>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Nombre d'enfants</div>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={typeof draft.childrenCount === "number" ? String(draft.childrenCount) : ""}
+                    onChange={(e) => {
+                      const normalized = e.target.value.replace(/\D/g, "");
+                      clearFieldError("childrenCount");
+                      setDraft({
+                        ...draft,
+                        childrenCount: normalized === "" ? null : Number(normalized),
+                      });
+                    }}
+                    aria-invalid={Boolean(fieldErrors.childrenCount)}
+                    className="w-full border border-vdm-gold-200 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    placeholder="0"
+                  />
+                  {fieldErrors.childrenCount ? (
+                    <div className="mt-1 text-xs text-red-600">{fieldErrors.childrenCount}</div>
+                  ) : null}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-vdm-gold-600">Mot de passe</div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      clearFieldError("password");
+                      setPasswordError(null);
+                      setPassword(e.target.value);
+                    }}
+                    aria-invalid={Boolean(fieldErrors.password || passwordError)}
+                    placeholder="Nouveau mot de passe"
+                    autoComplete="new-password"
+                    className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="mt-2">
+                  <div className="h-2 w-full rounded-full bg-vdm-gold-200 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full bg-vdm-gold-700 transition-all"
+                      style={{ width: `${Math.round((Math.min(Math.max(pw.score, 0), 4) / 4) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-semibold">
+                    {["très faible", "faible", "moyenne", "bonne", "très bonne"][pw.score] ?? "—"}
+                  </span>
+                </div>
+                {fieldErrors.password || passwordError ? (
+                  <div className="mt-2 text-xs text-red-600">{fieldErrors.password ?? passwordError}</div>
+                ) : null}
               </div>
             </div>
+            <div className="flex justify-end gap-2 border-t border-vdm-gold-100 px-6 py-4">
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={isSaveDisabled}
+                className={`px-4 py-2 rounded-md text-white text-sm ${isSaveDisabled ? "bg-vdm-gold-400 cursor-not-allowed" : "bg-vdm-gold-700 hover:bg-vdm-gold-800"}`}
+              >
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-4 py-2 rounded-md border border-vdm-gold-300 text-vdm-gold-800 text-sm hover:bg-vdm-gold-50"
+              >
+                Annuler
+              </button>
+            </div>
           </div>
-        ) : null}
-      </div>
-    );
+        </div>
+      ) : null}
+    </div>
+  );
 }

@@ -25,10 +25,7 @@ function toPdfDataUrl(bytes: ArrayBuffer) {
 }
 
 function normalizeMatriculeKey(value: string) {
-  return value
-    .toUpperCase()
-    .replace(/\s+/g, "")
-    .trim();
+  return value.toUpperCase().replace(/\s+/g, "").trim();
 }
 
 function buildMatriculeLookup(rows: { id: string; matricule: string }[]) {
@@ -43,7 +40,10 @@ function buildMatriculeLookup(rows: { id: string; matricule: string }[]) {
   return byKey;
 }
 
-function extractMatriculeCandidate(value: string, lookup: Map<string, { employeeId: string; matricule: string }>) {
+function extractMatriculeCandidate(
+  value: string,
+  lookup: Map<string, { employeeId: string; matricule: string }>
+) {
   const up = value.toUpperCase();
   const candidates = new Set<string>();
 
@@ -136,11 +136,9 @@ export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   if (!form) return jsonError("FormData invalide", 400);
 
-  const files = [
-    ...form.getAll("pdfs"),
-    ...form.getAll("files"),
-    ...form.getAll("pdf"),
-  ].flatMap((x) => (x instanceof File ? [x] : []));
+  const files = [...form.getAll("pdfs"), ...form.getAll("files"), ...form.getAll("pdf")].flatMap((x) =>
+    x instanceof File ? [x] : []
+  );
 
   const pdfs = files.filter(
     (f) => f.type === "application/pdf" || String(f.name).toLowerCase().endsWith(".pdf")
@@ -226,11 +224,19 @@ export async function POST(req: Request) {
       where: { employeeId: x.employeeId as string, year: x.year as number, month: x.month as number },
       select: { id: true },
     });
-    if (existing) conflicts.push({ matricule: x.matricule as string, year: x.year as number, month: x.month as number, fileName: x.fileName });
+    if (existing)
+      conflicts.push({
+        matricule: x.matricule as string,
+        year: x.year as number,
+        month: x.month as number,
+        fileName: x.fileName,
+      });
   }
 
   if (conflicts.length) {
-    return jsonError("Import bloqué: certains bulletins existent déjà", 409, { conflicts: conflicts.slice(0, 50) });
+    return jsonError("Import bloqué: certains bulletins existent déjà", 409, {
+      conflicts: conflicts.slice(0, 50),
+    });
   }
 
   // 2) Create in DB.

@@ -24,9 +24,7 @@ export async function POST(req: Request, ctx: Ctx) {
   const action = String(body?.action ?? "") as LeaveBalanceAction;
   const rawAmount = body?.amount;
   const amount =
-    typeof rawAmount === "string"
-      ? Number(rawAmount.replace(",", ".").trim())
-      : Number(rawAmount ?? 0);
+    typeof rawAmount === "string" ? Number(rawAmount.replace(",", ".").trim()) : Number(rawAmount ?? 0);
 
   if (!action || !["RESET", "INCREASE", "SET", "SET_FIRST_YEAR_USED"].includes(action)) {
     return jsonError("Action invalide (RESET|INCREASE|SET|SET_FIRST_YEAR_USED)", 400);

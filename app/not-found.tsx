@@ -19,10 +19,13 @@ export default function NotFoundPage() {
           height={80}
           className="mx-auto mb-8 h-20 w-20 rounded-full object-cover"
         />
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-vdm-gold-900">Veilleur des Médias</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-vdm-gold-900">
+          Veilleur des Médias
+        </p>
         <h1 className="mt-4 text-4xl font-bold leading-tight text-vdm-gold-900">404 · Page introuvable</h1>
         <p className="mt-3 text-sm text-vdm-gold-600">
-          Oups, la page que vous cherchez a disparu dans les couloirs numériques du Veilleur. Revenez sur le tableau de bord pour retrouver vos documents.
+          Oups, la page que vous cherchez a disparu dans les couloirs numériques du Veilleur. Revenez sur le
+          tableau de bord pour retrouver vos documents.
         </p>
         <Link
           href={target}

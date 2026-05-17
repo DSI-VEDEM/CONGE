@@ -8,8 +8,14 @@ type EmployeeAvatarProps = {
 };
 
 function initialsFromName(firstName?: string | null, lastName?: string | null) {
-  const a = String(firstName ?? "").trim().charAt(0).toUpperCase();
-  const b = String(lastName ?? "").trim().charAt(0).toUpperCase();
+  const a = String(firstName ?? "")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
+  const b = String(lastName ?? "")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
   return `${a}${b}`.trim() || "??";
 }
 

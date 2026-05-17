@@ -78,7 +78,10 @@ export async function GET(req: Request) {
     });
   } catch (error: unknown) {
     if (isPrismaSchemaOutdatedError(error)) {
-      return jsonError("Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur", 503);
+      return jsonError(
+        "Mise à jour Prisma requise: exécutez `npx prisma db push` puis redémarrez le serveur",
+        503
+      );
     }
     throw error;
   }

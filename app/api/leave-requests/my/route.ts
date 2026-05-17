@@ -124,18 +124,18 @@ export async function GET(req: Request) {
   const nextYearLeaveBalance =
     employee && currentCycleCalc.isPaidLeaveEligible
       ? calculateEntitledLeaveDaysForCycle(
-        {
-          id: employee.id,
-          leaveBalance: Number(employee.leaveBalance ?? 0),
-          leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
-          firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
-          firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
-          hireDate: employee.hireDate ?? null,
-          companyEntryDate: employee.companyEntryDate ?? null,
-          createdAt: employee.createdAt,
-        },
-        currentCycleCalc.leaveCycleEndExclusive
-      ).entitlement
+          {
+            id: employee.id,
+            leaveBalance: Number(employee.leaveBalance ?? 0),
+            leaveBalanceAdjustment: Number(employee.leaveBalanceAdjustment ?? 0),
+            firstYearLeaveUsedDays: Number(employee.firstYearLeaveUsedDays ?? 0),
+            firstYearLeaveUsedYear: employee.firstYearLeaveUsedYear ?? null,
+            hireDate: employee.hireDate ?? null,
+            companyEntryDate: employee.companyEntryDate ?? null,
+            createdAt: employee.createdAt,
+          },
+          currentCycleCalc.leaveCycleEndExclusive
+        ).entitlement
       : 0;
   const alreadyBorrowed = Math.max(0, -remainingCurrentYear);
   const availableWithAdvance = currentCycleCalc.isPaidLeaveEligible

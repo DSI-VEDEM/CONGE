@@ -78,7 +78,8 @@ export async function GET(req: Request) {
   const syncedBalances = new Map<string, number>();
   for (const employee of employees) {
     const synced = await syncEmployeeLeaveBalance(prisma, employee.id);
-    if (synced) syncedBalances.set(employee.id, Number(synced.employee.leaveBalance ?? employee.leaveBalance ?? 0));
+    if (synced)
+      syncedBalances.set(employee.id, Number(synced.employee.leaveBalance ?? employee.leaveBalance ?? 0));
   }
 
   return NextResponse.json({

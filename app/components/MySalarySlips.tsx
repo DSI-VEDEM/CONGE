@@ -54,7 +54,11 @@ export default function MySalarySlips() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [previewSlip, setPreviewSlip] = useState<{ id: string; fileName: string; fileDataUrl: string } | null>(null);
+  const [previewSlip, setPreviewSlip] = useState<{
+    id: string;
+    fileName: string;
+    fileDataUrl: string;
+  } | null>(null);
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -213,7 +217,10 @@ export default function MySalarySlips() {
 
                 <div className="p-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {group.slips.map((slip) => (
-                    <div key={slip.id} className="rounded-lg border border-vdm-gold-200 bg-white p-3 space-y-2">
+                    <div
+                      key={slip.id}
+                      className="rounded-lg border border-vdm-gold-200 bg-white p-3 space-y-2"
+                    >
                       <div className="text-sm font-semibold text-vdm-gold-900 uppercase">
                         {MONTH_LABELS[slip.month - 1] ?? toPeriod(slip.year, slip.month)}
                       </div>
@@ -285,7 +292,11 @@ export default function MySalarySlips() {
               </div>
             </div>
             <div className="p-4 h-full min-h-0">
-              <iframe className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white" src={previewSlip.fileDataUrl} title="Aperçu bulletin" />
+              <iframe
+                className="h-full w-full rounded-lg border border-vdm-gold-200 bg-white"
+                src={previewSlip.fileDataUrl}
+                title="Aperçu bulletin"
+              />
             </div>
           </div>
         </div>

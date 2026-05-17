@@ -77,11 +77,16 @@ function seniorityBonusDays(seniorityYears: number) {
   return 0;
 }
 
-export function resolveLeaveAnchorDate(employee: Pick<EmployeeBalanceSource, "companyEntryDate" | "hireDate" | "createdAt">) {
+export function resolveLeaveAnchorDate(
+  employee: Pick<EmployeeBalanceSource, "companyEntryDate" | "hireDate" | "createdAt">
+) {
   return employee.companyEntryDate ?? employee.hireDate ?? employee.createdAt ?? null;
 }
 
-function firstYearLeaveUsedDaysForYear(employee: Pick<EmployeeBalanceSource, "firstYearLeaveUsedDays" | "firstYearLeaveUsedYear">, year: number) {
+function firstYearLeaveUsedDaysForYear(
+  employee: Pick<EmployeeBalanceSource, "firstYearLeaveUsedDays" | "firstYearLeaveUsedYear">,
+  year: number
+) {
   if (employee.firstYearLeaveUsedYear !== year) return 0;
   return Math.max(0, Number(employee.firstYearLeaveUsedDays ?? 0));
 }
@@ -159,10 +164,7 @@ export function getLeaveCycleForDate(
   };
 }
 
-export function calculateEntitledLeaveDaysForCycle(
-  employee: EmployeeBalanceSource,
-  asOf: Date = new Date()
-) {
+export function calculateEntitledLeaveDaysForCycle(employee: EmployeeBalanceSource, asOf: Date = new Date()) {
   const cycle = getLeaveCycleForDate(employee, asOf);
   if (!cycle.effectiveHireDate) {
     const entitlement = roundToOneDecimal(Math.max(0, BASE_ANNUAL_DAYS + employee.leaveBalanceAdjustment));
@@ -221,10 +223,7 @@ export function calculateEntitledLeaveDaysForCycle(
   };
 }
 
-export function calculateEntitledLeaveDaysForYear(
-  employee: EmployeeBalanceSource,
-  year: number
-) {
+export function calculateEntitledLeaveDaysForYear(employee: EmployeeBalanceSource, year: number) {
   return calculateEntitledLeaveDaysForCycle(employee, new Date(Date.UTC(year, 11, 31)));
 }
 
@@ -232,11 +231,7 @@ export function calculateEntitledLeaveDays(employee: EmployeeBalanceSource, asOf
   return calculateEntitledLeaveDaysForCycle(employee, asOf);
 }
 
-export async function consumedLeaveDaysForYear(
-  db: PrismaLike,
-  employeeId: string,
-  year: number
-) {
+export async function consumedLeaveDaysForYear(db: PrismaLike, employeeId: string, year: number) {
   const { start: yearStart, endExclusive: nextYearStart } = utcYearRange(year);
 
   const [leaves, oneOff, recurring, employee] = await Promise.all([
@@ -290,9 +285,7 @@ export async function consumedLeaveDaysForYear(
     0
   );
 
-  const consumedBeforeDeployment = employee
-    ? firstYearLeaveUsedDaysForYear(employee, year)
-    : 0;
+  const consumedBeforeDeployment = employee ? firstYearLeaveUsedDaysForYear(employee, year) : 0;
 
   return consumedFromRequests + consumedBeforeDeployment;
 }
@@ -465,7 +458,12 @@ export async function syncEmployeeLeaveBalance(db: PrismaLike, employeeId: strin
   if (!employee) return null;
 
   const currentCalc = calculateEntitledLeaveDaysForCycle(employee, asOf);
-  const debtFromPreviousYear = await debtCarriedIntoCycle(db, employee, employeeId, currentCalc.leaveCycleStart);
+  const debtFromPreviousYear = await debtCarriedIntoCycle(
+    db,
+    employee,
+    employeeId,
+    currentCalc.leaveCycleStart
+  );
   const effectiveEntitlement = roundToOneDecimal(Math.max(0, currentCalc.entitlement - debtFromPreviousYear));
 
   if (Math.abs(Number(employee.leaveBalance) - effectiveEntitlement) < 0.0001) {

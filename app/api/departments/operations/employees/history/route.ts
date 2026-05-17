@@ -40,10 +40,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const maxParam = Number(url.searchParams.get("maxLeaves") ?? url.searchParams.get("max"));
-  const take =
-    Number.isInteger(maxParam) && maxParam > 0
-      ? Math.min(maxParam, 120)
-      : 120;
+  const take = Number.isInteger(maxParam) && maxParam > 0 ? Math.min(maxParam, 120) : 120;
 
   const leaves = await prisma.leaveRequest.findMany({
     where: {
@@ -60,7 +57,16 @@ export async function GET(req: Request) {
       endDate: true,
       status: true,
       createdAt: true,
-      employee: { select: { id: true, firstName: true, lastName: true, profilePhotoUrl: true, role: true, leaveBalance: true } },
+      employee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          profilePhotoUrl: true,
+          role: true,
+          leaveBalance: true,
+        },
+      },
       decisions: {
         where: { type: { in: ["APPROVE", "REJECT", "CANCEL"] } },
         orderBy: { createdAt: "desc" },

@@ -16,13 +16,7 @@ function roleLabel(role?: string | null) {
   return role;
 }
 
-export default function DashboardShell({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+export default function DashboardShell({ title, children }: { title: string; children: React.ReactNode }) {
   const employee = getEmployee();
   const { setHasDedicatedBell } = useNotificationBellContext();
 

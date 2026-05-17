@@ -39,7 +39,8 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  const canManage = role === "CEO" || role === "ACCOUNTANT" || role === "DEPT_HEAD" || role === "SERVICE_HEAD";
+  const canManage =
+    role === "CEO" || role === "ACCOUNTANT" || role === "DEPT_HEAD" || role === "SERVICE_HEAD";
   if (!canManage) return jsonError("Accès refusé", 403);
 
   const { id } = await ctx.params;

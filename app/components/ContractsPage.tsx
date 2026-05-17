@@ -12,8 +12,7 @@ type ContractsPageProps = {
 
 export default function ContractsPage({
   title = "Administration des contrats",
-  description =
-    "Liste des contrats, avenants et documents administratifs partagés par la comptable pour les collaborateurs.",
+  description = "Liste des contrats, avenants et documents administratifs partagés par la comptable pour les collaborateurs.",
   scope = "employees",
 }: ContractsPageProps) {
   const employee = useMemo(() => getEmployee(), []);

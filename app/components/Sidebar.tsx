@@ -69,7 +69,6 @@ export function Sidebar({
   }, [router]);
   const cancelLogout = useCallback(() => setShowLogoutModal(false), []);
 
-
   const subtitleLine = employee ? String(employee.jobTitle ?? "").trim() : "";
 
   const [menuHeight, setMenuHeight] = useState(0);
@@ -129,7 +128,13 @@ export function Sidebar({
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-vdm-gold-900 shadow px-4 py-3 flex items-center justify-between border-b border-vdm-gold-800">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-vdm-gold-800 flex items-center justify-center overflow-hidden">
-            <Image src="/logo.jpeg" alt="Logo" width={40} height={40} className="h-full w-full object-contain" />
+            <Image
+              src="/logo.jpeg"
+              alt="Logo"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
             <div className="text-base font-bold text-vdm-gold-100 tracking-tight">{brandTitle}</div>
@@ -147,7 +152,10 @@ export function Sidebar({
 
       {/* MOBILE OVERLAY */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+          onClick={() => setIsOpen(false)}
+        />
       )}
 
       {/* MOBILE MENU */}
@@ -168,7 +176,9 @@ export function Sidebar({
             <div key={idx} className="space-y-1">
               {section.title && (
                 <div className="px-2 mb-1">
-                  <div className="text-xs font-bold text-vdm-gold-200 uppercase tracking-widest">{section.title}</div>
+                  <div className="text-xs font-bold text-vdm-gold-200 uppercase tracking-widest">
+                    {section.title}
+                  </div>
                 </div>
               )}
 
@@ -181,7 +191,9 @@ export function Sidebar({
                     href={link.to}
                     onClick={() => setIsOpen(false)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl transition hover:text-white ${
-                      isActive ? "bg-vdm-gold-700 text-white hover:text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
+                      isActive
+                        ? "bg-vdm-gold-700 text-white hover:text-white"
+                        : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -207,7 +219,13 @@ export function Sidebar({
         <div className="p-5 border-b border-vdm-gold-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 rounded-xl bg-vdm-gold-800 flex items-center justify-center overflow-hidden">
-              <Image src="/logo.jpeg" alt="Logo" width={40} height={40} className="h-full w-full object-contain" />
+              <Image
+                src="/logo.jpeg"
+                alt="Logo"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <div className="text-lg font-bold text-vdm-gold-100 tracking-tight">{brandTitle}</div>
@@ -228,7 +246,9 @@ export function Sidebar({
             <div key={idx} className="space-y-1">
               {section.title && (
                 <div className="px-2 mb-1">
-                  <div className="text-[10px] font-bold text-vdm-gold-200 uppercase tracking-widest">{section.title}</div>
+                  <div className="text-[10px] font-bold text-vdm-gold-200 uppercase tracking-widest">
+                    {section.title}
+                  </div>
                 </div>
               )}
 
@@ -240,7 +260,9 @@ export function Sidebar({
                     key={link.to}
                     href={link.to}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl transition hover:text-white ${
-                      isActive ? "bg-vdm-gold-700 text-white hover:text-white" : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
+                      isActive
+                        ? "bg-vdm-gold-700 text-white hover:text-white"
+                        : "text-vdm-gold-100 hover:bg-vdm-gold-800 hover:text-white"
                     }`}
                   >
                     <Icon className="w-5 h-5" />

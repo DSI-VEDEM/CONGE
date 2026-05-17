@@ -181,10 +181,7 @@ export async function autoApproveOverdueForActor(actorId: string, role: string) 
   let ceoDirectorApprovedCount = 0;
 
   if (role === "DEPT_HEAD" || role === "SERVICE_HEAD") {
-    deptHeadApprovedCount = await autoApproveOverdueForDeptHead(
-      actorId,
-      getDeptHeadValidationDelayDays()
-    );
+    deptHeadApprovedCount = await autoApproveOverdueForDeptHead(actorId, getDeptHeadValidationDelayDays());
   }
 
   if (role === "CEO") {

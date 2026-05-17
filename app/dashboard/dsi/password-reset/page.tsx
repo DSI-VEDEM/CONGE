@@ -204,8 +204,8 @@ export default function DsiPasswordResetPage() {
       <div>
         <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Réinitialisation des mots de passe</div>
         <div className="text-sm text-vdm-gold-700">
-          Un mot de passe unique et sécurisé est généré pour chaque employé et envoyé directement à son adresse email.
-          Aucun administrateur n’a accès à ce mot de passe.
+          Un mot de passe unique et sécurisé est généré pour chaque employé et envoyé directement à son
+          adresse email. Aucun administrateur n’a accès à ce mot de passe.
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2">

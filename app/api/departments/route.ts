@@ -1,29 +1,18 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { verifyJwt } from "@/lib/auth";
 import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
-import { norm } from "@/lib/validators";
+import * as departmentsService from "@/lib/services/departments.service";
+import { serviceErrorToResponse } from "@/lib/services/service-error";
+import { logError } from "@/lib/logger";
 
 export async function GET(req: Request) {
-  // Retourne la liste des départements avec les compteurs utiles côté UI.
+  // Liste des départements (accessible à tout utilisateur authentifié).
   const v = verifyJwt(req);
   if (!v.ok) return v.error;
 
-  const departments = await prisma.department.findMany({
-    select: {
-      id: true,
-      type: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: { select: { members: true, services: true, responsables: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
+  const departments = await departmentsService.listDepartments();
   return NextResponse.json({ departments });
 }
 
@@ -34,23 +23,14 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const type = norm(body?.type);
-    const name = norm(body?.name);
-
-    // Toute création nécessite un type + un nom
-    if (!type || !name) return jsonError("Champs requis: type, name", 400);
-
-    const created = await prisma.department.create({
-      data: {
-        type: body.type,
-        name,
-        description: body?.description ?? null,
-      },
+    const created = await departmentsService.createDepartment({
+      type: String(body?.type ?? "").trim(),
+      name: String(body?.name ?? "").trim(),
+      description: body?.description ?? null,
     });
-
     return NextResponse.json({ department: created }, { status: 201 });
   } catch (e: unknown) {
-    console.error("[departments] erreur serveur", e);
-    return jsonServerError(e);
+    logError("departments:POST", e, "création département : erreur");
+    return serviceErrorToResponse(e);
   }
 }
