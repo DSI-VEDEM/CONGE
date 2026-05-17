@@ -237,6 +237,8 @@ model Employee {
 
   /// Indique qu'une réinitialisation de mot de passe a été demandée
   passwordResetRequested Boolean @default(false)
+  /// Force le changement de mot de passe à la prochaine connexion (post-reset).
+  mustChangePassword     Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

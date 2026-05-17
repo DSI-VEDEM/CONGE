@@ -230,7 +230,30 @@ export async function PUT(req: Request) {
     const value = norm(body?.password);
     const error = profilePasswordError(value) ?? (!value ? PROFILE_MESSAGES.passwordInvalid : null);
     if (error) return profileFieldError("password", error);
+
+    // Sécurité : exiger l'ancien mot de passe pour autoriser le changement.
+    // Le mot de passe actuel (potentiellement temporaire après reset DSI)
+    // doit toujours être fourni pour confirmer la possession du compte.
+    const currentPassword = norm(body?.currentPassword);
+    if (!currentPassword) {
+      return jsonError("Mot de passe actuel requis pour modifier le mot de passe", 400, {
+        field: "currentPassword",
+      });
+    }
+    const current = await prisma.employee.findUnique({
+      where: { id },
+      select: { password: true },
+    });
+    if (!current) return jsonError("Employé introuvable", 404);
+    const valid = await bcrypt.compare(currentPassword, current.password);
+    if (!valid) {
+      return jsonError("Mot de passe actuel incorrect", 401, { field: "currentPassword" });
+    }
+
     data.password = await bcrypt.hash(value, 10);
+    // Une fois changé volontairement, on retire le flag de changement forcé.
+    // (`mustChangePassword` est typé après `npx prisma generate`.)
+    data.mustChangePassword = false;
   }
 
   if (Object.keys(data).length == 0) {

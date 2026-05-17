@@ -3,14 +3,18 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { jsonError } from "@/lib/auth";
+import { jsonError, jsonServerError, setAuthCookie, signJwt } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { norm } from "@/lib/validators";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
 export async function POST(req: Request) {
-  /// Authentifie par email / matricule et retourne un token JWT valide 7 jours.
+  /// Authentifie par email / matricule et émet un cookie httpOnly + retourne le token (legacy).
   try {
+    // Rate-limit : 10 tentatives / 10 minutes par IP
+    const rl = rateLimit(req, { key: "auth:login", max: 10, windowMs: 10 * 60 * 1000 });
+    if (!rl.ok) return rateLimitResponse(rl.resetAt);
+
     const body = await req.json().catch(() => ({}));
 
     const identifier = norm(body?.identifier); // email OU matricule
@@ -66,9 +70,6 @@ export async function POST(req: Request) {
     const departmentType = employee.department?.type ?? null;
     const isDeptHeadDsi = employee.role === "DEPT_HEAD" && departmentType === "DSI";
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return jsonError("JWT_SECRET manquant côté serveur", 500);
-
     // Vérifie si l'utilisateur est responsable DSI pour activer les contrôles spéciaux.
     const dsiResponsibility = await prisma.departmentResponsibility.findFirst({
       where: {
@@ -82,24 +83,22 @@ export async function POST(req: Request) {
 
     const isDsiAdmin = Boolean(dsiResponsibility) || isDeptHeadDsi;
 
-    // Génère le JWT contenant les rôles/flags exposés au front
-    const token = jwt.sign(
-      {
-        sub: employee.id,
-        email: employee.email,
-        matricule: employee.matricule ?? null,
-        role: employee.role,
-        status: employee.status,
-        departmentId: employee.departmentId ?? null,
-        serviceId: employee.serviceId ?? null,
-        isDsiAdmin,
-        departmentType,
-      },
-      secret,
-      { expiresIn: "7d" }
-    );
+    // Génère le JWT (HS256 pinné dans signJwt)
+    const token = signJwt({
+      sub: employee.id,
+      email: employee.email,
+      matricule: employee.matricule ?? null,
+      role: employee.role,
+      status: employee.status,
+      departmentId: employee.departmentId ?? null,
+      serviceId: employee.serviceId ?? null,
+      isDsiAdmin,
+      departmentType,
+    });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
+      // token retourné en body pour la compat avec les clients qui lisent encore localStorage.
+      // À retirer après migration complète du front vers le cookie.
       token,
       employee: {
         id: employee.id,
@@ -126,8 +125,10 @@ export async function POST(req: Request) {
         departmentType,
       },
     });
+
+    return setAuthCookie(response, token);
   } catch (e: unknown) {
-    const err = e as { code?: string; message?: string };
-    return jsonError("Erreur serveur", 500, { code: err?.code, details: err?.message });
+    console.error("[auth/login] erreur serveur", e);
+    return jsonServerError(e);
   }
 }

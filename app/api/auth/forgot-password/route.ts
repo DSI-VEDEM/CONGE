@@ -2,12 +2,17 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError } from "@/lib/auth";
+import { jsonError, jsonServerError } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { norm } from "@/lib/validators";
 
 export async function POST(req: Request) {
   /// Page de demande d'oubli de mot de passe : on ne révèle pas si l'utilisateur existe.
   try {
+    // Rate-limit : 5 demandes / 30 min par IP
+    const rl = rateLimit(req, { key: "auth:forgot", max: 5, windowMs: 30 * 60 * 1000 });
+    if (!rl.ok) return rateLimitResponse(rl.resetAt);
+
     const body = await req.json().catch(() => ({}));
     const identifier = norm(body?.identifier);
 
@@ -76,7 +81,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[auth/forgot-password] erreur serveur", e);
+    return jsonServerError(e);
   }
 }

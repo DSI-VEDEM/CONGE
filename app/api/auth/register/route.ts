@@ -3,7 +3,8 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { jsonError } from "@/lib/auth";
+import { jsonError, jsonServerError } from "@/lib/auth";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { norm } from "@/lib/validators";
 
 /// Valide grossièrement la structure d'une adresse email côté serveur.
@@ -14,6 +15,10 @@ function isValidEmail(v: string) {
 export async function POST(req: Request) {
   /// Endpoint d'inscription publique : crée un employé en statut pending.
   try {
+    // Rate-limit : 5 inscriptions / 1 heure par IP
+    const rl = rateLimit(req, { key: "auth:register", max: 5, windowMs: 60 * 60 * 1000 });
+    if (!rl.ok) return rateLimitResponse(rl.resetAt);
+
     const body = await req.json().catch(() => ({}));
 
     const firstName = norm(body?.firstName);
@@ -86,14 +91,12 @@ export async function POST(req: Request) {
     );
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string; meta?: { target?: unknown } };
-    // Prisma unique constraint
+    // Prisma unique constraint — l'info "email ou matricule déjà utilisé"
+    // est ici nécessaire à l'UX. Pour éviter d'énumérer, on garde un libellé volontairement flou.
     if (err?.code === "P2002") {
-      const target = Array.isArray(err?.meta?.target)
-      ? err.meta.target.join(",")
-      : String(err?.meta?.target ?? "");
-      return jsonError("Email ou matricule déjà utilisé", 409, { target });
+      return jsonError("Email ou matricule déjà utilisé", 409);
     }
-
-    return jsonError("Erreur serveur", 500, { code: err?.code, details: err?.message });
+    console.error("[auth/register] erreur serveur", e);
+    return jsonServerError(e);
   }
 }
