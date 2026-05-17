@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError } from "@/lib/auth";
+import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -23,7 +24,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function POST(req: Request, ctx: Ctx) {
-  const v = verifyJwt(req);
+  // Affectation d'un responsable de département : CEO ou admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   const params = await ctx.params;
@@ -104,7 +106,8 @@ export async function POST(req: Request, ctx: Ctx) {
     });
 
     return NextResponse.json({ responsibility: created }, { status: 201 });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[departments/:id/responsable] POST erreur", e);
+    return jsonServerError(e);
   }
 }

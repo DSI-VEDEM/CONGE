@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError } from "@/lib/auth";
+import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 import { norm } from "@/lib/validators";
 
 export async function GET(req: Request) {
@@ -27,8 +28,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // Création de département (utilisé via l'admin DAF/CEO).
-  const v = verifyJwt(req);
+  // Création de département : réservée au CEO ou à l'admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   try {
@@ -48,7 +49,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ department: created }, { status: 201 });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[departments] erreur serveur", e);
+    return jsonServerError(e);
   }
 }

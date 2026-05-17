@@ -2,12 +2,14 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError } from "@/lib/auth";
+import { jsonServerError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 
 type Ctx = { params: Promise<{ id: string; rid: string }> };
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const v = verifyJwt(req);
+  // Clôture/modification d'une responsabilité : CEO ou admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   const params = await ctx.params;
@@ -24,13 +26,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
     });
 
     return NextResponse.json({ responsibility: updated });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[departments/:id/responsable/:rid] PATCH erreur", e);
+    return jsonServerError(e);
   }
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const v = verifyJwt(req);
+  // Suppression d'une responsabilité : CEO ou admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   const params = await ctx.params;
@@ -39,7 +43,8 @@ export async function DELETE(req: Request, ctx: Ctx) {
   try {
     await prisma.departmentResponsibility.delete({ where: { id: rid } });
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[departments/:id/responsable/:rid] DELETE erreur", e);
+    return jsonServerError(e);
   }
 }

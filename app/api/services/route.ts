@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError } from "@/lib/auth";
+import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 
 export async function GET(req: Request) {
   // Liste des services avec leur département et le nombre de membres.
@@ -18,8 +19,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  // Créé un service lié à un département.
-  const v = verifyJwt(req);
+  // Création d'un service : réservée au CEO ou à l'admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   try {
@@ -40,7 +41,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ service: created }, { status: 201 });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[services] POST erreur", e);
+    return jsonServerError(e);
   }
 }

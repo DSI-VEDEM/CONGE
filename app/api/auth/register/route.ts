@@ -5,12 +5,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { jsonError, jsonServerError } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { norm } from "@/lib/validators";
-
-/// Valide grossièrement la structure d'une adresse email côté serveur.
-function isValidEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
+import { parseBody } from "@/lib/validate";
+import { registerSchema } from "@/lib/schemas/auth.schema";
 
 export async function POST(req: Request) {
   /// Endpoint d'inscription publique : crée un employé en statut pending.
@@ -19,33 +15,11 @@ export async function POST(req: Request) {
     const rl = rateLimit(req, { key: "auth:register", max: 5, windowMs: 60 * 60 * 1000 });
     if (!rl.ok) return rateLimitResponse(rl.resetAt);
 
-    const body = await req.json().catch(() => ({}));
-
-    const firstName = norm(body?.firstName);
-    const lastName = norm(body?.lastName);
-    const email = norm(body?.email).toLowerCase();
-    const matricule = norm(body?.matricule) || null;
-    const password = norm(body?.password);
-    const acceptedTerms = body?.acceptedTerms === true;
-
-    // Vérifications minimales de présence
-    if (!firstName || !lastName || !email || !password || !matricule) {
-      return jsonError("Champs requis: firstName, lastName, email, password, matricule", 400);
-    }
-
-    // Politique simple : email doit contenir @ et domaine
-    if (!isValidEmail(email)) {
-      return jsonError("Email invalide", 400);
-    }
-
-    // Mots de passe trop courts interdits
-    if (password.length < 8) {
-      return jsonError("Mot de passe trop court (min 8)", 400);
-    }
-    // Acceptation obligatoire des CGU
-    if (!acceptedTerms) {
-      return jsonError("Vous devez accepter les conditions d'utilisation", 400);
-    }
+    // Validation Zod (email, matricule, password length, CGU, etc.)
+    const parsed = await parseBody(req, registerSchema);
+    if (!parsed.ok) return parsed.error;
+    const body = parsed.data;
+    const { firstName, lastName, email, matricule, password, jobTitle } = body;
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -60,13 +34,14 @@ export async function POST(req: Request) {
         email,
         matricule,
         password: hashed,
-        jobTitle: body?.jobTitle ?? null,
+        jobTitle: jobTitle ?? null,
 
+        // role/status sont forcés côté serveur — on ignore tout body.role/status
         role: "EMPLOYEE",
         status: "PENDING",
 
-        departmentId: body?.departmentId ?? null,
-        serviceId: body?.serviceId ?? null,
+        departmentId: body.departmentId ?? null,
+        serviceId: body.serviceId ?? null,
       },
       select: {
         id: true,

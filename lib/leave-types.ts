@@ -64,9 +64,9 @@ export function leaveTypeLabel(value?: string | null) {
 
 export const ANTICIPATED_PAID_LEAVE_VALUE: LeaveType = "ANTICIPATED_PAID";
 export const PAID_LEAVE_VALUES: LeaveType[] = ["ANNUAL_PAID", "ANTICIPATED_PAID", "ANNUAL"];
-const PAID_LEAVE_SET = new Set<LeaveTypeValue>(PAID_LEAVE_VALUES);
-export function isPaidLeaveType(value: unknown): value is LeaveTypeValue {
-  return typeof value === "string" && PAID_LEAVE_SET.has(value as LeaveTypeValue);
+const PAID_LEAVE_SET = new Set<string>([...PAID_LEAVE_VALUES, "PAID"]);
+export function isPaidLeaveType(value: unknown): value is LeaveTypeValue | "PAID" {
+  return typeof value === "string" && PAID_LEAVE_SET.has(value);
 }
 
 export function isAnticipatedPaidLeaveType(value: unknown): value is LeaveTypeValue {

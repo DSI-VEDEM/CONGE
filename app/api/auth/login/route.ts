@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { jsonError, jsonServerError, setAuthCookie, signJwt } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { norm } from "@/lib/validators";
+import { parseBody } from "@/lib/validate";
+import { loginSchema } from "@/lib/schemas/auth.schema";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 
 export async function POST(req: Request) {
@@ -15,15 +16,10 @@ export async function POST(req: Request) {
     const rl = rateLimit(req, { key: "auth:login", max: 10, windowMs: 10 * 60 * 1000 });
     if (!rl.ok) return rateLimitResponse(rl.resetAt);
 
-    const body = await req.json().catch(() => ({}));
-
-    const identifier = norm(body?.identifier); // email OU matricule
-    const password = norm(body?.password);
-
-    // Vérifie que les champs requis arrivent
-    if (!identifier || !password) {
-      return jsonError("Champs requis: identifier, password", 400);
-    }
+    // Validation Zod
+    const parsed = await parseBody(req, loginSchema);
+    if (!parsed.ok) return parsed.error;
+    const { identifier, password } = parsed.data;
 
     const employee = await prisma.employee.findFirst({
       where: { OR: [{ email: identifier }, { matricule: identifier }] },

@@ -26,6 +26,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Optimise l'image Docker : copie .next/standalone + .next/static au lieu de tout node_modules.
+  output: "standalone",
   poweredByHeader: false,
   compress: true,
   async headers() {

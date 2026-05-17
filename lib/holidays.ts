@@ -1,8 +1,8 @@
 const MS_PER_DAY = 86_400_000;
 
 // Année "technique" utilisée pour stocker les jours fériés récurrents (mois/jour).
-// On la choisit hors de la plage utilisée par l'app (GET /api/holidays limite les années à 2000..3000).
-export const RECURRING_HOLIDAY_ANCHOR_YEAR = 1000;
+// On la choisit bissextile et hors de la plage utilisée par l'app (GET /api/holidays limite les années à 2000..3000).
+export const RECURRING_HOLIDAY_ANCHOR_YEAR = 1004;
 
 export function normalizeUtcDateOnly(value: Date) {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
@@ -70,4 +70,3 @@ export function utcYearEndInclusive(year: number) {
   const endInclusive = new Date(endExclusive.getTime() - MS_PER_DAY);
   return { start, endInclusive };
 }
-

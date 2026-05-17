@@ -8,6 +8,10 @@
     "seed": "ts-node --project tsconfig.seed.json --transpile-only prisma/seed.ts",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -24,11 +28,12 @@
     "next": "16.1.4",
     "nodemailer": "^8.0.7",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^5.6.205",
+    "pino": "^9.5.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -36,13 +41,16 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^2.1.8",
     "autoprefixer": "^10.4.27",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
+    "pino-pretty": "^11.3.0",
     "prisma": "6.19",
     "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.8"
   },
   "optionalDependencies": {
     "@next/swc-linux-x64-gnu": "16.1.4"

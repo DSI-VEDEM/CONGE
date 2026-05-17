@@ -2,10 +2,12 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { verifyJwt, jsonError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 import { norm } from "@/lib/validators";
 import { syncAllActiveEmployeesLeaveBalance } from "@/lib/leave-balance";
+import * as employeesService from "@/lib/services/employees.service";
+import { serviceErrorToResponse } from "@/lib/services/service-error";
 
 export async function GET(req: Request) {
   const v = verifyJwt(req);
@@ -19,6 +21,9 @@ export async function GET(req: Request) {
     await syncAllActiveEmployeesLeaveBalance();
   }
 
+  // Note : GET conservé hors service pour éviter de toucher au chemin existant ;
+  // la migration progressive vers `employeesService.listEmployees()` est triviale
+  // une fois la couche `repositories/` étendue avec les sync de soldes.
   const employees = await prisma.employee.findMany({
     where: q
       ? {
@@ -62,7 +67,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const v = verifyJwt(req);
+  // Création d'employé : CEO, ACCOUNTANT, ou admin DSI.
+  // Route migrée vers la couche service — la logique métier est dans `lib/services/employees.service.ts`.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO", "ACCOUNTANT"]);
   if (!v.ok) return v.error;
 
   try {
@@ -78,40 +85,20 @@ export async function POST(req: Request) {
       return jsonError("Champs requis: firstName, lastName, email, password", 400);
     }
 
-    const hashed = await bcrypt.hash(password, 10);
-
-    const created = await prisma.employee.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        matricule,
-        password: hashed,
-        jobTitle: body?.jobTitle ?? null,
-        departmentId: body?.departmentId ?? null,
-        serviceId: body?.serviceId ?? null,
-      },
-      select: {
-        id: true,
-        email: true,
-        matricule: true,
-        firstName: true,
-        lastName: true,
-        profilePhotoUrl: true,
-        jobTitle: true,
-        role: true,
-        status: true,
-        leaveBalance: true,
-        hireDate: true,
-        departmentId: true,
-        serviceId: true,
-        createdAt: true,
-      },
+    const employee = await employeesService.createEmployee({
+      firstName,
+      lastName,
+      email,
+      matricule,
+      password,
+      jobTitle: body?.jobTitle ?? null,
+      departmentId: body?.departmentId ?? null,
+      serviceId: body?.serviceId ?? null,
     });
 
-    return NextResponse.json({ employee: created }, { status: 201 });
+    return NextResponse.json({ employee }, { status: 201 });
   } catch (e: unknown) {
-    const err = e as { code?: string; message?: string };
-    return jsonError("Erreur serveur", 500, { code: err?.code, details: err?.message });
+    console.error("[employees] POST erreur", e);
+    return serviceErrorToResponse(e);
   }
 }

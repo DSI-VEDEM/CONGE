@@ -2,7 +2,8 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyJwt, jsonError } from "@/lib/auth";
+import { verifyJwt, jsonError, jsonServerError } from "@/lib/auth";
+import { requireRoleOrDsiAdmin } from "@/lib/dsiAdmin";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -23,7 +24,8 @@ export async function GET(req: Request, ctx: Ctx) {
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {
-  const v = verifyJwt(req);
+  // Modification d'un service : CEO ou admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   const params = await ctx.params;
@@ -41,13 +43,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
     });
 
     return NextResponse.json({ service: updated });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[services/:id] PATCH erreur", e);
+    return jsonServerError(e);
   }
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
-  const v = verifyJwt(req);
+  // Suppression d'un service : CEO ou admin DSI.
+  const v = await requireRoleOrDsiAdmin(req, ["CEO"]);
   if (!v.ok) return v.error;
 
   const params = await ctx.params;
@@ -56,8 +60,8 @@ export async function DELETE(req: Request, ctx: Ctx) {
   try {
     await prisma.service.delete({ where: { id } });
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return jsonError("Erreur serveur", 500, { code: e?.code, details: e?.message });
+  } catch (e: unknown) {
+    console.error("[services/:id] DELETE erreur", e);
+    return jsonServerError(e);
   }
 }
-

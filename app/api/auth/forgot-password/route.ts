@@ -2,9 +2,10 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonServerError } from "@/lib/auth";
+import { jsonServerError } from "@/lib/auth";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { norm } from "@/lib/validators";
+import { parseBody } from "@/lib/validate";
+import { forgotPasswordSchema } from "@/lib/schemas/auth.schema";
 
 export async function POST(req: Request) {
   /// Page de demande d'oubli de mot de passe : on ne révèle pas si l'utilisateur existe.
@@ -13,12 +14,9 @@ export async function POST(req: Request) {
     const rl = rateLimit(req, { key: "auth:forgot", max: 5, windowMs: 30 * 60 * 1000 });
     if (!rl.ok) return rateLimitResponse(rl.resetAt);
 
-    const body = await req.json().catch(() => ({}));
-    const identifier = norm(body?.identifier);
-
-    if (!identifier) {
-      return jsonError("Champs requis: identifier", 400);
-    }
+    const parsed = await parseBody(req, forgotPasswordSchema);
+    if (!parsed.ok) return parsed.error;
+    const { identifier } = parsed.data;
 
     // Recherche sans divulguer si le compte existe
     const employee = await prisma.employee.findFirst({
