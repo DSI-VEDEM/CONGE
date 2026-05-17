@@ -125,6 +125,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<EditableEmployee | null>(employee);
   const [isPhotoPreviewOpen, setIsPhotoPreviewOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [currentPasswordError, setCurrentPasswordError] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -276,6 +279,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
   const cancelEdit = () => {
     console.info("Profile edit modal cancelled", { employeeId: employee?.id ?? "unknown" });
     setDraft(employee);
+    setCurrentPassword("");
+    setShowCurrentPassword(false);
+    setCurrentPasswordError(null);
     setPassword("");
     setShowPassword(false);
     setPasswordError(null);
@@ -369,6 +375,11 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       toast.error("Profil indisponible.");
       return;
     }
+    if (password && !currentPassword) {
+      setCurrentPasswordError("Mot de passe actuel requis pour modifier le mot de passe");
+      toast.error("Mot de passe actuel requis pour modifier le mot de passe");
+      return;
+    }
     const errors = validateProfileUpdateInput({ ...draft, password });
     if (password && !errors.password && pw.score < 2) {
       errors.password = "Mot de passe trop faible. Renforcez-le avant de continuer.";
@@ -381,6 +392,7 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       toast.error(firstError);
       return;
     }
+    setCurrentPasswordError(null);
     setPasswordError(null);
     setPhotoError(null);
     setFieldErrors({});
@@ -402,7 +414,10 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       maritalStatus: draft.maritalStatus ?? null,
       childrenCount: draft.childrenCount ?? null,
     };
-    if (password) payload.password = password;
+    if (password) {
+      payload.password = password;
+      payload.currentPassword = currentPassword;
+    }
 
     console.info("Saving profile changes", {
       employeeId: employee?.id ?? "unknown",
@@ -430,6 +445,8 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
         }
         if (data?.field === "profilePhotoUrl" || errorMessage.toLowerCase().includes("photo")) {
           setPhotoError(errorMessage);
+        } else if (data?.field === "currentPassword") {
+          setCurrentPasswordError(errorMessage);
         } else if (data?.field === "password" || !isProfileField(data?.field)) {
           setPasswordError(errorMessage);
         }
@@ -439,6 +456,9 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
       toast.success("Profil mis à jour.", { id: toastId });
       const updated = data?.employee ? { ...draft, ...data.employee } : { ...draft };
       localStorage.setItem("employee", JSON.stringify(updated));
+      setCurrentPassword("");
+      setShowCurrentPassword(false);
+      setCurrentPasswordError(null);
       setPassword("");
       setShowPassword(false);
       setIsEditing(false);
@@ -927,48 +947,84 @@ export default function ProfileView({ documentTypes }: ProfileViewProps) {
                   ) : null}
                 </div>
               </div>
-              <div>
-                <div className="text-xs text-vdm-gold-600">Mot de passe</div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => {
-                      clearFieldError("password");
-                      setPasswordError(null);
-                      setPassword(e.target.value);
-                    }}
-                    aria-invalid={Boolean(fieldErrors.password || passwordError)}
-                    placeholder="Nouveau mot de passe"
-                    autoComplete="new-password"
-                    className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <div className="mt-2">
-                  <div className="h-2 w-full rounded-full bg-vdm-gold-200 overflow-hidden">
-                    <div
-                      className="h-2 rounded-full bg-vdm-gold-700 transition-all"
-                      style={{ width: `${Math.round((Math.min(Math.max(pw.score, 0), 4) / 4) * 100)}%` }}
+              <div className="flex flex-col gap-3">
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Mot de passe actuel</div>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => {
+                        setCurrentPasswordError(null);
+                        setCurrentPassword(e.target.value);
+                      }}
+                      aria-invalid={Boolean(currentPasswordError)}
+                      placeholder="Mot de passe actuel"
+                      autoComplete="current-password"
+                      className={`w-full rounded-md border p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500 ${currentPasswordError ? "border-red-400" : "border-vdm-gold-200"}`}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((c) => !c)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                      aria-label={showCurrentPassword ? "Masquer le mot de passe actuel" : "Afficher le mot de passe actuel"}
+                      aria-pressed={showCurrentPassword}
+                    >
+                      {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                  {currentPasswordError ? (
+                    <div className="mt-1 text-xs text-red-600">{currentPasswordError}</div>
+                  ) : null}
                 </div>
-                <div className="mt-2 text-xs text-gray-600">
-                  <span className="font-semibold">
-                    {["très faible", "faible", "moyenne", "bonne", "très bonne"][pw.score] ?? "—"}
-                  </span>
+                <div>
+                  <div className="text-xs text-vdm-gold-600">Nouveau mot de passe</div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        clearFieldError("password");
+                        setPasswordError(null);
+                        if (!e.target.value) setCurrentPasswordError(null);
+                        setPassword(e.target.value);
+                      }}
+                      aria-invalid={Boolean(fieldErrors.password || passwordError)}
+                      placeholder="Nouveau mot de passe"
+                      autoComplete="new-password"
+                      className="w-full rounded-md border border-vdm-gold-200 p-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((c) => !c)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-vdm-gold-700 hover:bg-vdm-gold-50 hover:text-vdm-gold-900 focus:outline-none focus:ring-2 focus:ring-vdm-gold-500"
+                      aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {password ? (
+                    <>
+                      <div className="mt-2">
+                        <div className="h-2 w-full rounded-full bg-vdm-gold-200 overflow-hidden">
+                          <div
+                            className="h-2 rounded-full bg-vdm-gold-700 transition-all"
+                            style={{ width: `${Math.round((Math.min(Math.max(pw.score, 0), 4) / 4) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-600">
+                        <span className="font-semibold">
+                          {["très faible", "faible", "moyenne", "bonne", "très bonne"][pw.score] ?? "—"}
+                        </span>
+                      </div>
+                    </>
+                  ) : null}
+                  {fieldErrors.password || passwordError ? (
+                    <div className="mt-2 text-xs text-red-600">{fieldErrors.password ?? passwordError}</div>
+                  ) : null}
                 </div>
-                {fieldErrors.password || passwordError ? (
-                  <div className="mt-2 text-xs text-red-600">{fieldErrors.password ?? passwordError}</div>
-                ) : null}
               </div>
             </div>
             <div className="flex justify-end gap-2 border-t border-vdm-gold-100 px-6 py-4">
