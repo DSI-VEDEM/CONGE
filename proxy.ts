@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Middleware Next : génère un nonce par requête et pose une Content-Security-Policy
+ * Proxy Next : génère un nonce par requête et pose une Content-Security-Policy
  * stricte (avec `strict-dynamic`) sur les pages HTML.
  *
- * Pourquoi un middleware et pas `next.config.ts` ?
+ * Pourquoi un proxy et pas `next.config.ts` ?
  * Le nonce DOIT être unique par requête. `headers()` en config statique ne peut
  * pas le générer dynamiquement. Next 16 lit automatiquement l'en-tête `x-nonce`
  * pour injecter le nonce sur ses scripts d'hydratation.
@@ -43,7 +43,7 @@ function buildCSP(nonce: string): string {
   return directives.join("; ");
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Nonce 128 bits encodé en base64 — Web Crypto disponible dans le runtime edge.
   const nonceBytes = new Uint8Array(16);
   crypto.getRandomValues(nonceBytes);
@@ -64,7 +64,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // On exclut les statiques (/_next/static, /_next/image, favicon, robots, sitemap)
-  // pour réduire le coût du middleware. Les routes API et pages sont couvertes.
+  // pour réduire le coût du proxy. Les routes API et pages sont couvertes.
   matcher: [
     {
       source: "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",

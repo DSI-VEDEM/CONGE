@@ -10,6 +10,12 @@ type Auth = {
   departmentType?: string | null;
 };
 
+type OperationsDirectorFallbackLeave = {
+  currentAssigneeId?: string | null;
+  employee?: { department?: { type?: string | null } | null } | null;
+  currentAssignee?: { role?: string | null; department?: { type?: string | null } | null } | null;
+};
+
 export function requireAuth(req: Request) {
   const v = verifyJwt(req);
   if (!v.ok) return { ok: false as const, error: v.error };
@@ -38,6 +44,51 @@ export async function findActiveEmployeeByRole(role: string, departmentId?: stri
     },
     select: { id: true, role: true, departmentId: true },
   });
+}
+
+export async function findActiveDepartmentHeadOrDsiFallback(departmentId?: string | null) {
+  const departmentHead = await findActiveEmployeeByRole("DEPT_HEAD", departmentId);
+  if (departmentHead || !departmentId) return departmentHead;
+
+  const department = await prisma.department.findUnique({
+    where: { id: departmentId },
+    select: { type: true },
+  });
+  if (department?.type !== "OPERATIONS") return null;
+
+  return prisma.employee.findFirst({
+    where: {
+      role: "DEPT_HEAD",
+      status: "ACTIVE",
+      department: { type: "DSI" },
+    },
+    select: { id: true, role: true, departmentId: true },
+  });
+}
+
+export async function canActAsOperationsDirectorFallback(
+  actorId: string,
+  leave: OperationsDirectorFallbackLeave
+) {
+  if (leave.currentAssigneeId === actorId) return true;
+  if (leave.employee?.department?.type !== "OPERATIONS") return false;
+  if (
+    leave.currentAssignee?.role !== "DEPT_HEAD" ||
+    leave.currentAssignee?.department?.type !== "OPERATIONS"
+  ) {
+    return false;
+  }
+
+  const actor = await prisma.employee.findUnique({
+    where: { id: actorId },
+    select: {
+      role: true,
+      status: true,
+      department: { select: { type: true } },
+    },
+  });
+
+  return actor?.role === "DEPT_HEAD" && actor.status === "ACTIVE" && actor.department?.type === "DSI";
 }
 
 export async function autoApproveOverdueForDeptHead(deptHeadId: string, days: number) {

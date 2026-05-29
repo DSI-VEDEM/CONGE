@@ -3,7 +3,13 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
-import { requireAuth, isFinalStatus, findActiveEmployeeByRole } from "@/lib/leave-requests";
+import {
+  requireAuth,
+  isFinalStatus,
+  findActiveEmployeeByRole,
+  findActiveDepartmentHeadOrDsiFallback,
+  canActAsOperationsDirectorFallback,
+} from "@/lib/leave-requests";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -21,13 +27,17 @@ export async function POST(req: Request, ctx: Ctx) {
       employeeId: true,
       status: true,
       currentAssigneeId: true,
-      employee: { select: { departmentId: true, role: true } },
+      employee: { select: { departmentId: true, role: true, department: { select: { type: true } } } },
+      currentAssignee: { select: { role: true, department: { select: { type: true } } } },
     },
   });
 
   if (!leave) return jsonError("Demande introuvable", 404);
   if (isFinalStatus(leave.status)) return jsonError("Demande déjà traitée", 409);
-  if (leave.currentAssigneeId !== actorId) return jsonError("Accès refusé", 403);
+  if (leave.currentAssigneeId !== actorId) {
+    const dsiCanActAsOperationsDirector = await canActAsOperationsDirectorFallback(actorId, leave);
+    if (!dsiCanActAsOperationsDirector) return jsonError("Accès refusé", 403);
+  }
   if (leave.employeeId === actorId) return jsonError("Action interdite sur sa propre demande", 403);
 
   const body = await req.json().catch(() => ({}));
@@ -52,7 +62,7 @@ export async function POST(req: Request, ctx: Ctx) {
       target =
         toRole === "CEO"
           ? await findActiveEmployeeByRole("CEO")
-          : await findActiveEmployeeByRole("DEPT_HEAD", leave.employee?.departmentId ?? null);
+          : await findActiveDepartmentHeadOrDsiFallback(leave.employee?.departmentId ?? null);
     }
   } else if (role === "DEPT_HEAD") {
     if (toRole && toRole !== "SERVICE_HEAD" && toRole !== "CEO") {

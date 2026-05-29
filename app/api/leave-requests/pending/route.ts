@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, autoApproveOverdueForActor } from "@/lib/leave-requests";
+import { isDsiAdmin } from "@/lib/dsiAdmin";
 
 function parseTakeParam(value: string | null) {
   const parsed = Number(value);
@@ -28,15 +29,34 @@ export async function GET(req: Request) {
 
   await autoApproveOverdueForActor(actorId, role);
 
+  const canReadOperationsDirectorInbox = role === "DEPT_HEAD" ? await isDsiAdmin(actorId) : false;
+  const ownPendingWhere = {
+    currentAssigneeId: actorId,
+    status: { in: ["SUBMITTED", "PENDING"] as any },
+  };
+
   const where =
     role === "CEO"
       ? {
           status: { in: ["SUBMITTED", "PENDING"] as any },
           OR: [{ currentAssigneeId: actorId }, { reachedCeoAt: { not: null } }],
         }
+      : canReadOperationsDirectorInbox
+        ? {
+            status: { in: ["SUBMITTED", "PENDING"] as any },
+            OR: [
+              { currentAssigneeId: actorId },
+              {
+                employee: { department: { type: "OPERATIONS" as const } },
+                currentAssignee: {
+                  role: "DEPT_HEAD" as const,
+                  department: { type: "OPERATIONS" as const },
+                },
+              },
+            ],
+          }
       : {
-          currentAssigneeId: actorId,
-          status: { in: ["SUBMITTED", "PENDING"] as any },
+          ...ownPendingWhere,
         };
 
   const leaves = await prisma.leaveRequest.findMany({

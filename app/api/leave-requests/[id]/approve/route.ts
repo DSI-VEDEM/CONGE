@@ -8,6 +8,7 @@ import {
   notifyEmployeeOfLeaveDecision,
   requireAuth,
   isFinalStatus,
+  canActAsOperationsDirectorFallback,
 } from "@/lib/leave-requests";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -27,7 +28,15 @@ export async function POST(req: Request, ctx: Ctx) {
       status: true,
       currentAssigneeId: true,
       reachedCeoAt: true,
-      employee: { select: { firstName: true, lastName: true, role: true } },
+      employee: {
+        select: {
+          firstName: true,
+          lastName: true,
+          role: true,
+          department: { select: { type: true } },
+        },
+      },
+      currentAssignee: { select: { role: true, department: { select: { type: true } } } },
     },
   });
 
@@ -35,7 +44,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (isFinalStatus(leave.status)) return jsonError("Demande déjà traitée", 409);
   if (leave.currentAssigneeId !== actorId) {
     const ceoCanAct = role === "CEO" && !!leave.reachedCeoAt;
-    if (!ceoCanAct) return jsonError("Accès refusé", 403);
+    const dsiCanActAsOperationsDirector = await canActAsOperationsDirectorFallback(actorId, leave);
+    if (!ceoCanAct && !dsiCanActAsOperationsDirector) return jsonError("Accès refusé", 403);
   }
   if (leave.employeeId === actorId) return jsonError("Action interdite sur sa propre demande", 403);
 

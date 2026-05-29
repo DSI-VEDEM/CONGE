@@ -52,7 +52,7 @@ git commit -m "feat(security/quality/devops): roadmap mois 1-3 + priorités post
 - lib/rate-limit.ts: sliding window in-memory par IP.
 - next.config.ts: poweredByHeader=false, compress, output:standalone,
   headers de sécurité (X-Frame, HSTS, Referrer, Permissions, X-CTO).
-- middleware.ts: CSP stricte avec nonce par requête (strict-dynamic),
+- proxy.ts: CSP stricte avec nonce par requête (strict-dynamic),
   injection automatique via header x-nonce.
 - prisma/schema.prisma: Employee.mustChangePassword.
 

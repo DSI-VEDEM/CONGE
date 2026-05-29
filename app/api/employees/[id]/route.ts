@@ -6,6 +6,7 @@ import { jsonError } from "@/lib/auth";
 import { requireAuth } from "@/lib/leave-requests";
 import { norm } from "@/lib/validators";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import { isDsiAdmin } from "@/lib/dsiAdmin";
 
 function parseIsoDate(value: unknown) {
   const raw = norm(value);
@@ -54,12 +55,15 @@ export async function PUT(req: Request, ctx: Ctx) {
 
   const existing = await prisma.employee.findUnique({
     where: { id },
-    select: { role: true, departmentId: true, serviceId: true },
+    select: { role: true, departmentId: true, serviceId: true, department: { select: { type: true } } },
   });
   if (!existing) return jsonError("Employé introuvable", 404);
 
+  const actorIsDsiAdmin = await isDsiAdmin(actor.id);
+  const canManageOperationsAsDsi = actorIsDsiAdmin && existing.department?.type === "OPERATIONS";
+
   // En dehors du CEO, l'édition est limitée au même département.
-  if (actor.role !== "CEO") {
+  if (actor.role !== "CEO" && !canManageOperationsAsDsi) {
     if (!actor.departmentId || actor.departmentId !== existing.departmentId) {
       return jsonError("Accès refusé", 403);
     }

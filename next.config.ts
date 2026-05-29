@@ -4,7 +4,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 /// Headers de sécurité globaux appliqués à toutes les routes.
 /// La CSP n'est PAS gérée ici : elle est dynamique (nonce par requête) et
-/// posée par `middleware.ts` à la racine.
+/// posée par `proxy.ts` à la racine.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },

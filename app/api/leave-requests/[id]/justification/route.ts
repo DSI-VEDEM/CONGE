@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
-import { requireAuth } from "@/lib/leave-requests";
+import { canActAsOperationsDirectorFallback, requireAuth } from "@/lib/leave-requests";
 import { decodeLeaveJustificationDataUrl } from "@/lib/leave-justification";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -32,7 +32,8 @@ export async function GET(req: Request, ctx: Ctx) {
         justificationFileName: true,
         justificationMimeType: true,
         justificationFileDataUrl: true,
-        employee: { select: { departmentId: true, serviceId: true } },
+        employee: { select: { departmentId: true, serviceId: true, department: { select: { type: true } } } },
+        currentAssignee: { select: { role: true, department: { select: { type: true } } } },
       },
     }),
   ]);
@@ -42,13 +43,15 @@ export async function GET(req: Request, ctx: Ctx) {
 
   const sameDepartment = actor.departmentId && actor.departmentId === leave.employee?.departmentId;
   const sameService = actor.serviceId && actor.serviceId === leave.employee?.serviceId;
+  const dsiCanReadAsOperationsDirector = await canActAsOperationsDirectorFallback(actor.id, leave);
   const canRead =
     leave.employeeId === actor.id ||
     leave.currentAssigneeId === actor.id ||
     actor.role === "CEO" ||
     actor.role === "ACCOUNTANT" ||
     (actor.role === "DEPT_HEAD" && Boolean(sameDepartment)) ||
-    (actor.role === "SERVICE_HEAD" && Boolean(sameService));
+    (actor.role === "SERVICE_HEAD" && Boolean(sameService)) ||
+    dsiCanReadAsOperationsDirector;
 
   if (!canRead) return jsonError("Accès refusé", 403);
   if (!leave.justificationFileDataUrl || !leave.justificationFileName) {

@@ -15,9 +15,17 @@ export const dsiMenu: SidebarSection[] = [
   {
     title: "Département Informatique",
     links: [
-      { label: "Employés de mon service", icon: "users", to: "/dashboard/dsi/department/employees" },
-      { label: "Historique des employés", icon: "clock", to: "/dashboard/dsi/department/employees-history" },
-      { label: "Demandes transmises", icon: "clipboard", to: "/dashboard/dsi/inbox" },
+      { label: "Employés DSI", icon: "users", to: "/dashboard/dsi/department/employees" },
+      { label: "Historique congés DSI", icon: "clock", to: "/dashboard/dsi/department/employees-history" },
+      { label: "Demandes DSI", icon: "clipboard", to: "/dashboard/dsi/inbox" },
+    ],
+  },
+  {
+    title: "Direction des opérations",
+    links: [
+      { label: "Employés DO", icon: "users", to: "/dashboard/dsi/operations/employees" },
+      { label: "Historique congés DO", icon: "clock", to: "/dashboard/dsi/operations/employees-history" },
+      { label: "Demandes opérations", icon: "clipboard", to: "/dashboard/dsi/operations/inbox" },
     ],
   },
   {

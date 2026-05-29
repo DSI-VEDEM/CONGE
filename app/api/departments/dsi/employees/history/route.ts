@@ -34,42 +34,45 @@ export async function GET(req: Request) {
     select: { id: true },
   });
 
-  if (!dsiDepartment) return NextResponse.json({ history: [] });
+  if (!dsiDepartment) return NextResponse.json({ leaves: [] });
 
-  const employees = await prisma.employee.findMany({
+  const leaves = await prisma.leaveRequest.findMany({
     where: {
-      departmentId: dsiDepartment.id,
-      ...(actor.role === "SERVICE_HEAD" ? { serviceId: actor.serviceId ?? "__none__" } : {}),
+      status: { in: ["APPROVED", "REJECTED", "CANCELLED"] },
+      employee: {
+        departmentId: dsiDepartment.id,
+        ...(actor.role === "SERVICE_HEAD" ? { serviceId: actor.serviceId ?? "__none__" } : {}),
+      },
     },
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      profilePhotoUrl: true,
-      role: true,
+      type: true,
+      startDate: true,
+      endDate: true,
       status: true,
       createdAt: true,
-      updatedAt: true,
+      employee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          profilePhotoUrl: true,
+          role: true,
+          leaveBalance: true,
+        },
+      },
+      decisions: {
+        where: { type: { in: ["APPROVE", "REJECT", "CANCEL"] } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          createdAt: true,
+          actor: { select: { id: true, firstName: true, lastName: true, role: true } },
+        },
+      },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
-  const history = employees.map((employee) => {
-    const action = employee.status === "REJECTED" ? "LEFT" : "JOINED";
-    const actionDate = employee.status === "REJECTED" ? employee.updatedAt : employee.createdAt;
-
-    return {
-      id: `${employee.id}:${action}`,
-      employeeId: employee.id,
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      profilePhotoUrl: employee.profilePhotoUrl,
-      role: employee.role,
-      status: employee.status,
-      action,
-      date: actionDate,
-    };
-  });
-
-  return NextResponse.json({ history });
+  return NextResponse.json({ leaves });
 }

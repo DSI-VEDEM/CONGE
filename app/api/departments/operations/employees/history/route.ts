@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import { isDsiAdmin } from "@/lib/dsiAdmin";
 
 export async function GET(req: Request) {
   const v = verifyJwt(req);
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
   const actor = await prisma.employee.findUnique({
     where: { id: actorId },
     select: {
+      id: true,
       role: true,
       serviceId: true,
       department: { select: { type: true } },
@@ -24,8 +26,9 @@ export async function GET(req: Request) {
 
   const canReadAsManager = actor.role === "DEPT_HEAD" || actor.role === "SERVICE_HEAD";
   const inOperations = actor.department?.type === "OPERATIONS";
+  const canReadAsDsiAdmin = await isDsiAdmin(actor.id);
 
-  if (actor.role !== "CEO" && !(canReadAsManager && inOperations)) {
+  if (actor.role !== "CEO" && !(canReadAsManager && inOperations) && !canReadAsDsiAdmin) {
     return jsonError("Accès refusé", 403);
   }
 
