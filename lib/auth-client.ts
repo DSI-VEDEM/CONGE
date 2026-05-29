@@ -3,6 +3,13 @@ import { MaritalStatus } from "@/lib/marital-status";
 
 export type EmployeeRole = "CEO" | "ACCOUNTANT" | "DEPT_HEAD" | "SERVICE_HEAD" | "EMPLOYEE";
 export type EmployeeStatus = "PENDING" | "ACTIVE" | "REJECTED";
+export type DafDelegationPermission = "holidays" | "leaveBalance" | "contractDocuments";
+
+export type DafPermissions = {
+  holidays?: boolean | null;
+  leaveBalance?: boolean | null;
+  contractDocuments?: boolean | null;
+};
 
 export type EmployeeSession = {
   id: string;
@@ -27,6 +34,7 @@ export type EmployeeSession = {
   serviceId?: string | null;
   isDsiAdmin?: boolean;
   departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null;
+  dafPermissions?: DafPermissions | null;
   hireDateFormatted?: string | null;
 };
 
@@ -59,10 +67,18 @@ export function isDsiLeader(
   return Boolean(isDsiAdmin || departmentType === "DSI");
 }
 
+export function isDafLeader(
+  role: EmployeeRole | string,
+  departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null
+) {
+  return role === "ACCOUNTANT" || (role === "DEPT_HEAD" && departmentType === "DAF");
+}
+
 export function routeForRole(
   role: EmployeeRole,
   isDsiAdmin = false,
-  departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null
+  departmentType?: "DAF" | "DSI" | "OPERATIONS" | "OTHERS" | string | null,
+  dafPermissions?: DafPermissions | null
 ) {
   const isDsi = isDsiLeader(isDsiAdmin, departmentType);
   switch (role) {
@@ -71,10 +87,12 @@ export function routeForRole(
     case "ACCOUNTANT":
       return "/dashboard/accountant";
     case "DEPT_HEAD":
+      if (departmentType === "DAF") return "/dashboard/accountant";
       return isDsi ? "/dashboard/dsi" : "/dashboard/operations";
     case "SERVICE_HEAD":
       return "/dashboard/manager";
     default:
+      if (hasAnyDafPermission(dafPermissions)) return firstDafDelegationRoute(dafPermissions);
       return "/dashboard/employee";
   }
 }
@@ -86,6 +104,7 @@ export function profileRouteForSession(employee: EmployeeSession) {
     case "ACCOUNTANT":
       return "/dashboard/accountant/profile";
     case "DEPT_HEAD":
+      if (employee.departmentType === "DAF") return "/dashboard/accountant/profile";
       if (isDsiLeader(employee.isDsiAdmin, employee.departmentType ?? null)) return "/dashboard/dsi/profile";
       return "/dashboard/operations/profile";
     case "SERVICE_HEAD":
@@ -134,4 +153,31 @@ export function hasRequiredProfileData(employee?: EmployeeSession | null) {
     hasMaritalStatus(employee) &&
     hasChildrenCount(employee)
   );
+}
+
+export function hasDafPermission(
+  employeeOrPermissions: EmployeeSession | DafPermissions | null | undefined,
+  permission: DafDelegationPermission
+) {
+  if (!employeeOrPermissions) return false;
+  const permissions: DafPermissions | null | undefined =
+    "role" in employeeOrPermissions ? employeeOrPermissions.dafPermissions : employeeOrPermissions;
+  return Boolean(permissions?.[permission]);
+}
+
+export function hasAnyDafPermission(employeeOrPermissions?: EmployeeSession | DafPermissions | null) {
+  return (
+    hasDafPermission(employeeOrPermissions, "holidays") ||
+    hasDafPermission(employeeOrPermissions, "leaveBalance") ||
+    hasDafPermission(employeeOrPermissions, "contractDocuments")
+  );
+}
+
+export function firstDafDelegationRoute(permissions?: DafPermissions | null) {
+  if (hasDafPermission(permissions, "holidays")) return "/dashboard/accountant/holidays";
+  if (hasDafPermission(permissions, "leaveBalance"))
+    return "/dashboard/accountant/department/leave-adjustment";
+  if (hasDafPermission(permissions, "contractDocuments"))
+    return "/dashboard/accountant/administration/contracts/types";
+  return "/dashboard/employee";
 }

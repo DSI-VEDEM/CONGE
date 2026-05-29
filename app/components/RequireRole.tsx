@@ -29,7 +29,7 @@ export default function RequireRole({
     }
 
     if (!allow.includes(emp.role)) {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 

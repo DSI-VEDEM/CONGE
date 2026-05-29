@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 function authFromRequest(req: Request) {
   const v = verifyJwt(req);
@@ -21,8 +22,9 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const authRes = authFromRequest(req);
   if (!authRes.ok) return authRes.error;
 
-  const { role } = authRes.auth;
-  if (role !== "ACCOUNTANT") {
+  const { id: actorId, role } = authRes.auth;
+  const canManage = role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "contractDocuments"));
+  if (!canManage) {
     return jsonError("Accès refusé", 403);
   }
 

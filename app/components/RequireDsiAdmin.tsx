@@ -35,12 +35,12 @@ export default function RequireDsiAdmin({ children }: { children: React.ReactNod
     }
 
     if (emp.role !== "DEPT_HEAD") {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 
     if (!isDsiLeader(emp.isDsiAdmin, emp.departmentType ?? null)) {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 

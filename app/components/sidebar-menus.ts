@@ -1,4 +1,5 @@
 import type { SidebarSection } from "./sidebar-types";
+import type { DafPermissions } from "@/lib/auth-client";
 
 const LEAVE_ADJUSTMENT_DEPLOYMENT_START_UTC = Date.UTC(2026, 3, 1, 0, 0, 0, 0);
 const LEAVE_ADJUSTMENT_DEPLOYMENT_END_UTC = Date.UTC(2027, 0, 1, 0, 0, 0, 0);
@@ -27,6 +28,60 @@ export const employeeMenu: SidebarSection[] = [
     links: [{ label: "Profil", icon: "user", to: "/dashboard/employee/profile" }],
   },
 ];
+
+export function buildDafDelegateLinks(permissions?: DafPermissions | null): SidebarSection["links"] {
+  const links: SidebarSection["links"] = [];
+  if (permissions?.holidays) {
+    links.push({ label: "Jours fériés", icon: "calendar", to: "/dashboard/accountant/holidays" });
+  }
+  if (permissions?.leaveBalance) {
+    links.push({
+      label: "Ajuster solde",
+      icon: "shield",
+      to: "/dashboard/accountant/department/leave-adjustment",
+    });
+  }
+  if (permissions?.contractDocuments) {
+    links.push({
+      label: "Contrats à ajouter",
+      icon: "shield",
+      to: "/dashboard/accountant/administration/contracts/types",
+    });
+    links.push({
+      label: "Documents contractuels",
+      icon: "file-text",
+      to: "/dashboard/accountant/administration/contracts/documents",
+    });
+  }
+  return links;
+}
+
+function insertDafDelegationSection(sections: SidebarSection[], permissions?: DafPermissions | null) {
+  const delegatedLinks = buildDafDelegateLinks(permissions);
+  if (delegatedLinks.length === 0) return sections;
+
+  const delegationSection: SidebarSection = {
+    title: "Délégation DAF",
+    links: delegatedLinks,
+  };
+  const accountSectionIndex = sections.findIndex((section) => section.title === "Compte");
+
+  if (accountSectionIndex === -1) return [...sections, delegationSection];
+
+  return [
+    ...sections.slice(0, accountSectionIndex),
+    delegationSection,
+    ...sections.slice(accountSectionIndex),
+  ];
+}
+
+export function employeeMenuForDafDelegate(permissions?: DafPermissions | null): SidebarSection[] {
+  return insertDafDelegationSection(employeeMenu, permissions);
+}
+
+export function dafDelegateMenu(permissions?: DafPermissions | null): SidebarSection[] {
+  return employeeMenuForDafDelegate(permissions);
+}
 
 export const accountantMenu: SidebarSection[] = [
   { title: null, links: [{ label: "Tableau de bord", icon: "home", to: "/dashboard/accountant" }] },
@@ -90,6 +145,7 @@ export const accountantMenu: SidebarSection[] = [
         to: "/dashboard/accountant/payslips/imported/by-year",
       },
       { label: "Documents RH employés", icon: "file-text", to: "/dashboard/accountant/documents/employees" },
+      { label: "Délégation DAF", icon: "users", to: "/dashboard/accountant/administration/delegation" },
     ],
   },
   {

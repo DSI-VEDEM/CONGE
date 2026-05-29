@@ -9,6 +9,7 @@ import { parseBody } from "@/lib/validate";
 import { loginSchema } from "@/lib/schemas/auth.schema";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
 import { logError } from "@/lib/logger";
+import { normalizeDafPermissions } from "@/lib/daf-delegation";
 
 export async function POST(req: Request) {
   /// Authentifie par email / matricule et émet un cookie httpOnly + retourne le token (legacy).
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
         role: true,
         status: true,
         leaveBalance: true,
+        canManageDafHolidays: true,
+        canManageDafLeaveBalances: true,
+        canManageDafContractDocuments: true,
         departmentId: true,
         serviceId: true,
         maritalStatus: true,
@@ -65,6 +69,7 @@ export async function POST(req: Request) {
     }
 
     const departmentType = employee.department?.type ?? null;
+    const dafPermissions = normalizeDafPermissions(employee);
     const isDeptHeadDsi = employee.role === "DEPT_HEAD" && departmentType === "DSI";
 
     // Vérifie si l'utilisateur est responsable DSI pour activer les contrôles spéciaux.
@@ -120,6 +125,7 @@ export async function POST(req: Request) {
         serviceId: employee.serviceId,
         isDsiAdmin,
         departmentType,
+        dafPermissions,
       },
     });
 

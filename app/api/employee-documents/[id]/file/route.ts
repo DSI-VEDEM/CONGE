@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -16,9 +17,17 @@ function authFromRequest(req: Request) {
   return { ok: true as const, auth: { id, role } };
 }
 
-function canReadDocument(actorRole: string, actorId: string, ownerId: string, ownerRole?: string | null) {
+function canReadDocument(
+  actorRole: string,
+  actorId: string,
+  ownerId: string,
+  ownerRole: string | null | undefined,
+  docType: string,
+  canManageContractDocuments: boolean
+) {
   if (ownerRole === "CEO") return false;
   if (actorRole === "CEO" || actorRole === "ACCOUNTANT") return true;
+  if (canManageContractDocuments && docType === "CONTRACT") return true;
   return actorId === ownerId;
 }
 
@@ -51,12 +60,23 @@ export async function GET(req: Request, ctx: Ctx) {
       fileName: true,
       fileDataUrl: true,
       mimeType: true,
+      type: true,
       employee: { select: { role: true } },
     },
   });
   if (!existing) return jsonError("Document introuvable", 404);
 
-  if (!canReadDocument(actorRole, actorId, existing.employeeId, existing.employee?.role)) {
+  const canManageContractDocuments = await actorHasDafPermission(actorId, "contractDocuments");
+  if (
+    !canReadDocument(
+      actorRole,
+      actorId,
+      existing.employeeId,
+      existing.employee?.role,
+      existing.type,
+      canManageContractDocuments
+    )
+  ) {
     return jsonError("Accès refusé", 403);
   }
 

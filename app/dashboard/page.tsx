@@ -26,7 +26,7 @@ export default function DashboardIndex() {
       return;
     }
 
-    router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+    router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
   }, [router]);
 
   return null;

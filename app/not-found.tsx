@@ -7,7 +7,7 @@ import { getEmployee, routeForRole } from "@/lib/auth-client";
 export default function NotFoundPage() {
   const employee = getEmployee();
   const target = employee
-    ? routeForRole(employee.role, employee.isDsiAdmin, employee.departmentType ?? null)
+    ? routeForRole(employee.role, employee.isDsiAdmin, employee.departmentType ?? null, employee.dafPermissions)
     : "/login";
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-vdm-gold-100/20 via-white to-white px-4 text-center">

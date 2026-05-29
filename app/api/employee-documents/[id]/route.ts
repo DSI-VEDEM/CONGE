@@ -6,6 +6,7 @@ import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 import { documentRequiresValidityDate } from "@/lib/document-validity";
 import type { DocumentType } from "@/lib/document-types";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 const DOCUMENT_TYPES = new Set([
   "ID_CARD",
@@ -52,9 +53,17 @@ function authFromRequest(req: Request) {
   return { ok: true as const, auth: { id, role } };
 }
 
-function canManage(actorRole: string, actorId: string, docOwnerId: string, docOwnerRole?: string | null) {
+function canManage(
+  actorRole: string,
+  actorId: string,
+  docOwnerId: string,
+  docOwnerRole: string | null | undefined,
+  docType: string,
+  canManageContractDocuments: boolean
+) {
   if (actorRole === "CEO") return false;
   if (actorRole === "ACCOUNTANT") return docOwnerRole !== "CEO";
+  if (canManageContractDocuments && docType === "CONTRACT") return docOwnerRole !== "CEO";
   return actorId === docOwnerId;
 }
 
@@ -88,7 +97,24 @@ export async function PUT(req: Request, ctx: Ctx) {
   });
   if (!existing) return jsonError("Document introuvable", 404);
 
-  if (!canManage(actorRole, actorId, existing.employeeId, existing.employee?.role)) {
+  const canManageContractDocuments = await actorHasDafPermission(actorId, "contractDocuments");
+  const managesAsDafDelegate =
+    actorRole !== "ACCOUNTANT" &&
+    actorRole !== "CEO" &&
+    canManageContractDocuments &&
+    existing.type === "CONTRACT" &&
+    actorId !== existing.employeeId;
+
+  if (
+    !canManage(
+      actorRole,
+      actorId,
+      existing.employeeId,
+      existing.employee?.role,
+      existing.type,
+      canManageContractDocuments
+    )
+  ) {
     return jsonError("Accès refusé", 403);
   }
 
@@ -106,7 +132,10 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (actorRole === "CEO" && !nextIsContractType) {
     return jsonError("Le PDG ne peut pas modifier de documents RH autres que les contrats", 403);
   }
-  if (nextIsContractType && actorRole !== "ACCOUNTANT" && actorRole !== "CEO") {
+  if (managesAsDafDelegate && !nextIsContractType) {
+    return jsonError("La délégation DAF permet uniquement de gérer les documents de contrats", 403);
+  }
+  if (nextIsContractType && actorRole !== "ACCOUNTANT" && actorRole !== "CEO" && !canManageContractDocuments) {
     return jsonError("Seule la comptable (ou le PDG) peut gérer les documents de contrats", 403);
   }
 
@@ -256,12 +285,23 @@ export async function DELETE(req: Request, ctx: Ctx) {
     select: {
       id: true,
       employeeId: true,
+      type: true,
       employee: { select: { role: true } },
     },
   });
   if (!existing) return jsonError("Document introuvable", 404);
 
-  if (!canManage(actorRole, actorId, existing.employeeId, existing.employee?.role)) {
+  const canManageContractDocuments = await actorHasDafPermission(actorId, "contractDocuments");
+  if (
+    !canManage(
+      actorRole,
+      actorId,
+      existing.employeeId,
+      existing.employee?.role,
+      existing.type,
+      canManageContractDocuments
+    )
+  ) {
     return jsonError("Accès refusé", 403);
   }
 

@@ -34,7 +34,7 @@ export default function RequireOperationsDirector({ children }: { children: Reac
     }
 
     if (emp.role !== "DEPT_HEAD") {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 
@@ -44,7 +44,7 @@ export default function RequireOperationsDirector({ children }: { children: Reac
     }
 
     if (emp.departmentType && emp.departmentType !== "OPERATIONS") {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 

@@ -9,6 +9,7 @@ import { norm } from "@/lib/validators";
 import { isEmployeeGender } from "@/lib/employee-gender";
 import { isMaritalStatus } from "@/lib/marital-status";
 import { syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import { normalizeDafPermissions } from "@/lib/daf-delegation";
 import {
   PROFILE_PHOTO_INVALID_MESSAGE,
   PROFILE_PHOTO_TOO_LARGE_MESSAGE,
@@ -81,8 +82,12 @@ export async function GET(req: Request) {
       jobTitle: true,
       role: true,
       status: true,
+      canManageDafHolidays: true,
+      canManageDafLeaveBalances: true,
+      canManageDafContractDocuments: true,
       departmentId: true,
       serviceId: true,
+      department: { select: { type: true } },
       maritalStatus: true,
       childrenCount: true,
       hireDateFormatted: true,
@@ -92,7 +97,13 @@ export async function GET(req: Request) {
   });
 
   if (!employee) return NextResponse.json({ error: "Employé introuvable" }, { status: 404 });
-  return NextResponse.json({ employee });
+  return NextResponse.json({
+    employee: {
+      ...employee,
+      departmentType: employee.department?.type ?? null,
+      dafPermissions: normalizeDafPermissions(employee),
+    },
+  });
 }
 
 export async function PUT(req: Request) {
@@ -283,8 +294,12 @@ export async function PUT(req: Request) {
         role: true,
         status: true,
         leaveBalance: true,
+        canManageDafHolidays: true,
+        canManageDafLeaveBalances: true,
+        canManageDafContractDocuments: true,
         departmentId: true,
         serviceId: true,
+        department: { select: { type: true } },
         maritalStatus: true,
         childrenCount: true,
       },
@@ -295,5 +310,11 @@ export async function PUT(req: Request) {
   }
 
   if (!updated) return jsonError("Employé introuvable", 404);
-  return NextResponse.json({ employee: updated });
+  return NextResponse.json({
+    employee: {
+      ...updated,
+      departmentType: updated.department?.type ?? null,
+      dafPermissions: normalizeDafPermissions(updated),
+    },
+  });
 }

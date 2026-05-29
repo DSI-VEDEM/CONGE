@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 function authFromRequest(req: Request) {
   const v = verifyJwt(req);
@@ -37,7 +38,8 @@ export async function POST(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  if (role !== "ACCOUNTANT") {
+  const canManage = role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "contractDocuments"));
+  if (!canManage) {
     return jsonError("Accès refusé", 403);
   }
 

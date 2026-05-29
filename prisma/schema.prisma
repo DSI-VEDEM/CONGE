@@ -203,6 +203,10 @@ model Employee {
   firstYearLeaveUsedDays Float          @default(0)
   /// Année d'application de `firstYearLeaveUsedDays` (null = inactif)
   firstYearLeaveUsedYear Int?
+  /// Droits délégués par la direction DAF.
+  canManageDafHolidays          Boolean? @default(false)
+  canManageDafLeaveBalances     Boolean? @default(false)
+  canManageDafContractDocuments Boolean? @default(false)
 
   // Auto-relation (approbation) => NoAction obligatoire sur un côté
   approvedById   String?    @db.ObjectId

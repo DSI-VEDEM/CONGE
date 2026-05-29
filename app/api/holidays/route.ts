@@ -11,6 +11,7 @@ import {
   toRecurringAnchorDate,
   utcYearRange,
 } from "@/lib/holidays";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 function parseYearParam(value: string | null) {
   if (!value) return null;
@@ -66,7 +67,8 @@ export async function POST(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role, isDsiAdmin } = authRes.auth;
-  if (role !== "ACCOUNTANT" && !isDsiAdmin) return jsonError("Accès refusé", 403);
+  const canManage = role === "ACCOUNTANT" || Boolean(isDsiAdmin) || (await actorHasDafPermission(actorId, "holidays"));
+  if (!canManage) return jsonError("Accès refusé", 403);
 
   const body = await req.json().catch(() => ({}));
   const rawDate = parseDate(norm(body?.date));

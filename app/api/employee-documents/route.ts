@@ -8,6 +8,7 @@ import { documentRequiresValidityDate, DOCUMENTS_REQUIRING_VALID_UNTIL_SET } fro
 import type { DocumentType } from "@/lib/document-types";
 import type { NotificationCategory } from "@/generated/prisma/client";
 import { findActiveEmployeeByRole } from "@/lib/leave-requests";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 const DOCUMENT_TYPES = new Set([
   "ID_CARD",
@@ -227,7 +228,6 @@ export async function GET(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  const canReadAll = isGlobalReader(role);
 
   const url = new URL(req.url);
   const employeeId = norm(url.searchParams.get("employeeId"));
@@ -246,6 +246,9 @@ export async function GET(req: Request) {
   if (type && !DOCUMENT_TYPES.has(type)) {
     return jsonError("Type de document invalide", 400);
   }
+
+  const canManageContractDocuments = await actorHasDafPermission(actorId, "contractDocuments");
+  const canReadAll = isGlobalReader(role) || (canManageContractDocuments && type === "CONTRACT");
 
   if (!canReadAll && employeeId && employeeId !== actorId) {
     return jsonError("Accès refusé", 403);
@@ -338,8 +341,17 @@ export async function POST(req: Request) {
   const validUntilDate = parseDateValue(validUntilRaw);
   const requestedEmployeeId = norm(body?.employeeId);
   let employeeId = actorId;
+
+  if (!DOCUMENT_TYPES.has(type)) {
+    return jsonError("Type de document invalide", 400);
+  }
+
+  const isContractType = type === "CONTRACT";
+  const canManageContractDocuments =
+    role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "contractDocuments"));
+
   if (requestedEmployeeId && requestedEmployeeId !== actorId) {
-    if (role !== "ACCOUNTANT") {
+    if (!canManageContractDocuments || !isContractType) {
       return jsonError("Vous ne pouvez ajouter que vos propres documents", 403);
     }
     employeeId = requestedEmployeeId;
@@ -351,10 +363,6 @@ export async function POST(req: Request) {
   });
   if (!employee) return jsonError("Employé introuvable", 404);
 
-  if (!DOCUMENT_TYPES.has(type)) {
-    return jsonError("Type de document invalide", 400);
-  }
-
   const needsValidityDate = documentRequiresValidityDate(type as DocumentType);
   if (validUntilRaw && !validUntilDate) {
     return jsonError("Date de validité invalide", 400);
@@ -363,11 +371,10 @@ export async function POST(req: Request) {
     return jsonError("Date de validité requise pour ce document", 400);
   }
 
-  const isContractType = type === "CONTRACT";
   if (role === "CEO" && !isContractType) {
     return jsonError("Le PDG ne peut pas ajouter de documents RH autres que les contrats", 403);
   }
-  if (isContractType && role !== "ACCOUNTANT" && role !== "CEO") {
+  if (isContractType && role !== "ACCOUNTANT" && role !== "CEO" && !canManageContractDocuments) {
     return jsonError("Seule la comptable (ou le PDG) peut ajouter des documents de contrats", 403);
   }
 
@@ -458,7 +465,7 @@ export async function POST(req: Request) {
     },
   });
 
-  if (type === "CONTRACT" && role === "ACCOUNTANT") {
+  if (type === "CONTRACT" && canManageContractDocuments) {
     const docTypeName = created.contractDocumentType?.name ?? "document contractuel";
     const ceo = await findActiveEmployeeByRole("CEO");
     if (ceo) {
@@ -467,7 +474,7 @@ export async function POST(req: Request) {
       await prisma.notification.create({
         data: {
           title: "Nouveaux documents à signer",
-          body: `La comptable a téléchargé un document ${docTypeName.toLowerCase()} pour ${employeeLabel}. Merci de signer ce document.`,
+          body: `La DAF a téléchargé un document ${docTypeName.toLowerCase()} pour ${employeeLabel}. Merci de signer ce document.`,
           category: "ACTION" as NotificationCategory,
           employeeId: ceo.id,
           targetRole: "CEO",
@@ -483,7 +490,7 @@ export async function POST(req: Request) {
     await prisma.notification.create({
       data: {
         title: "Document ajouté",
-        body: `La comptable a partagé un ${docTypeName.toLowerCase()} pour vous. Consultez-le dans vos documents.`,
+        body: `La DAF a partagé un ${docTypeName.toLowerCase()} pour vous. Consultez-le dans vos documents.`,
         category: "INFO" as NotificationCategory,
         employeeId,
         targetRole: "EMPLOYEE",

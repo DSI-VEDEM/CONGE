@@ -1,4 +1,6 @@
 import pkg, { type DepartmentType, type EmployeeRole, type ServiceType } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 const {
   PrismaClient,
   DepartmentType: DepartmentTypeEnum,
@@ -7,8 +9,6 @@ const {
   ServiceType: ServiceTypeEnum,
   ResponsibilityRole: ResponsibilityRoleEnum,
 } = pkg;
-import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -139,6 +139,124 @@ const employeeDefinitions: EmployeeSeedDefinition[] = [
     departmentType: DepartmentTypeEnum.OPERATIONS,
     serviceType: ServiceTypeEnum.QUALITE,
     matricule: "017",
+  },
+  {
+    email: "marine@veilleurdesmedias.com",
+    firstName: "Marine",
+    lastName: "N'DIAYE",
+    jobTitle: "Responsable des Ressources Humaines",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.OTHERS,
+    matricule: "009",
+  },
+  {
+    email: "ines@veilleurdesmedias.com",
+    firstName: "Inès",
+    lastName: "DUPONT",
+    jobTitle: "Assistante de Direction",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.OTHERS,
+    matricule: "010",
+  },
+  {
+    email: "benjamin@veilleurdesmedias.com",
+    firstName: "Benjamin",
+    lastName: "LEMAIRE",
+    jobTitle: "Chargé de Communication",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.OTHERS,
+    matricule: "011",
+  },
+  {
+    email: "veronique@veilleurdesmedias.com",
+    firstName: "Véronique",
+    lastName: "MOREAU",
+    jobTitle: "Juriste",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.OTHERS,
+    matricule: "012",
+  },
+  {
+    email: "ameline@veilleurdesmedias.com",
+    firstName: "Ameline",
+    lastName: "MARTIN",
+    jobTitle: "Gestionnaire administrative",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DAF,
+    matricule: "014",
+  },
+  {
+    email: "luc@veilleurdesmedias.com",
+    firstName: "Luc",
+    lastName: "DURAND",
+    jobTitle: "Analyste financier",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DAF,
+    matricule: "015",
+  },
+  {
+    email: "antoine@veilleurdesmedias.com",
+    firstName: "Antoine",
+    lastName: "LEFEVRE",
+    jobTitle: "Assistant administratif",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DAF,
+    matricule: "016",
+  },
+  {
+    email: "marie@veilleurdesmedias.com",
+    firstName: "Marie",
+    lastName: "ROCHER",
+    jobTitle: "Contrôleur de Gestion",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DAF,
+    matricule: "018",
+  },
+  {
+    email: "sylvie@veilleurdesmedias.com",
+    firstName: "Sylvie",
+    lastName: "PIERRE",
+    jobTitle: "Ingénieure Cloud",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DSI,
+    matricule: "002",
+  },
+  {
+    email: "nicolas@veilleurdesmedias.com",
+    firstName: "Nicolas",
+    lastName: "BOURBON",
+    jobTitle: "Technicien Support",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DSI,
+    matricule: "003",
+  },
+  {
+    email: "claire@veilleurdesmedias.com",
+    firstName: "Claire",
+    lastName: "FERNANDEZ",
+    jobTitle: "Chef de Projet Digital",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DSI,
+    matricule: "004",
+  },
+  {
+    email: "laurent@veilleurdesmedias.com",
+    firstName: "Laurent",
+    lastName: "MARCHAND",
+    jobTitle: "Développeur Backend",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.DSI,
+    matricule: "005",
+  },
+  {
+    email: "nathalie@veilleurdesmedias.com",
+    firstName: "Nathalie",
+    lastName: "MOREL",
+    jobTitle: "Chargée de Mission Opérations",
+    role: EmployeeRoleEnum.EMPLOYEE,
+    departmentType: DepartmentTypeEnum.OPERATIONS,
+    serviceType: ServiceTypeEnum.INFORMATION,
+    matricule: "020",
   },
 ];
 

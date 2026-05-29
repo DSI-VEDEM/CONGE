@@ -83,7 +83,7 @@ function LoginContent() {
       const nextRoute = !hasRequiredProfileData(data.employee)
         ? "/onboarding"
         : role
-          ? routeForRole(role, isDsiAdmin, departmentType)
+          ? routeForRole(role, isDsiAdmin, departmentType, data.employee.dafPermissions ?? null)
           : "/dashboard";
       window.location.href = nextRoute;
     } catch {

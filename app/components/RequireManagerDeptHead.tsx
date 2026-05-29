@@ -26,11 +26,11 @@ export default function RequireManagerDeptHead({ children }: { children: React.R
     }
 
     if (emp.role !== "SERVICE_HEAD") {
-      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+      router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
       return;
     }
 
-    router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null));
+    router.replace(routeForRole(emp.role, emp.isDsiAdmin, emp.departmentType ?? null, emp.dafPermissions));
     return;
   }, [router]);
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/auth";
 import { requireAuth } from "@/lib/leave-requests";
 import { getLeaveCycleForDate, syncEmployeeLeaveBalance } from "@/lib/leave-balance";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 type Ctx = { params: Promise<{ id: string }> };
 type LeaveBalanceAction = "RESET" | "INCREASE" | "SET" | "SET_FIRST_YEAR_USED";
@@ -13,8 +14,8 @@ export async function POST(req: Request, ctx: Ctx) {
   const authRes = requireAuth(req);
   if (!authRes.ok) return authRes.error;
 
-  const { role } = authRes.auth;
-  const canManage = role === "CEO" || role === "ACCOUNTANT";
+  const { id: actorId, role } = authRes.auth;
+  const canManage = role === "CEO" || role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "leaveBalance"));
   if (!canManage) return jsonError("Accès refusé", 403);
 
   const { id } = await ctx.params;
@@ -30,8 +31,8 @@ export async function POST(req: Request, ctx: Ctx) {
     return jsonError("Action invalide (RESET|INCREASE|SET|SET_FIRST_YEAR_USED)", 400);
   }
 
-  if (role === "ACCOUNTANT" && action !== "SET_FIRST_YEAR_USED") {
-    return jsonError("La comptable peut uniquement ajuster le solde de première année", 403);
+  if (role !== "CEO" && action !== "SET_FIRST_YEAR_USED") {
+    return jsonError("La DAF peut uniquement ajuster le solde de première année", 403);
   }
 
   if (action === "INCREASE" || action === "SET") {

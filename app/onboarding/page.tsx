@@ -123,7 +123,9 @@ export default function OnboardingPage() {
       return;
     }
     if (hasRequiredProfileData(employee)) {
-      router.replace(routeForRole(employee.role, employee.isDsiAdmin, employee.departmentType ?? null));
+      router.replace(
+        routeForRole(employee.role, employee.isDsiAdmin, employee.departmentType ?? null, employee.dafPermissions)
+      );
       return;
     }
 
@@ -140,7 +142,9 @@ export default function OnboardingPage() {
         localStorage.setItem("employee", JSON.stringify(merged));
         setDraft(merged);
         if (hasRequiredProfileData(merged)) {
-          router.replace(routeForRole(merged.role, merged.isDsiAdmin, merged.departmentType ?? null));
+          router.replace(
+            routeForRole(merged.role, merged.isDsiAdmin, merged.departmentType ?? null, merged.dafPermissions)
+          );
         }
       }
     };
@@ -245,7 +249,9 @@ export default function OnboardingPage() {
       const updated = { ...draft, ...(data?.employee ?? {}) };
       localStorage.setItem("employee", JSON.stringify(updated));
       toast.success("Profil complété. Bienvenue.", { id: t });
-      router.replace(routeForRole(updated.role, updated.isDsiAdmin, updated.departmentType ?? null));
+      router.replace(
+        routeForRole(updated.role, updated.isDsiAdmin, updated.departmentType ?? null, updated.dafPermissions)
+      );
     } catch {
       const message = draft.profilePhotoUrl
         ? "Envoi impossible. La photo est peut-être trop volumineuse, essayez une image plus légère."

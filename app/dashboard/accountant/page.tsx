@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardCharts from "@/app/components/DashboardCharts";
-import { getToken } from "@/lib/auth-client";
+import {
+  firstDafDelegationRoute,
+  getEmployee,
+  getToken,
+  hasAnyDafPermission,
+  isDafLeader,
+  type EmployeeSession,
+} from "@/lib/auth-client";
 
 const MONTHS = [
   "Jan.",
@@ -31,13 +39,16 @@ type DecisionItem = {
 };
 
 export default function AccountantHome() {
+  const router = useRouter();
+  const [currentEmployee, setCurrentEmployee] = useState<EmployeeSession | null>(null);
   const [pending, setPending] = useState<PendingLeave[]>([]);
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const refreshData = useCallback(async () => {
     const token = getToken();
-    if (!token) return;
+    if (!token || !currentEmployee || !isDafLeader(currentEmployee.role, currentEmployee.departmentType ?? null))
+      return;
     setIsLoading(true);
     try {
       const [pendingRes, historyRes] = await Promise.all([
@@ -65,7 +76,21 @@ export default function AccountantHome() {
     } finally {
       setIsLoading(false);
     }
+  }, [currentEmployee]);
+
+  useEffect(() => {
+    setCurrentEmployee(getEmployee());
   }, []);
+
+  useEffect(() => {
+    if (
+      currentEmployee &&
+      !isDafLeader(currentEmployee.role, currentEmployee.departmentType ?? null) &&
+      hasAnyDafPermission(currentEmployee)
+    ) {
+      router.replace(firstDafDelegationRoute(currentEmployee?.dafPermissions));
+    }
+  }, [currentEmployee, router]);
 
   useEffect(() => {
     let active = true;
@@ -133,6 +158,8 @@ export default function AccountantHome() {
       ],
     };
   }, [decisions, pending.length]);
+
+  if (!currentEmployee || !isDafLeader(currentEmployee.role, currentEmployee.departmentType ?? null)) return null;
 
   return (
     <div className="p-6">

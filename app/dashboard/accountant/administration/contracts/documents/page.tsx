@@ -13,7 +13,7 @@ export default function AccountantContractDocumentsPage() {
 
   return (
     <RequireAuth>
-      <RoleGate allow={["ACCOUNTANT"]}>
+      <RoleGate allow={["ACCOUNTANT"]} allowDafPermissions={["contractDocuments"]}>
         <div className="p-6 space-y-6">
           <div>
             <div className="text-xl font-semibold mb-1 text-vdm-gold-800">Documents contractuels</div>
