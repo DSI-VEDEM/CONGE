@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 function authFromRequest(req: Request) {
   const v = verifyJwt(req);
@@ -43,7 +44,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
   if (!slip) return jsonError("Bulletin introuvable", 404);
 
-  const isPrivileged = role === "ACCOUNTANT" || role === "CEO";
+  const isPrivileged =
+    role === "ACCOUNTANT" ||
+    role === "CEO" ||
+    (await actorHasDafPermission(actorId, "salarySlips"));
   const isOwner = slip.employeeId === actorId;
 
   if (!isPrivileged && !isOwner) {
@@ -62,8 +66,10 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  if (role !== "ACCOUNTANT") {
-    return jsonError("Seule la comptable peut retirer un bulletin", 403);
+  const canManageSalarySlips =
+    role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "salarySlips"));
+  if (!canManageSalarySlips) {
+    return jsonError("Seule la comptable ou le délégué DAF peut retirer un bulletin", 403);
   }
 
   const { id } = await ctx.params;

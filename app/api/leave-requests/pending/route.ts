@@ -25,36 +25,54 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const take = parseTakeParam(url.searchParams.get("take"));
   const page = parsePageParam(url.searchParams.get("page"));
+  const scope = url.searchParams.get("scope");
   const skip = (page - 1) * take;
 
   await autoApproveOverdueForActor(actorId, role);
 
   const canReadOperationsDirectorInbox = role === "DEPT_HEAD" ? await isDsiAdmin(actorId) : false;
+  const pendingStatus = { status: { in: ["SUBMITTED", "PENDING"] as any } };
   const ownPendingWhere = {
+    ...pendingStatus,
     currentAssigneeId: actorId,
-    status: { in: ["SUBMITTED", "PENDING"] as any },
+  };
+  const dsiPendingWhere = {
+    ...ownPendingWhere,
+    employee: { department: { type: "DSI" as const } },
+  };
+  const operationsDirectorPendingWhere = {
+    ...pendingStatus,
+    employee: { department: { type: "OPERATIONS" as const } },
+    currentAssignee: {
+      role: "DEPT_HEAD" as const,
+      department: { type: "OPERATIONS" as const },
+    },
   };
 
   const where =
     role === "CEO"
       ? {
-          status: { in: ["SUBMITTED", "PENDING"] as any },
+          ...pendingStatus,
           OR: [{ currentAssigneeId: actorId }, { reachedCeoAt: { not: null } }],
         }
       : canReadOperationsDirectorInbox
-        ? {
-            status: { in: ["SUBMITTED", "PENDING"] as any },
-            OR: [
-              { currentAssigneeId: actorId },
-              {
-                employee: { department: { type: "OPERATIONS" as const } },
-                currentAssignee: {
-                  role: "DEPT_HEAD" as const,
-                  department: { type: "OPERATIONS" as const },
-                },
-              },
-            ],
-          }
+        ? scope === "dsi"
+          ? dsiPendingWhere
+          : scope === "operations"
+            ? operationsDirectorPendingWhere
+            : {
+                ...pendingStatus,
+                OR: [
+                  { currentAssigneeId: actorId },
+                  {
+                    employee: { department: { type: "OPERATIONS" as const } },
+                    currentAssignee: {
+                      role: "DEPT_HEAD" as const,
+                      department: { type: "OPERATIONS" as const },
+                    },
+                  },
+                ],
+              }
       : {
           ...ownPendingWhere,
         };

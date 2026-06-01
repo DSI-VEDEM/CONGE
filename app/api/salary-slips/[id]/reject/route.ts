@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
-import { findActiveEmployeeByRole } from "@/lib/leave-requests";
 import type { NotificationCategory } from "@/generated/prisma/client";
 
 function authFromRequest(req: Request) {
@@ -53,10 +52,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // Only delete non-signed slips.
   await prisma.salarySlip.delete({ where: { id } });
 
-  // Notify accountant (and fallback to uploader if needed).
-  const accountant = await findActiveEmployeeByRole("ACCOUNTANT");
-  const recipientId = accountant?.id ?? slip.uploadedById;
-
   const monthLabel = String(slip.month).padStart(2, "0");
   const ownerParts = [slip.employee?.firstName, slip.employee?.lastName].filter(Boolean);
   const ownerLabel = ownerParts.length
@@ -69,8 +64,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       title: "Bulletin refusé par le PDG",
       body: `Le PDG a refusé le bulletin de ${ownerLabel} (${monthLabel}/${slip.year}).\n\nMotif: ${comment}\n${fileLabel}`,
       category: "ALERT" as NotificationCategory,
-      employeeId: recipientId,
-      targetRole: "ACCOUNTANT",
+      employeeId: slip.uploadedById,
+      targetRole: null,
       global: false,
       metadata: {
         rejectedSalarySlip: {

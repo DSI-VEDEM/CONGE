@@ -55,9 +55,12 @@ export default function DsiInbox() {
     ) => {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
-        const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}&scope=dsi`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({

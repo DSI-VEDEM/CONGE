@@ -53,6 +53,18 @@ export function buildDafDelegateLinks(permissions?: DafPermissions | null): Side
       to: "/dashboard/accountant/administration/contracts/documents",
     });
   }
+  if (permissions?.salarySlips) {
+    links.push({
+      label: "Bulletins à ajouter",
+      icon: "shield",
+      to: "/dashboard/accountant/payslips/imported",
+    });
+    links.push({
+      label: "Bulletins employés",
+      icon: "file-text",
+      to: "/dashboard/accountant/payslips/imported/by-year",
+    });
+  }
   return links;
 }
 

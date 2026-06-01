@@ -207,6 +207,7 @@ model Employee {
   canManageDafHolidays          Boolean? @default(false)
   canManageDafLeaveBalances     Boolean? @default(false)
   canManageDafContractDocuments Boolean? @default(false)
+  canManageDafSalarySlips       Boolean? @default(false)
 
   // Auto-relation (approbation) => NoAction obligatoire sur un côté
   approvedById   String?    @db.ObjectId

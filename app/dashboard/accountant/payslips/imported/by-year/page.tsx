@@ -7,7 +7,7 @@ import ImportedSalarySlipsByYear from "@/app/components/ImportedSalarySlipsByYea
 export default function AccountantImportedPayslipsByYearPage() {
   return (
     <RequireAuth>
-      <RoleGate allow={["ACCOUNTANT"]}>
+      <RoleGate allow={["ACCOUNTANT"]} allowDafPermissions={["salarySlips"]}>
         <div className="p-6">
           <ImportedSalarySlipsByYear />
         </div>

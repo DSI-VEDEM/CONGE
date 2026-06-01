@@ -17,9 +17,25 @@ type LeaveItem = {
 
 type PendingEmployee = { id: string };
 
+type DepartmentEmployee = {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  role?: string | null;
+  status?: string | null;
+};
+
 type PendingLeave = {
   id: string;
   createdAt: string;
+  employee?: {
+    id?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    jobTitle?: string | null;
+    role?: string | null;
+  } | null;
 };
 
 type DecisionItem = {
@@ -49,10 +65,17 @@ function consumedDaysForYear(leaves: LeaveItem[], year: number) {
   return total;
 }
 
+function fullName(person?: { firstName?: string | null; lastName?: string | null } | null) {
+  return `${person?.firstName ?? ""} ${person?.lastName ?? ""}`.trim() || "Collaborateur";
+}
+
 export default function DsiDashboard() {
   const employee = useMemo(() => getEmployee(), []);
   const [leaves, setLeaves] = useState<LeaveItem[]>([]);
-  const [pendingLeaves, setPendingLeaves] = useState<PendingLeave[]>([]);
+  const [dsiPendingLeaves, setDsiPendingLeaves] = useState<PendingLeave[]>([]);
+  const [operationsPendingLeaves, setOperationsPendingLeaves] = useState<PendingLeave[]>([]);
+  const [dsiEmployees, setDsiEmployees] = useState<DepartmentEmployee[]>([]);
+  const [operationsEmployees, setOperationsEmployees] = useState<DepartmentEmployee[]>([]);
   const [pendingEmployees, setPendingEmployees] = useState<PendingEmployee[]>([]);
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [annualBalance, setAnnualBalance] = useState<number>(BASE_ALLOWANCE);
@@ -62,11 +85,28 @@ export default function DsiDashboard() {
     const token = getToken();
     if (!token) return;
 
-    const [myRes, pendingRes, employeesRes, historyRes] = await Promise.all([
+    const [
+      myRes,
+      dsiPendingRes,
+      operationsPendingRes,
+      dsiEmployeesRes,
+      operationsEmployeesRes,
+      employeesRes,
+      historyRes,
+    ] = await Promise.all([
       fetch("/api/leave-requests/my", {
         headers: { Authorization: `Bearer ${token}` },
       }),
-      fetch("/api/leave-requests/pending", {
+      fetch("/api/leave-requests/pending?scope=dsi&take=300", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("/api/leave-requests/pending?scope=operations&take=300", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("/api/departments/dsi/employees", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("/api/departments/operations/employees?maxEmployees=120", {
         headers: { Authorization: `Bearer ${token}` },
       }),
       fetch("/api/admin/employees/pending", {
@@ -90,8 +130,17 @@ export default function DsiDashboard() {
       setRemainingBalance(Number.isFinite(remainingFromApi) ? remainingFromApi : fallbackRemaining);
     }
 
-    const pendingData = await pendingRes.json().catch(() => ({}));
-    if (pendingRes.ok) setPendingLeaves(pendingData?.leaves ?? []);
+    const dsiPendingData = await dsiPendingRes.json().catch(() => ({}));
+    if (dsiPendingRes.ok) setDsiPendingLeaves(dsiPendingData?.leaves ?? []);
+
+    const operationsPendingData = await operationsPendingRes.json().catch(() => ({}));
+    if (operationsPendingRes.ok) setOperationsPendingLeaves(operationsPendingData?.leaves ?? []);
+
+    const dsiEmployeesData = await dsiEmployeesRes.json().catch(() => ({}));
+    if (dsiEmployeesRes.ok) setDsiEmployees(dsiEmployeesData?.employees ?? []);
+
+    const operationsEmployeesData = await operationsEmployeesRes.json().catch(() => ({}));
+    if (operationsEmployeesRes.ok) setOperationsEmployees(operationsEmployeesData?.employees ?? []);
 
     const employeesData = await employeesRes.json().catch(() => ({}));
     if (employeesRes.ok) setPendingEmployees(employeesData?.employees ?? []);
@@ -184,13 +233,25 @@ export default function DsiDashboard() {
         { name: "Refusées", value: rejectedCount },
       ],
       barData: [
-        { name: "Boîte de réception", value: pendingLeaves.length },
+        { name: "Demandes DSI", value: dsiPendingLeaves.length },
+        { name: "Demandes DO", value: operationsPendingLeaves.length },
+        { name: "Employés DSI", value: dsiEmployees.length },
+        { name: "Employés DO", value: operationsEmployees.length },
         { name: "Auto-validées", value: autoApprovedCount },
         { name: "Comptes", value: pendingEmployees.length },
         { name: "Solde", value: balance },
       ],
     };
-  }, [decisions, leaves, pendingLeaves.length, pendingEmployees.length, remainingBalance]);
+  }, [
+    decisions,
+    leaves,
+    dsiEmployees.length,
+    dsiPendingLeaves.length,
+    operationsEmployees.length,
+    operationsPendingLeaves.length,
+    pendingEmployees.length,
+    remainingBalance,
+  ]);
 
   return (
     <div className="p-6 space-y-4">
@@ -201,7 +262,7 @@ export default function DsiDashboard() {
         <div className="text-sm text-vdm-gold-700">Vous êtes connecté en tant que DSI (Administrateur).</div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="text-sm text-vdm-gold-700">Solde de congés</div>
@@ -218,9 +279,17 @@ export default function DsiDashboard() {
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
-          <div className="text-sm text-vdm-gold-700">À traiter</div>
-          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{pendingLeaves.length}</div>
-          <div className="text-xs text-gray-500 mt-2">Demandes transmises par la comptable.</div>
+          <div className="text-sm text-vdm-gold-700">Demandes DSI</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{dsiPendingLeaves.length}</div>
+          <div className="text-xs text-gray-500 mt-2">Boîte réservée au département DSI.</div>
+        </div>
+
+        <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="text-sm text-vdm-gold-700">Demandes DO visibles</div>
+          <div className="text-3xl font-bold text-vdm-gold-800 mt-2">
+            {operationsPendingLeaves.length}
+          </div>
+          <div className="text-xs text-gray-500 mt-2">Boîte réservée à la Direction des opérations.</div>
         </div>
 
         <div className="bg-white border border-vdm-gold-200 rounded-xl p-4">
@@ -234,6 +303,104 @@ export default function DsiDashboard() {
           <div className="text-3xl font-bold text-vdm-gold-800 mt-2">{pendingEmployees.length}</div>
           <div className="text-xs text-gray-500 mt-2">Validation des nouveaux employés.</div>
         </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3 border-b border-vdm-gold-100 pb-3">
+            <div>
+              <h2 className="text-base font-semibold text-vdm-gold-900">Espace réservé DSI</h2>
+              <p className="text-xs text-vdm-gold-700">Collaborateurs et demandes du département DSI.</p>
+            </div>
+            <div className="text-right text-xs text-vdm-gold-700">
+              <div>{dsiEmployees.length} employé(s)</div>
+              <div>{dsiPendingLeaves.length} demande(s)</div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 pt-4 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-semibold text-vdm-gold-900 mb-2">Employés DSI</div>
+              <div className="divide-y divide-vdm-gold-100">
+                {dsiEmployees.slice(0, 5).map((item) => (
+                  <div key={item.id} className="py-2">
+                    <div className="text-sm font-medium text-vdm-gold-900">{fullName(item)}</div>
+                    <div className="text-xs text-vdm-gold-600">{item.jobTitle || item.role || "—"}</div>
+                  </div>
+                ))}
+                {dsiEmployees.length === 0 ? (
+                  <div className="py-2 text-sm text-vdm-gold-700">Aucun employé DSI à afficher.</div>
+                ) : null}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold text-vdm-gold-900 mb-2">Demandes DSI</div>
+              <div className="divide-y divide-vdm-gold-100">
+                {dsiPendingLeaves.slice(0, 5).map((leave) => (
+                  <div key={leave.id} className="py-2">
+                    <div className="text-sm font-medium text-vdm-gold-900">{fullName(leave.employee)}</div>
+                    <div className="text-xs text-vdm-gold-600">
+                      Reçue le {new Date(leave.createdAt).toLocaleDateString("fr-FR")}
+                    </div>
+                  </div>
+                ))}
+                {dsiPendingLeaves.length === 0 ? (
+                  <div className="py-2 text-sm text-vdm-gold-700">Aucune demande DSI en attente.</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white border border-vdm-gold-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3 border-b border-vdm-gold-100 pb-3">
+            <div>
+              <h2 className="text-base font-semibold text-vdm-gold-900">
+                Espace réservé Direction des opérations
+              </h2>
+              <p className="text-xs text-vdm-gold-700">Collaborateurs DO et demandes visibles par la DSI.</p>
+            </div>
+            <div className="text-right text-xs text-vdm-gold-700">
+              <div>{operationsEmployees.length} employé(s)</div>
+              <div>{operationsPendingLeaves.length} demande(s)</div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 pt-4 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-semibold text-vdm-gold-900 mb-2">Employés DO</div>
+              <div className="divide-y divide-vdm-gold-100">
+                {operationsEmployees.slice(0, 5).map((item) => (
+                  <div key={item.id} className="py-2">
+                    <div className="text-sm font-medium text-vdm-gold-900">{fullName(item)}</div>
+                    <div className="text-xs text-vdm-gold-600">{item.jobTitle || item.role || "—"}</div>
+                  </div>
+                ))}
+                {operationsEmployees.length === 0 ? (
+                  <div className="py-2 text-sm text-vdm-gold-700">Aucun employé DO à afficher.</div>
+                ) : null}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-semibold text-vdm-gold-900 mb-2">Demandes DO visibles</div>
+              <div className="divide-y divide-vdm-gold-100">
+                {operationsPendingLeaves.slice(0, 5).map((leave) => (
+                  <div key={leave.id} className="py-2">
+                    <div className="text-sm font-medium text-vdm-gold-900">{fullName(leave.employee)}</div>
+                    <div className="text-xs text-vdm-gold-600">
+                      Reçue le {new Date(leave.createdAt).toLocaleDateString("fr-FR")}
+                    </div>
+                  </div>
+                ))}
+                {operationsPendingLeaves.length === 0 ? (
+                  <div className="py-2 text-sm text-vdm-gold-700">Aucune demande DO en attente.</div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <DashboardCharts

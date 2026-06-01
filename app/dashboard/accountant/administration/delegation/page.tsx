@@ -9,6 +9,7 @@ type DafPermissions = {
   holidays: boolean;
   leaveBalance: boolean;
   contractDocuments: boolean;
+  salarySlips: boolean;
 };
 
 type DafEmployee = {
@@ -27,10 +28,16 @@ const emptyPermissions: DafPermissions = {
   holidays: false,
   leaveBalance: false,
   contractDocuments: false,
+  salarySlips: false,
 };
 
 function hasAnyPermission(permissions?: DafPermissions | null) {
-  return Boolean(permissions?.holidays || permissions?.leaveBalance || permissions?.contractDocuments);
+  return Boolean(
+    permissions?.holidays ||
+      permissions?.leaveBalance ||
+      permissions?.contractDocuments ||
+      permissions?.salarySlips
+  );
 }
 
 function fullName(employee: DafEmployee) {
@@ -264,6 +271,22 @@ export default function DafDelegationPage() {
                 <span className="block font-semibold">Documents contractuels</span>
                 <span className="block text-xs text-vdm-gold-600">
                   Ajouter les types et déposer les documents contractuels.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 rounded-lg border border-vdm-gold-200 p-3 text-sm text-vdm-gold-900">
+              <input
+                type="checkbox"
+                checked={permissions.salarySlips}
+                onChange={(e) => updatePermission("salarySlips", e.target.checked)}
+                className="mt-1 h-4 w-4 accent-vdm-gold-700"
+                disabled={!selectedEmployee || isSaving}
+              />
+              <span>
+                <span className="block font-semibold">Bulletins de paie</span>
+                <span className="block text-xs text-vdm-gold-600">
+                  Importer les bulletins des collaborateurs et suivre les bulletins signés.
                 </span>
               </span>
             </label>

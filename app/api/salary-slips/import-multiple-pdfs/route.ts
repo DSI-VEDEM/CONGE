@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, verifyJwt } from "@/lib/auth";
 import { findActiveEmployeeByRole } from "@/lib/leave-requests";
 import type { NotificationCategory } from "@/generated/prisma/client";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 const MAX_FILES = 400;
 const MAX_DATA_URL_LENGTH = 14 * 1024 * 1024;
 
@@ -131,7 +132,9 @@ export async function POST(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  if (role !== "ACCOUNTANT") return jsonError("Accès refusé", 403);
+  const canManageSalarySlips =
+    role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "salarySlips"));
+  if (!canManageSalarySlips) return jsonError("Accès refusé", 403);
 
   const form = await req.formData().catch(() => null);
   if (!form) return jsonError("FormData invalide", 400);
@@ -273,7 +276,7 @@ export async function POST(req: Request) {
       await prisma.notification.create({
         data: {
           title: "Bulletins prêts à signer",
-          body: `La comptable a importé ${createdCount} bulletin(s). Merci de les signer.`,
+          body: `La DAF a importé ${createdCount} bulletin(s). Merci de les signer.`,
           category: "ACTION" as NotificationCategory,
           employeeId: ceo.id,
           targetRole: "CEO",

@@ -46,6 +46,7 @@ export async function POST(req: Request) {
         canManageDafHolidays: true,
         canManageDafLeaveBalances: true,
         canManageDafContractDocuments: true,
+        canManageDafSalarySlips: true,
         departmentId: true,
         serviceId: true,
         maritalStatus: true,

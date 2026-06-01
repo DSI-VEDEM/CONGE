@@ -26,11 +26,19 @@ function isAllowedDafDelegatePath(pathname: string, employee: ReturnType<typeof 
   ) {
     return true;
   }
-  if (hasDafPermission(permissions, "contractDocuments")) {
-    return (
-      pathname.startsWith("/dashboard/accountant/administration/contracts/types") ||
-      pathname.startsWith("/dashboard/accountant/administration/contracts/documents")
-    );
+  if (
+    hasDafPermission(permissions, "contractDocuments") &&
+    (pathname.startsWith("/dashboard/accountant/administration/contracts/types") ||
+      pathname.startsWith("/dashboard/accountant/administration/contracts/documents"))
+  ) {
+    return true;
+  }
+  if (
+    hasDafPermission(permissions, "salarySlips") &&
+    (pathname.startsWith("/dashboard/accountant/payslips/imported") ||
+      pathname.startsWith("/dashboard/accountant/payslips/admin"))
+  ) {
+    return true;
   }
   return false;
 }

@@ -1,23 +1,26 @@
 import { prisma } from "@/lib/prisma";
 
-export type DafDelegationPermission = "holidays" | "leaveBalance" | "contractDocuments";
+export type DafDelegationPermission = "holidays" | "leaveBalance" | "contractDocuments" | "salarySlips";
 
 export type DafDelegationFlags = {
   canManageDafHolidays?: boolean | null;
   canManageDafLeaveBalances?: boolean | null;
   canManageDafContractDocuments?: boolean | null;
+  canManageDafSalarySlips?: boolean | null;
 };
 
 export type DafPermissions = {
   holidays: boolean;
   leaveBalance: boolean;
   contractDocuments: boolean;
+  salarySlips: boolean;
 };
 
 const permissionField: Record<DafDelegationPermission, keyof DafDelegationFlags> = {
   holidays: "canManageDafHolidays",
   leaveBalance: "canManageDafLeaveBalances",
   contractDocuments: "canManageDafContractDocuments",
+  salarySlips: "canManageDafSalarySlips",
 };
 
 export function normalizeDafPermissions(flags?: DafDelegationFlags | null): DafPermissions {
@@ -25,6 +28,7 @@ export function normalizeDafPermissions(flags?: DafDelegationFlags | null): DafP
     holidays: Boolean(flags?.canManageDafHolidays),
     leaveBalance: Boolean(flags?.canManageDafLeaveBalances),
     contractDocuments: Boolean(flags?.canManageDafContractDocuments),
+    salarySlips: Boolean(flags?.canManageDafSalarySlips),
   };
 }
 
@@ -39,7 +43,8 @@ export function hasAnyStoredDafPermission(flags?: DafDelegationFlags | null) {
   return Boolean(
     flags?.canManageDafHolidays ||
       flags?.canManageDafLeaveBalances ||
-      flags?.canManageDafContractDocuments
+      flags?.canManageDafContractDocuments ||
+      flags?.canManageDafSalarySlips
   );
 }
 
@@ -81,6 +86,7 @@ export async function actorHasDafPermission(employeeId: string, permission: DafD
       canManageDafHolidays: true,
       canManageDafLeaveBalances: true,
       canManageDafContractDocuments: true,
+      canManageDafSalarySlips: true,
     },
   });
 

@@ -7,7 +7,7 @@ import SalarySlipsAdmin from "@/app/components/SalarySlipsAdmin";
 export default function AccountantImportedPayslipsPage() {
   return (
     <RequireAuth>
-      <RoleGate allow={["ACCOUNTANT"]}>
+      <RoleGate allow={["ACCOUNTANT"]} allowDafPermissions={["salarySlips"]}>
         <SalarySlipsAdmin showIndividualImport={false} />
       </RoleGate>
     </RequireAuth>

@@ -13,6 +13,7 @@ function permissionPayload(body: Record<string, unknown>) {
     canManageDafContractDocuments: Boolean(
       body?.canManageDafContractDocuments ?? body?.contractDocuments
     ),
+    canManageDafSalarySlips: Boolean(body?.canManageDafSalarySlips ?? body?.salarySlips),
   };
 }
 
@@ -20,7 +21,8 @@ function hasAnyPermission(payload: ReturnType<typeof permissionPayload>) {
   return (
     payload.canManageDafHolidays ||
     payload.canManageDafLeaveBalances ||
-    payload.canManageDafContractDocuments
+    payload.canManageDafContractDocuments ||
+    payload.canManageDafSalarySlips
   );
 }
 
@@ -62,6 +64,7 @@ export async function GET(req: Request) {
       canManageDafHolidays: true,
       canManageDafLeaveBalances: true,
       canManageDafContractDocuments: true,
+      canManageDafSalarySlips: true,
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
@@ -119,6 +122,7 @@ export async function PATCH(req: Request) {
             canManageDafHolidays: false,
             canManageDafLeaveBalances: false,
             canManageDafContractDocuments: false,
+            canManageDafSalarySlips: false,
           },
         });
       }
@@ -138,6 +142,7 @@ export async function PATCH(req: Request) {
           canManageDafHolidays: true,
           canManageDafLeaveBalances: true,
           canManageDafContractDocuments: true,
+          canManageDafSalarySlips: true,
         },
       });
     });

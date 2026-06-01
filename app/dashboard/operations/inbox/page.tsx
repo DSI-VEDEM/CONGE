@@ -2,6 +2,7 @@
 import { formatDateDMY } from "@/lib/date-format";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import DataTable from "@/app/components/DataTable";
 import EmployeeAvatar from "@/app/components/EmployeeAvatar";
@@ -35,6 +36,8 @@ function statusClass(status: Req["status"]) {
 
 export default function OperationsInbox() {
   const PENDING_PAGE_SIZE = 100;
+  const pathname = usePathname();
+  const pendingScope = pathname.startsWith("/dashboard/dsi/operations") ? "&scope=operations" : "";
   const currentEmployee = useMemo(() => getEmployee(), []);
   const [rows, setRows] = useState<Req[]>([]);
   const [page, setPage] = useState(1);
@@ -54,9 +57,12 @@ export default function OperationsInbox() {
       if (options.showLoader && !cancelled) setIsLoading(true);
       try {
         // GET /api/leave-requests/pending pour charger la page courante.
-        const res = await fetch(`/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `/api/leave-requests/pending?page=${targetPage}&take=${PENDING_PAGE_SIZE}${pendingScope}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
           const mapped = (data?.leaves ?? []).map((x: any) => ({
@@ -103,7 +109,7 @@ export default function OperationsInbox() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [page, pendingScope]);
 
   const approve = useCallback(async (id: string) => {
     const token = getToken();

@@ -3,12 +3,13 @@ import { MaritalStatus } from "@/lib/marital-status";
 
 export type EmployeeRole = "CEO" | "ACCOUNTANT" | "DEPT_HEAD" | "SERVICE_HEAD" | "EMPLOYEE";
 export type EmployeeStatus = "PENDING" | "ACTIVE" | "REJECTED";
-export type DafDelegationPermission = "holidays" | "leaveBalance" | "contractDocuments";
+export type DafDelegationPermission = "holidays" | "leaveBalance" | "contractDocuments" | "salarySlips";
 
 export type DafPermissions = {
   holidays?: boolean | null;
   leaveBalance?: boolean | null;
   contractDocuments?: boolean | null;
+  salarySlips?: boolean | null;
 };
 
 export type EmployeeSession = {
@@ -169,7 +170,8 @@ export function hasAnyDafPermission(employeeOrPermissions?: EmployeeSession | Da
   return (
     hasDafPermission(employeeOrPermissions, "holidays") ||
     hasDafPermission(employeeOrPermissions, "leaveBalance") ||
-    hasDafPermission(employeeOrPermissions, "contractDocuments")
+    hasDafPermission(employeeOrPermissions, "contractDocuments") ||
+    hasDafPermission(employeeOrPermissions, "salarySlips")
   );
 }
 
@@ -179,5 +181,6 @@ export function firstDafDelegationRoute(permissions?: DafPermissions | null) {
     return "/dashboard/accountant/department/leave-adjustment";
   if (hasDafPermission(permissions, "contractDocuments"))
     return "/dashboard/accountant/administration/contracts/types";
+  if (hasDafPermission(permissions, "salarySlips")) return "/dashboard/accountant/payslips/imported";
   return "/dashboard/employee";
 }

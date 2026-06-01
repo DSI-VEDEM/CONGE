@@ -6,6 +6,7 @@ import { jsonError, verifyJwt } from "@/lib/auth";
 import { norm } from "@/lib/validators";
 import type { NotificationCategory } from "@/generated/prisma/client";
 import { findActiveEmployeeByRole } from "@/lib/leave-requests";
+import { actorHasDafPermission } from "@/lib/daf-delegation";
 
 const PDF_DATA_URL_RE = /^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_URL_LENGTH = 14 * 1024 * 1024;
@@ -53,8 +54,10 @@ export async function GET(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  const isAccountant = role === "ACCOUNTANT";
   const isCeo = role === "CEO";
+  const canManageSalarySlips =
+    role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "salarySlips"));
+  const canViewAll = isCeo || canManageSalarySlips;
 
   const url = new URL(req.url);
   const year = parsePositiveInt(url.searchParams.get("year"));
@@ -71,13 +74,13 @@ export async function GET(req: Request) {
   if (url.searchParams.get("page") && !page) return jsonError("Page invalide", 400);
   if (url.searchParams.get("take") && !take) return jsonError("Taille de page invalide", 400);
 
-  if (!isAccountant && !isCeo && employeeId && employeeId !== actorId) {
+  if (!canViewAll && employeeId && employeeId !== actorId) {
     return jsonError("Accès refusé", 403);
   }
 
   const where: Record<string, unknown> = {};
 
-  if (!isAccountant && !isCeo) {
+  if (!canViewAll) {
     where.employeeId = actorId;
     where.signedAt = { not: null };
   }
@@ -86,13 +89,13 @@ export async function GET(req: Request) {
   if (month != null) where.month = month;
   if (mineOnly) {
     where.employeeId = actorId;
-  } else if (employeeId && (isAccountant || isCeo)) {
+  } else if (employeeId && canViewAll) {
     where.employeeId = employeeId;
   }
   if (unsignedOnly && isCeo) {
     where.OR = [{ signedAt: null }, { signedAt: { isSet: false } }];
   }
-  if (signedOnly && (isAccountant || isCeo)) {
+  if (signedOnly && canViewAll) {
     where.signedAt = { not: null };
   }
 
@@ -102,7 +105,7 @@ export async function GET(req: Request) {
     { month: "desc" as const },
     { createdAt: "desc" as const },
   ];
-  const orderBy = signedOnly || (!isAccountant && !isCeo) ? signedOrder : defaultOrder;
+  const orderBy = signedOnly || !canViewAll ? signedOrder : defaultOrder;
 
   const slips = await prisma.salarySlip.findMany({
     where,
@@ -133,7 +136,9 @@ export async function POST(req: Request) {
   if (!authRes.ok) return authRes.error;
 
   const { id: actorId, role } = authRes.auth;
-  if (role !== "ACCOUNTANT") return jsonError("Accès refusé", 403);
+  const canManageSalarySlips =
+    role === "ACCOUNTANT" || (await actorHasDafPermission(actorId, "salarySlips"));
+  if (!canManageSalarySlips) return jsonError("Accès refusé", 403);
 
   const body = await req.json().catch(() => ({}));
 
@@ -206,7 +211,7 @@ export async function POST(req: Request) {
       await prisma.notification.create({
         data: {
           title: "Bulletin prêt à signer",
-          body: `La comptable a importé un bulletin pour ${employeeLabel} (${monthLabel}/${created.year}). Merci de le signer.`,
+          body: `La DAF a importé un bulletin pour ${employeeLabel} (${monthLabel}/${created.year}). Merci de le signer.`,
           category: "ACTION" as NotificationCategory,
           employeeId: ceo.id,
           targetRole: "CEO",
