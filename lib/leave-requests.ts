@@ -102,6 +102,7 @@ export async function autoApproveOverdueForDeptHead(deptHeadId: string, days: nu
       currentAssigneeId: deptHeadId,
       status: { in: ["SUBMITTED", "PENDING"] },
       deptHeadAssignedAt: { lt: cutoff },
+      employee: { role: { in: DIRECTOR_ROLES } },
     },
     select: { id: true },
   });

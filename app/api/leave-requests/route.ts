@@ -242,14 +242,10 @@ export async function POST(req: Request) {
   }
 
   let assignee = null;
-  let autoCeo = null;
-  let reachedCeoAt: Date | null = null;
   if (role === "EMPLOYEE") {
     assignee = await findActiveEmployeeByRole("ACCOUNTANT");
   } else if (role === "DEPT_HEAD" || role === "SERVICE_HEAD") {
-    assignee = await findActiveEmployeeByRole("ACCOUNTANT");
-    autoCeo = await findActiveEmployeeByRole("CEO");
-    if (autoCeo) reachedCeoAt = new Date();
+    assignee = await findActiveEmployeeByRole("CEO");
   } else if (role === "ACCOUNTANT") {
     assignee = await findActiveEmployeeByRole("CEO");
   }
@@ -273,7 +269,7 @@ export async function POST(req: Request) {
       currentAssigneeId: assignee.id,
       deptHeadAssignedAt:
         assignee.role === "DEPT_HEAD" || assignee.role === "SERVICE_HEAD" ? new Date() : null,
-      reachedCeoAt: assignee.role === "CEO" ? new Date() : reachedCeoAt,
+      reachedCeoAt: assignee.role === "CEO" ? new Date() : null,
     },
     select: {
       id: true,
@@ -313,18 +309,6 @@ export async function POST(req: Request) {
     startDate,
     endDate,
   });
-
-  if (autoCeo) {
-    await prisma.leaveDecision.create({
-      data: {
-        leaveRequestId: created.id,
-        actorId,
-        type: "ESCALATE",
-        toEmployeeId: autoCeo.id,
-        comment: "Auto-escalation PDG (DEPT_HEAD/SERVICE_HEAD).",
-      },
-    });
-  }
 
   return NextResponse.json({ leave: created }, { status: 201 });
 }
